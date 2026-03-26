@@ -1,0 +1,44 @@
+.registration-page {
+  display: grid;
+  gap: 22px;
+  color: #edf6ff;
+}
+
+.registration-page__hero {
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(14, 31, 46, 0.96), rgba(10, 25, 38, 0.88));
+}
+
+.registration-page__hero {
+  padding: 32px;
+}
+
+.registration-page__hero h2,
+.registration-page__hero p {
+  margin: 0;
+}
+
+.registration-page__eyebrow {
+  margin-bottom: 12px;
+  color: #73d5bf;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.72rem;
+}
+
+.registration-page__hero h2 {
+  font-size: 2.5rem;
+}
+
+.registration-page__hero p:last-child {
+  margin-top: 12px;
+  max-width: 60ch;
+  color: #b9cad8;
+  line-height: 1.7;
+}
+
+.registration-page__forms {
+  display: grid;
+  align-content: start;
+}

@@ -1,0 +1,61 @@
+<aside class="sidebar">
+  <div class="sidebar__brand">
+    <div class="sidebar__brand-mark" aria-hidden="true">
+      <img src="/katana-logo.svg" alt="Katana logo" />
+    </div>
+    <span>Core NCSRD</span>
+  </div>
+
+  <nav class="sidebar__nav" aria-label="Primary navigation">
+    @for (item of navigationItems; track item.route) {
+      <div class="sidebar__nav-group">
+        @if (item.children) {
+          <button
+            class="sidebar__link sidebar__link--toggle"
+            type="button"
+            [class.sidebar__link--active]="registrationExpanded"
+            (click)="toggleRegistration()"
+            [attr.aria-expanded]="registrationExpanded"
+            aria-controls="registration-sublinks"
+          >
+            <span>{{ item.label }}</span>
+            <span
+              class="sidebar__chevron"
+              [class.sidebar__chevron--expanded]="registrationExpanded"
+              aria-hidden="true"
+            >
+              ▾
+            </span>
+          </button>
+        } @else {
+          <a
+            class="sidebar__link"
+            [routerLink]="item.route"
+            routerLinkActive="sidebar__link--active"
+            [routerLinkActiveOptions]="{ exact: item.route === '/' }"
+          >
+            {{ item.label }}
+          </a>
+        }
+
+        @if (item.children) {
+          <div
+            class="sidebar__sublinks"
+            id="registration-sublinks"
+            [class.sidebar__sublinks--expanded]="registrationExpanded"
+          >
+            @for (child of item.children; track child.route) {
+              <a
+                class="sidebar__sublink"
+                [routerLink]="child.route"
+                routerLinkActive="sidebar__sublink--active"
+              >
+                {{ child.label }}
+              </a>
+            }
+          </div>
+        }
+      </div>
+    }
+  </nav>
+</aside>

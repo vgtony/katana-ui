@@ -1,0 +1,27 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at top left, rgba(98, 182, 255, 0.16), transparent 24%),
+    linear-gradient(180deg, #0a141d 0%, #101c28 100%);
+}
+
+.layout-shell {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  min-height: 100dvh;
+}
+
+.layout-content {
+  padding: 28px;
+}
+
+@media (max-width: 960px) {
+  .layout-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .layout-content {
+    padding: 18px;
+  }
+}

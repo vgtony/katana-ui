@@ -1,0 +1,36 @@
+<section class="registration-form" id="kubernetes-form">
+  <div class="registration-form__header">
+    <p class="registration-form__eyebrow">Kubernetes</p>
+    <h3>Register a Kubernetes cluster</h3>
+    <p>Example usage: cloud-native network functions and slice control services.</p>
+  </div>
+
+  <form class="registration-form__grid" [formGroup]="form">
+    <label>
+      <span>Cluster name</span>
+      <input type="text" formControlName="clusterName" placeholder="privateer-k8s-west" />
+    </label>
+
+    <label>
+      <span>API server</span>
+      <input type="url" formControlName="apiServer" placeholder="https://k8s.example:6443" />
+    </label>
+
+    <label>
+      <span>Namespace</span>
+      <input type="text" formControlName="namespace" placeholder="slice-manager" />
+    </label>
+
+    <label>
+      <span>Service account</span>
+      <input type="text" formControlName="serviceAccount" placeholder="katana-orchestrator" />
+    </label>
+
+    <label>
+      <span>Kubeconfig secret</span>
+      <input type="password" formControlName="kubeconfigSecret" placeholder="Paste or reference secret" />
+    </label>
+
+    <button type="submit">Register Kubernetes</button>
+  </form>
+</section>

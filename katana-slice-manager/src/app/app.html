@@ -1,0 +1,201 @@
+<main class="shell">
+  <section class="hero panel">
+    <div class="hero__intro">
+      <p class="eyebrow">Core NCSRD · PRIVATEER branch</p>
+      <h1>{{ title }}</h1>
+      <p class="hero__summary">
+        Mission-oriented orchestration for 5G and beyond network slices, with
+        operational visibility across admission control, transport, edge
+        compute, and policy isolation.
+      </p>
+      <div class="hero__actions">
+        <button class="action action--primary" type="button">Instantiate slice</button>
+        <button class="action action--secondary" type="button">Review policies</button>
+      </div>
+    </div>
+
+    <div class="mission-card">
+      <div class="mission-card__header">
+        <span class="badge badge--live">Live orchestration</span>
+        <span class="mission-card__time">Synced 19:24 EET</span>
+      </div>
+      <div class="mission-card__grid">
+        <article>
+          <p>Mission profile</p>
+          <strong>Maritime corridor protection</strong>
+        </article>
+        <article>
+          <p>Operator domain</p>
+          <strong>PRIVATEER secure slice lab</strong>
+        </article>
+        <article>
+          <p>Primary objective</p>
+          <strong>Low-latency telemetry and resilient video uplink</strong>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="stats-grid">
+    @for (card of statCards; track card.label) {
+      <article class="panel stat-card" [class]="'panel stat-card stat-card--' + card.tone">
+        <p>{{ card.label }}</p>
+        <h2>{{ card.value }}</h2>
+        <span>{{ card.detail }}</span>
+      </article>
+    }
+  </section>
+
+  <section class="workspace">
+    <div class="workspace__main">
+      <article class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Slice inventory</p>
+            <h3>Operational slices</h3>
+          </div>
+          <span class="section-note">3 active programs in focus</span>
+        </div>
+
+        <div class="slice-list">
+          @for (slice of slices; track slice.name) {
+            <article class="slice-card">
+              <div class="slice-card__topline">
+                <div>
+                  <h4>{{ slice.name }}</h4>
+                  <p>{{ slice.tenant }}</p>
+                </div>
+                <span
+                  class="badge"
+                  [class.badge--live]="slice.status === 'Active'"
+                  [class.badge--pending]="slice.status === 'Pending'"
+                  [class.badge--degraded]="slice.status === 'Degraded'"
+                >
+                  {{ slice.status }}
+                </span>
+              </div>
+
+              <div class="slice-card__metrics">
+                <div>
+                  <span>Service type</span>
+                  <strong>{{ slice.serviceType }}</strong>
+                </div>
+                <div>
+                  <span>Endpoints</span>
+                  <strong>{{ slice.endpoints }}</strong>
+                </div>
+                <div>
+                  <span>Latency</span>
+                  <strong>{{ slice.latency }}</strong>
+                </div>
+                <div>
+                  <span>Throughput</span>
+                  <strong>{{ slice.throughput }}</strong>
+                </div>
+              </div>
+
+              <div class="slice-card__path">
+                <span>Provisioned path</span>
+                <strong>{{ slice.path }}</strong>
+              </div>
+            </article>
+          }
+        </div>
+      </article>
+
+      <div class="workspace__split">
+        <article class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Infrastructure load</p>
+              <h3>Topology saturation</h3>
+            </div>
+          </div>
+
+          <div class="resource-list">
+            @for (segment of resourceSegments; track segment.name) {
+              <div class="resource-row">
+                <div class="resource-row__label">
+                  <span>{{ segment.name }}</span>
+                  <strong>{{ segment.usage }}%</strong>
+                </div>
+                <div
+                  class="resource-row__bar"
+                  [style.--usage]="segment.usage + '%'"
+                  aria-hidden="true"
+                ></div>
+                <p>{{ segment.capacity }}</p>
+              </div>
+            }
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Admission pipeline</p>
+              <h3>Pending requests</h3>
+            </div>
+          </div>
+
+          <div class="queue-list">
+            @for (item of queue; track item.tenant + item.request) {
+              <div class="queue-item">
+                <div>
+                  <h4>{{ item.request }}</h4>
+                  <p>{{ item.tenant }} · {{ item.target }}</p>
+                </div>
+                <div class="queue-item__meta">
+                  <span class="badge badge--outline">{{ item.priority }}</span>
+                  <strong>{{ item.eta }}</strong>
+                </div>
+              </div>
+            }
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <aside class="workspace__side">
+      <article class="panel side-panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Policy guardrails</p>
+            <h3>Compliance snapshot</h3>
+          </div>
+        </div>
+
+        <div class="check-list">
+          @for (check of policyChecks; track check) {
+            <div class="check-list__item">
+              <span class="check-list__icon"></span>
+              <p>{{ check }}</p>
+            </div>
+          }
+        </div>
+      </article>
+
+      <article class="panel side-panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Activity feed</p>
+            <h3>Latest events</h3>
+          </div>
+        </div>
+
+        <div class="timeline">
+          @for (event of activities; track event.time + event.title) {
+            <div class="timeline__item">
+              <span class="timeline__time">{{ event.time }}</span>
+              <div>
+                <h4>{{ event.title }}</h4>
+                <p>{{ event.detail }}</p>
+              </div>
+            </div>
+          }
+        </div>
+      </article>
+    </aside>
+  </section>
+</main>
+ 

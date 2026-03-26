@@ -1,0 +1,71 @@
+<section class="registration-form" id="vim-form">
+  <div class="registration-form__header">
+    <p class="registration-form__eyebrow">VIM</p>
+    <h3>Register a virtualized infrastructure manager</h3>
+    <p>Models `katana vim add -f vim.json` for OpenStack-backed VIM registration.</p>
+  </div>
+
+  <form class="registration-form__grid" [formGroup]="form">
+    <label>
+      <span>VIM ID</span>
+      <input type="text" formControlName="id" placeholder="vim_core2" />
+    </label>
+
+    <label>
+      <span>Name</span>
+      <input type="text" formControlName="name" placeholder="vim_Core2" />
+    </label>
+
+    <label>
+      <span>Auth URL</span>
+      <input type="url" formControlName="authUrl" placeholder="http://<openstack-ip>:5000/v3/" />
+    </label>
+
+    <label>
+      <span>Username</span>
+      <input type="text" formControlName="username" placeholder="admin" />
+    </label>
+
+    <label>
+      <span>Password</span>
+      <input type="password" formControlName="password" placeholder="Enter secret" />
+    </label>
+
+    <label>
+      <span>Admin project</span>
+      <input type="text" formControlName="adminProjectName" placeholder="admin" />
+    </label>
+
+    <label>
+      <span>Location</span>
+      <input type="text" formControlName="location" placeholder="group0_edge" />
+    </label>
+
+    <label>
+      <span>Type</span>
+      <input type="text" formControlName="type" placeholder="openstack" />
+    </label>
+
+    <label>
+      <span>Version</span>
+      <input type="text" formControlName="version" placeholder="2024.1/stable" />
+    </label>
+
+    <label class="registration-form__full">
+      <span>Description</span>
+      <input type="text" formControlName="description" placeholder="Group 0 VIM" />
+    </label>
+
+    <label>
+      <span>Monitoring endpoint</span>
+      <input type="url" formControlName="infrastructureMonitoring" placeholder="http://<openstack-ip>:9093/metrics" />
+    </label>
+
+    <label>
+      <span>Security groups</span>
+      <input type="text" formControlName="securityGroups" placeholder="TBA" />
+    </label>
+
+    <button type="submit">Register VIM</button>
+  </form>
+</section>

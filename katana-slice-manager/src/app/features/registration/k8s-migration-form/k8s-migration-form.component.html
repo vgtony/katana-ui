@@ -1,0 +1,16 @@
+<section class="registration-form">
+  <div class="registration-form__header">
+    <p class="registration-form__eyebrow">K8s Migration</p>
+    <h3>Migrate a pod</h3>
+    <p>Models `katana k8s migration -f migration.json` for pod relocation commands.</p>
+  </div>
+
+  <form class="registration-form__grid" [formGroup]="form">
+    <label><span>Pod prefix</span><input type="text" formControlName="podPrefix" /></label>
+    <label><span>Target node</span><input type="text" formControlName="targetNode" /></label>
+    <label><span>Namespace</span><input type="text" formControlName="namespace" /></label>
+    <label><span>Deployment</span><input type="text" formControlName="deployment" /></label>
+    <label class="registration-form__full"><span>Config path</span><input type="text" formControlName="config" /></label>
+    <button type="submit">Create migration payload</button>
+  </form>
+</section>

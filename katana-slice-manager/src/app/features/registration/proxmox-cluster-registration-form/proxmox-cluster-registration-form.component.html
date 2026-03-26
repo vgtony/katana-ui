@@ -1,0 +1,16 @@
+<section class="registration-form">
+  <div class="registration-form__header">
+    <p class="registration-form__eyebrow">Proxmox Cluster</p>
+    <h3>Register a Proxmox cluster</h3>
+    <p>Models `katana proxmox add -f proxmox_cluster.yaml` using the YAML fields you shared.</p>
+  </div>
+
+  <form class="registration-form__grid" [formGroup]="form">
+    <label><span>Name</span><input type="text" formControlName="name" placeholder="MyCluster" /></label>
+    <label><span>URL</span><input type="text" formControlName="url" /></label>
+    <label><span>Username</span><input type="text" formControlName="username" /></label>
+    <label><span>Password</span><input type="password" formControlName="password" /></label>
+    <label class="registration-form__full"><span>Node</span><input type="text" formControlName="node" placeholder="proxmox-node-01" /></label>
+    <button type="submit">Create Proxmox cluster payload</button>
+  </form>
+</section>

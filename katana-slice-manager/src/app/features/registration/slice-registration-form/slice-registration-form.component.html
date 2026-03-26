@@ -1,0 +1,23 @@
+<section class="registration-form">
+  <div class="registration-form__header">
+    <p class="registration-form__eyebrow">Slice</p>
+    <h3>Add a slice</h3>
+    <p>Models `katana slice add -f slice.json` with base and service descriptor fields.</p>
+  </div>
+
+  <form class="registration-form__grid" [formGroup]="form">
+    <label><span>Base slice descriptor ID</span><input type="text" formControlName="baseSliceDesId" placeholder="group0_demo_slice" /></label>
+    <label><span>Coverage location</span><input type="text" formControlName="coverage" placeholder="group0_edge" /></label>
+    <label><span>Network DL guaranteed</span><input type="number" formControlName="networkDlGuaranteed" /></label>
+    <label><span>UE DL guaranteed</span><input type="number" formControlName="ueDlGuaranteed" /></label>
+    <label><span>Network UL guaranteed</span><input type="number" formControlName="networkUlGuaranteed" /></label>
+    <label><span>UE UL guaranteed</span><input type="number" formControlName="ueUlGuaranteed" /></label>
+    <label><span>MTU</span><input type="number" formControlName="mtu" /></label>
+    <label><span>NSD ID</span><input type="text" formControlName="nsdId" /></label>
+    <label><span>NS name</span><input type="text" formControlName="nsName" /></label>
+    <label><span>Placement</span><input type="number" formControlName="placement" /></label>
+    <label class="registration-form__checkbox"><input type="checkbox" formControlName="delayTolerance" /><span>Delay tolerance enabled</span></label>
+    <label class="registration-form__checkbox"><input type="checkbox" formControlName="optional" /><span>Optional service NS</span></label>
+    <button type="submit">Create slice payload</button>
+  </form>
+</section>

@@ -1,0 +1,25 @@
+<section class="registration-form">
+  <div class="registration-form__header">
+    <p class="registration-form__eyebrow">K8s Cluster</p>
+    <h3>Register a Kubernetes cluster</h3>
+    <p>Models `katana k8s add -f k8s.json` including deployment method flags.</p>
+  </div>
+
+  <form class="registration-form__grid" [formGroup]="form">
+    <label><span>Schema version</span><input type="text" formControlName="schemaVersion" /></label>
+    <label><span>Credentials file</span><input type="text" formControlName="credentials" /></label>
+    <label><span>Schema type</span><input type="text" formControlName="schemaType" /></label>
+    <label><span>Name</span><input type="text" formControlName="name" placeholder="Microk8sCluster3" /></label>
+    <label class="registration-form__full"><span>Description</span><input type="text" formControlName="description" placeholder="Isolated K8s cluster in mylocation" /></label>
+    <label><span>VIM account</span><input type="text" formControlName="vimAccount" /></label>
+    <label><span>NFVO IP</span><input type="text" formControlName="nfvoIp" /></label>
+    <label><span>NFVO username</span><input type="text" formControlName="nfvoUsername" /></label>
+    <label><span>NFVO password</span><input type="password" formControlName="nfvoPassword" /></label>
+    <label><span>K8s version</span><input type="text" formControlName="k8sVersion" /></label>
+    <label><span>k8s_net1</span><input type="text" formControlName="k8sNet1" placeholder="null or network name" /></label>
+    <label><span>Namespace</span><input type="text" formControlName="namespace" /></label>
+    <label class="registration-form__checkbox"><input type="checkbox" formControlName="jujuBundle" /><span>Enable juju-bundle</span></label>
+    <label class="registration-form__checkbox"><input type="checkbox" formControlName="helmChartV3" /><span>Enable helm-chart-v3</span></label>
+    <button type="submit">Create K8s cluster payload</button>
+  </form>
+</section>

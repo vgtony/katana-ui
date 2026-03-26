@@ -1,0 +1,25 @@
+<section class="registration-form">
+  <div class="registration-form__header">
+    <p class="registration-form__eyebrow">Proxmox VMs</p>
+    <h3>Create VM definitions from YAML</h3>
+    <p>Models `katana proxmox vm-add -f proxmox_vms.yaml` and the `--prox` slice flow.</p>
+  </div>
+
+  <form class="registration-form__grid" [formGroup]="form">
+    <label><span>Cluster name</span><input type="text" formControlName="clusterName" placeholder="MyCluster" /></label>
+    <label><span>VM name</span><input type="text" formControlName="vmName" /></label>
+    <label><span>Template</span><input type="text" formControlName="template" /></label>
+    <label><span>CPU</span><input type="number" formControlName="cpu" /></label>
+    <label><span>RAM (MB)</span><input type="number" formControlName="ram" /></label>
+    <label><span>Storage type</span><input type="text" formControlName="storageType" /></label>
+    <label><span>Disk size (GB)</span><input type="number" formControlName="diskSize" /></label>
+    <label><span>Management bridge</span><input type="text" formControlName="managementBridgeName" /></label>
+    <label><span>Management type</span><input type="text" formControlName="managementBridgeType" /></label>
+    <label><span>Custom bridge</span><input type="text" formControlName="customBridgeName" /></label>
+    <label><span>Custom type</span><input type="text" formControlName="customBridgeType" /></label>
+    <label><span>Custom IP</span><input type="text" formControlName="customIp" /></label>
+    <label><span>Custom netmask</span><input type="text" formControlName="customNetmask" /></label>
+    <label><span>Custom gateway</span><input type="text" formControlName="customGateway" /></label>
+    <button type="submit">Create Proxmox VM payload</button>
+  </form>
+</section>

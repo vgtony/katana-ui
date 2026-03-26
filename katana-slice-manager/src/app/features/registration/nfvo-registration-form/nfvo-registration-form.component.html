@@ -1,0 +1,25 @@
+<section class="registration-form">
+  <div class="registration-form__header">
+    <p class="registration-form__eyebrow">NFVO</p>
+    <h3>Register NFVO to Katana</h3>
+    <p>Models `katana nfvo add -f osm.json` using the OSM registration shape.</p>
+  </div>
+
+  <form class="registration-form__grid" [formGroup]="form">
+    <label><span>ID</span><input type="text" formControlName="id" placeholder="osm_privateer" /></label>
+    <label><span>Name</span><input type="text" formControlName="name" placeholder="PRIVATEER OSM" /></label>
+    <label><span>NFVO IP</span><input type="text" formControlName="nfvoip" /></label>
+    <label><span>Username</span><input type="text" formControlName="nfvousername" /></label>
+    <label><span>Password</span><input type="password" formControlName="nfvopassword" /></label>
+    <label><span>Tenant name</span><input type="text" formControlName="tenantname" /></label>
+    <label><span>Type</span><input type="text" formControlName="type" /></label>
+    <label><span>Version</span><input type="text" formControlName="version" placeholder="optional" /></label>
+    <label class="registration-form__full"><span>Description</span><input type="text" formControlName="description" placeholder="NFVO description" /></label>
+    <label><span>Config ID</span><input type="text" formControlName="configId" /></label>
+    <label><span>Config username</span><input type="text" formControlName="configNfvoUsername" /></label>
+    <label><span>Config password</span><input type="password" formControlName="configNfvoPassword" /></label>
+    <label><span>Config NFVO IP</span><input type="text" formControlName="configNfvoIp" /></label>
+    <label><span>Config tenant</span><input type="text" formControlName="configTenantName" /></label>
+    <button type="submit">Create NFVO payload</button>
+  </form>
+</section>

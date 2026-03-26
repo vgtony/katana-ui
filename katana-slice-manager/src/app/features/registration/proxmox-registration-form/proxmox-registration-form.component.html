@@ -1,0 +1,36 @@
+<section class="registration-form" id="proxmox-form">
+  <div class="registration-form__header">
+    <p class="registration-form__eyebrow">Proxmox</p>
+    <h3>Register a Proxmox environment</h3>
+    <p>Example usage: edge virtualization cluster for lab-grade slice deployment.</p>
+  </div>
+
+  <form class="registration-form__grid" [formGroup]="form">
+    <label>
+      <span>Cluster name</span>
+      <input type="text" formControlName="clusterName" placeholder="edge-cluster-a" />
+    </label>
+
+    <label>
+      <span>Node endpoint</span>
+      <input type="url" formControlName="nodeEndpoint" placeholder="https://proxmox.example:8006" />
+    </label>
+
+    <label>
+      <span>Token ID</span>
+      <input type="text" formControlName="tokenId" placeholder="katana@pve!manager" />
+    </label>
+
+    <label>
+      <span>Secret</span>
+      <input type="password" formControlName="secret" placeholder="Enter secret" />
+    </label>
+
+    <label>
+      <span>Resource pool</span>
+      <input type="text" formControlName="resourcePool" placeholder="privateer-slices" />
+    </label>
+
+    <button type="submit">Register Proxmox</button>
+  </form>
+</section>
