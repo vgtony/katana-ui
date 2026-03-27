@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { MainLayoutComponent } from './layout/main-layout/main-layout.component';
 import { HomePageComponent } from './pages/home-page/home-page.component';
+import { DeploymentPageComponent } from './pages/deployment-page/deployment-page.component';
 import { RegistrationPageComponent } from './pages/registration-page/registration-page.component';
 import { NfvoRegistrationFormComponent } from './features/registration/nfvo-registration-form/nfvo-registration-form.component';
 import { LocationRegistrationFormComponent } from './features/registration/location-registration-form/location-registration-form.component';
@@ -23,6 +24,8 @@ export const routes: Routes = [
     component: MainLayoutComponent,
     children: [
       { path: '', pathMatch: 'full', component: HomePageComponent },
+      { path: 'deployment', pathMatch: 'full', redirectTo: 'deployment/slice' },
+      { path: 'deployment/:option', component: DeploymentPageComponent },
       {
         path: 'registration',
         component: RegistrationPageComponent,

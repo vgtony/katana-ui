@@ -13,15 +13,15 @@
           <button
             class="sidebar__link sidebar__link--toggle"
             type="button"
-            [class.sidebar__link--active]="registrationExpanded"
-            (click)="toggleRegistration()"
-            [attr.aria-expanded]="registrationExpanded"
-            aria-controls="registration-sublinks"
+            [class.sidebar__link--active]="isExpanded(item.key!)"
+            (click)="toggleSection(item.key!)"
+            [attr.aria-expanded]="isExpanded(item.key!)"
+            [attr.aria-controls]="item.key + '-sublinks'"
           >
             <span>{{ item.label }}</span>
             <span
               class="sidebar__chevron"
-              [class.sidebar__chevron--expanded]="registrationExpanded"
+              [class.sidebar__chevron--expanded]="isExpanded(item.key!)"
               aria-hidden="true"
             >
               ▾
@@ -41,8 +41,8 @@
         @if (item.children) {
           <div
             class="sidebar__sublinks"
-            id="registration-sublinks"
-            [class.sidebar__sublinks--expanded]="registrationExpanded"
+            [id]="item.key + '-sublinks'"
+            [class.sidebar__sublinks--expanded]="isExpanded(item.key!)"
           >
             @for (child of item.children; track child.route) {
               <a

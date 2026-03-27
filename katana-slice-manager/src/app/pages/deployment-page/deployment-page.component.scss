@@ -1,0 +1,377 @@
+.deployment-page {
+  display: grid;
+  gap: 22px;
+  color: #edf6ff
+}
+
+.deployment-page__hero,
+.deployment-page__panel {
+  padding: 28px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(14, 31, 46, 0.96), rgba(10, 25, 38, 0.88));
+}
+
+.deployment-page__hero h2,
+.deployment-page__hero p,
+.deployment-page__panel-header h3,
+.deployment-page__panel-header p {
+  margin: 0;
+}
+
+.deployment-page__eyebrow,
+.deployment-page__kicker,
+.deployment-page__requirement-type,
+.deployment-page__review-label {
+  color: #73d5bf;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.deployment-page__eyebrow,
+.deployment-page__kicker {
+  font-size: 0.78rem;
+}
+
+.deployment-page__hero h2 {
+  margin-top: 12px;
+  font-size: 2.3rem;
+}
+
+.deployment-page__hero p:last-child {
+  margin-top: 14px;
+  max-width: 66ch;
+  color: #b9cad8;
+  line-height: 1.7;
+}
+
+.deployment-page__stepper {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.deployment-page__step {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 18px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #edf6ff;
+  text-align: left;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+  cursor: pointer;
+}
+
+.deployment-page__step strong,
+.deployment-page__step small {
+  display: block;
+}
+
+.deployment-page__step small {
+  margin-top: 4px;
+  color: #b9cad8;
+}
+
+.deployment-page__step:hover {
+  transform: translateY(-2px);
+  border-color: rgba(204, 204, 204, 0.18);
+}
+
+.deployment-page__step--disabled,
+.deployment-page__step--disabled:hover {
+  cursor: not-allowed;
+  opacity: 0.46;
+  transform: none;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.deployment-page__step--active,
+.deployment-page__step--complete {
+  background: linear-gradient(135deg, rgba(115, 213, 191, 0.18), rgba(98, 182, 255, 0.16));
+  border-color: rgba(115, 213, 191, 0.24);
+}
+
+.deployment-page__step-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(4, 16, 26, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+}
+
+.deployment-page__panel {
+  display: grid;
+  gap: 24px;
+}
+
+.deployment-page__panel-header {
+  display: grid;
+  gap: 10px;
+}
+
+.deployment-page__panel-header p:last-child {
+  max-width: 66ch;
+  color: #b9cad8;
+  line-height: 1.7;
+}
+
+.deployment-page__requirements,
+.deployment-page__review {
+  display: grid;
+  gap: 16px;
+}
+
+.deployment-page__requirement-card,
+.deployment-page__review-card {
+  padding: 22px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.deployment-page__link:hover,
+.deployment-page__primary:hover,
+.deployment-page__secondary:hover {
+  transform: translateY(-2px);
+}
+
+.deployment-page__requirement-card h4,
+.deployment-page__review-card h4 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.deployment-page__requirement-card p,
+.deployment-page__review-card p,
+.deployment-page__review-list {
+  margin: 0;
+  color: #b9cad8;
+  line-height: 1.6;
+}
+
+.deployment-page__requirements {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.deployment-page__requirement-card {
+  display: grid;
+  gap: 16px;
+  align-self: start;
+}
+
+.deployment-page__requirement-type,
+.deployment-page__review-label {
+  margin-bottom: 10px;
+  font-size: 0.72rem;
+}
+
+.deployment-page__progress,
+.deployment-page__notice {
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.deployment-page__progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.deployment-page__progress p,
+.deployment-page__notice {
+  margin: 0;
+  color: #edf6ff;
+}
+
+.deployment-page__progress-label {
+  color: #73d5bf;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.72rem;
+}
+
+.deployment-page__requirement-toggle {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.deployment-page__requirement-heading {
+  display: grid;
+  gap: 10px;
+}
+
+.deployment-page__requirement-meta,
+.deployment-page__requirement-title-row,
+.deployment-page__requirement-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.deployment-page__requirement-status {
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #b9cad8;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.deployment-page__requirement-status--complete {
+  background: rgba(115, 213, 191, 0.18);
+  color: #dffff6;
+}
+
+.deployment-page__requirement-title-row h4 {
+  flex: 1;
+}
+
+.deployment-page__requirement-chevron {
+  font-size: 0.9rem;
+  transition: transform 180ms ease;
+}
+
+.deployment-page__requirement-toggle--expanded .deployment-page__requirement-chevron {
+  transform: rotate(180deg);
+}
+
+.deployment-page__requirement-body {
+  display: grid;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+.deployment-page__embedded-form {
+  border-radius: 20px;
+  border: 1px solid rgba(238, 238, 238, 0.12);
+  background: linear-gradient(180deg, rgba(12, 12, 12, 0.92), rgba(5, 5, 5, 0.96));
+  box-shadow: inset 0 1px 0 rgba(238, 238, 238, 0.03);
+  padding: 16px;
+}
+
+.deployment-page__link,
+.deployment-page__primary,
+.deployment-page__secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 14px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.deployment-page__link,
+.deployment-page__secondary {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: #edf6ff;
+}
+
+.deployment-page__primary {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, rgba(115, 213, 191, 0.28), rgba(98, 182, 255, 0.28));
+  color: #ffffff;
+}
+
+.deployment-page__primary--disabled,
+.deployment-page__primary--disabled:hover,
+.deployment-page__primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  transform: none;
+}
+
+.deployment-page__actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.deployment-page__review {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.deployment-page__review-card {
+  display: grid;
+  gap: 12px;
+}
+
+.deployment-page__review-card--accent {
+  background: linear-gradient(180deg, rgba(11, 33, 46, 0.96), rgba(8, 26, 39, 0.92));
+}
+
+.deployment-page__review-list {
+  padding-left: 18px;
+}
+
+.deployment-page__success {
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(115, 213, 191, 0.26);
+  background: rgba(115, 213, 191, 0.12);
+  color: #edf6ff;
+}
+
+@media (max-width: 1100px) {
+  .deployment-page__stepper,
+  .deployment-page__review {
+    grid-template-columns: 1fr;
+  }
+
+  .deployment-page__requirements {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .deployment-page__hero,
+  .deployment-page__panel {
+    padding: 22px;
+  }
+
+  .deployment-page__requirements,
+  .deployment-page__review {
+    grid-template-columns: 1fr;
+  }
+
+  .deployment-page__actions {
+    flex-direction: column-reverse;
+  }
+
+  .deployment-page__progress,
+  .deployment-page__requirement-meta,
+  .deployment-page__requirement-title-row,
+  .deployment-page__requirement-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .deployment-page__link,
+  .deployment-page__primary,
+  .deployment-page__secondary {
+    width: 100%;
+  }
+}
