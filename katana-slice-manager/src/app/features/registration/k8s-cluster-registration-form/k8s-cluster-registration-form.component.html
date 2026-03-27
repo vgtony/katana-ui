@@ -16,10 +16,10 @@
     <label><span>NFVO username</span><input type="text" formControlName="nfvoUsername" /></label>
     <label><span>NFVO password</span><input type="password" formControlName="nfvoPassword" /></label>
     <label><span>K8s version</span><input type="text" formControlName="k8sVersion" /></label>
-    <label><span>k8s_net1</span><input type="text" formControlName="k8sNet1" placeholder="null or network name" /></label>
+    <label><span>k8s_net1 *</span><input type="text" formControlName="k8sNet1" placeholder="null or network name" /></label>
     <label><span>Namespace</span><input type="text" formControlName="namespace" /></label>
-    <label class="registration-form__checkbox"><input type="checkbox" formControlName="jujuBundle" /><span>Enable juju-bundle</span></label>
-    <label class="registration-form__checkbox"><input type="checkbox" formControlName="helmChartV3" /><span>Enable helm-chart-v3</span></label>
+    <label class="registration-form__checkbox"><input type="checkbox" formControlName="jujuBundle" /><span>Enable juju-bundle *</span></label>
+    <label class="registration-form__checkbox"><input type="checkbox" formControlName="helmChartV3" /><span>Enable helm-chart-v3 *</span></label>
     <button type="submit">Create K8s cluster payload</button>
   </form>
 </section>
