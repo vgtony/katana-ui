@@ -1,0 +1,238 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Type } from '@angular/core';
+import { Validators } from '@angular/forms';
+import { FunctionRegistrationFormComponent } from './function-registration-form/function-registration-form.component';
+import { K8sClusterRegistrationFormComponent } from './k8s-cluster-registration-form/k8s-cluster-registration-form.component';
+import { K8sCredentialsUploadFormComponent } from './k8s-credentials-upload-form/k8s-credentials-upload-form.component';
+import { K8sDeployServiceFormComponent } from './k8s-deploy-service-form/k8s-deploy-service-form.component';
+import { K8sMigrationFormComponent } from './k8s-migration-form/k8s-migration-form.component';
+import { KubernetesRegistrationFormComponent } from './kubernetes-registration-form/kubernetes-registration-form.component';
+import { LocationRegistrationFormComponent } from './location-registration-form/location-registration-form.component';
+import { NfvoRegistrationFormComponent } from './nfvo-registration-form/nfvo-registration-form.component';
+import { PqcSliceDeploymentFormComponent } from './pqc-slice-deployment-form/pqc-slice-deployment-form.component';
+import { ProxmoxClusterRegistrationFormComponent } from './proxmox-cluster-registration-form/proxmox-cluster-registration-form.component';
+import { ProxmoxRegistrationFormComponent } from './proxmox-registration-form/proxmox-registration-form.component';
+import { ProxmoxVmCreationFormComponent } from './proxmox-vm-creation-form/proxmox-vm-creation-form.component';
+import { SliceRegistrationFormComponent } from './slice-registration-form/slice-registration-form.component';
+import { VimRegistrationFormComponent } from './vim-registration-form/vim-registration-form.component';
+
+type RegistrationFormComponent = Type<unknown>;
+
+interface FormDefinition {
+  component: RegistrationFormComponent;
+  name: string;
+  requiredControls: string[];
+  optionalControls: string[];
+}
+
+const formDefinitions: FormDefinition[] = [
+  {
+    component: FunctionRegistrationFormComponent,
+    name: 'FunctionRegistrationFormComponent',
+    requiredControls: ['id', 'name', 'gen', 'func', 'type', 'location', 'nsdId', 'nsName', 'placement'],
+    optionalControls: ['sharedAvailability', 'optional']
+  },
+  {
+    component: K8sClusterRegistrationFormComponent,
+    name: 'K8sClusterRegistrationFormComponent',
+    requiredControls: [
+      'schemaVersion',
+      'credentials',
+      'schemaType',
+      'name',
+      'description',
+      'vimAccount',
+      'nfvoIp',
+      'nfvoUsername',
+      'nfvoPassword',
+      'k8sVersion',
+      'namespace'
+    ],
+    optionalControls: ['k8sNet1', 'jujuBundle', 'helmChartV3']
+  },
+  {
+    component: K8sCredentialsUploadFormComponent,
+    name: 'K8sCredentialsUploadFormComponent',
+    requiredControls: ['credentialsFilePath'],
+    optionalControls: []
+  },
+  {
+    component: K8sDeployServiceFormComponent,
+    name: 'K8sDeployServiceFormComponent',
+    requiredControls: ['nfvoId', 'nsdId', 'nsName', 'nsDescription', 'vimAccountId'],
+    optionalControls: []
+  },
+  {
+    component: K8sMigrationFormComponent,
+    name: 'K8sMigrationFormComponent',
+    requiredControls: ['podPrefix', 'targetNode', 'namespace', 'deployment', 'config'],
+    optionalControls: []
+  },
+  {
+    component: KubernetesRegistrationFormComponent,
+    name: 'KubernetesRegistrationFormComponent',
+    requiredControls: ['clusterName', 'apiServer', 'namespace', 'serviceAccount', 'kubeconfigSecret'],
+    optionalControls: []
+  },
+  {
+    component: LocationRegistrationFormComponent,
+    name: 'LocationRegistrationFormComponent',
+    requiredControls: ['id', 'description'],
+    optionalControls: []
+  },
+  {
+    component: NfvoRegistrationFormComponent,
+    name: 'NfvoRegistrationFormComponent',
+    requiredControls: [
+      'id',
+      'name',
+      'nfvoip',
+      'nfvousername',
+      'nfvopassword',
+      'tenantname',
+      'type',
+      'configId',
+      'configNfvoUsername',
+      'configNfvoPassword',
+      'configNfvoIp',
+      'configTenantName'
+    ],
+    optionalControls: ['version', 'description']
+  },
+  {
+    component: PqcSliceDeploymentFormComponent,
+    name: 'PqcSliceDeploymentFormComponent',
+    requiredControls: ['sliceFile', 'proxmoxFile', 'ansibleControllerIp'],
+    optionalControls: ['enablePqc', 'enableProxmox']
+  },
+  {
+    component: ProxmoxClusterRegistrationFormComponent,
+    name: 'ProxmoxClusterRegistrationFormComponent',
+    requiredControls: ['name', 'url', 'username', 'password', 'node'],
+    optionalControls: []
+  },
+  {
+    component: ProxmoxRegistrationFormComponent,
+    name: 'ProxmoxRegistrationFormComponent',
+    requiredControls: ['clusterName', 'nodeEndpoint', 'tokenId', 'secret', 'resourcePool'],
+    optionalControls: []
+  },
+  {
+    component: ProxmoxVmCreationFormComponent,
+    name: 'ProxmoxVmCreationFormComponent',
+    requiredControls: [
+      'clusterName',
+      'vmName',
+      'template',
+      'cpu',
+      'ram',
+      'storageType',
+      'diskSize',
+      'managementBridgeName',
+      'managementBridgeType',
+      'customBridgeName',
+      'customBridgeType'
+    ],
+    optionalControls: ['customIp', 'customNetmask', 'customGateway']
+  },
+  {
+    component: SliceRegistrationFormComponent,
+    name: 'SliceRegistrationFormComponent',
+    requiredControls: [
+      'baseSliceDesId',
+      'coverage',
+      'networkDlGuaranteed',
+      'ueDlGuaranteed',
+      'networkUlGuaranteed',
+      'ueUlGuaranteed',
+      'mtu',
+      'nsdId',
+      'nsName',
+      'placement'
+    ],
+    optionalControls: ['delayTolerance', 'optional']
+  },
+  {
+    component: VimRegistrationFormComponent,
+    name: 'VimRegistrationFormComponent',
+    requiredControls: [
+      'id',
+      'name',
+      'authUrl',
+      'username',
+      'password',
+      'adminProjectName',
+      'location',
+      'type',
+      'version'
+    ],
+    optionalControls: ['description', 'infrastructureMonitoring', 'securityGroups']
+  }
+];
+
+function createValidValue(currentValue: unknown): unknown {
+  if (typeof currentValue === 'number') {
+    return 1;
+  }
+
+  if (typeof currentValue === 'boolean') {
+    return true;
+  }
+
+  return 'test-value';
+}
+
+describe('Registration form components', () => {
+  formDefinitions.forEach((definition) => {
+    describe(definition.name, () => {
+      let fixture: ComponentFixture<unknown>;
+      let component: Record<string, any>;
+
+      beforeEach(async () => {
+        await TestBed.configureTestingModule({
+          imports: [definition.component]
+        }).compileComponents();
+
+        fixture = TestBed.createComponent(definition.component);
+        component = fixture.componentInstance as Record<string, any>;
+        fixture.detectChanges();
+      });
+
+      it('creates the form component', () => {
+        expect(component).toBeTruthy();
+        expect(component['form']).toBeTruthy();
+      });
+
+      it('marks the expected controls as required and optional', () => {
+        const form = component['form'];
+
+        definition.requiredControls.forEach((controlName) => {
+          expect(form.get(controlName)?.hasValidator(Validators.required)).toBe(true);
+        });
+
+        definition.optionalControls.forEach((controlName) => {
+          expect(form.get(controlName)?.hasValidator(Validators.required)).toBe(false);
+        });
+      });
+
+      it('rejects empty required fields and accepts valid values', () => {
+        const form = component['form'];
+
+        definition.requiredControls.forEach((controlName) => {
+          const control = form.get(controlName);
+
+          control?.setValue(null);
+          control?.markAsTouched();
+          control?.updateValueAndValidity();
+
+          expect(control?.hasError('required')).toBe(true);
+
+          control?.setValue(createValidValue(control?.value));
+          control?.updateValueAndValidity();
+
+          expect(control?.hasError('required')).toBe(false);
+        });
+      });
+    });
+  });
+});
