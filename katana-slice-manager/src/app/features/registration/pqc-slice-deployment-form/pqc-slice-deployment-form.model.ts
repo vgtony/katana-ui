@@ -1,10 +1,4 @@
-export interface PqcSliceDeploymentFormModel {
-  sliceFile: string;
-  proxmoxFile: string;
-  enablePqc: boolean;
-  enableProxmox: boolean;
-  ansibleControllerIp: string;
-}
+import { PqcSliceDeploymentFormModel } from '../../../models/interfaces/pqc-slice-deployment-form.interface';
 
 export const initialPqcSliceDeploymentFormModel: PqcSliceDeploymentFormModel = {
   sliceFile: 'slice.yaml',

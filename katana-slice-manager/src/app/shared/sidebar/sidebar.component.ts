@@ -1,17 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-
-interface NavigationChild {
-  label: string;
-  route: string;
-}
-
-interface NavigationItem {
-  key?: 'deployment' | 'registration';
-  label: string;
-  route: string;
-  children?: NavigationChild[];
-}
+import { NavigationItem, NavigationSectionKey } from '../../models/interfaces/navigation.interface';
 
 @Component({
   selector: 'app-sidebar',
@@ -20,7 +9,7 @@ interface NavigationItem {
   styleUrl: './sidebar.component.scss'
 })
 export class SidebarComponent {
-  protected expandedSections: Record<'deployment' | 'registration', boolean> = {
+  protected expandedSections: Record<NavigationSectionKey, boolean> = {
     deployment: true,
     registration: true
   };
@@ -60,11 +49,11 @@ export class SidebarComponent {
     }
   ];
 
-  protected toggleSection(section: 'deployment' | 'registration'): void {
+  protected toggleSection(section: NavigationSectionKey): void {
     this.expandedSections[section] = !this.expandedSections[section];
   }
 
-  protected isExpanded(section: 'deployment' | 'registration'): boolean {
+  protected isExpanded(section: NavigationSectionKey): boolean {
     return this.expandedSections[section];
   }
 }

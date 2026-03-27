@@ -1,9 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import {
-  initialLocationRegistrationFormModel,
-  LocationRegistrationFormModel
-} from './location-registration-form.model';
+import { initialLocationRegistrationFormModel } from './location-registration-form.model';
+import { LocationRegistrationFormModel } from '../../../models/interfaces/location-registration-form.interface';
 
 @Component({
   selector: 'app-location-registration-form',

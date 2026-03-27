@@ -1,9 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import {
-  initialK8sDeployServiceFormModel,
-  K8sDeployServiceFormModel
-} from './k8s-deploy-service-form.model';
+import { initialK8sDeployServiceFormModel } from './k8s-deploy-service-form.model';
+import { K8sDeployServiceFormModel } from '../../../models/interfaces/k8s-deploy-service-form.interface';
 
 @Component({
   selector: 'app-k8s-deploy-service-form',

@@ -12,26 +12,7 @@ import { ProxmoxClusterRegistrationFormComponent } from '../../features/registra
 import { ProxmoxVmCreationFormComponent } from '../../features/registration/proxmox-vm-creation-form/proxmox-vm-creation-form.component';
 import { ProxmoxRegistrationFormComponent } from '../../features/registration/proxmox-registration-form/proxmox-registration-form.component';
 import { SliceRegistrationFormComponent } from '../../features/registration/slice-registration-form/slice-registration-form.component';
-
-interface DeploymentRequirement {
-  id: string;
-  label: string;
-  route: string;
-  type: 'registration' | 'configuration';
-  guidance: string;
-}
-
-interface DeploymentOption {
-  id: 'slice' | 'k8s' | 'proxmox';
-  label: string;
-  shortLabel: string;
-  description: string;
-  requirementsTitle: string;
-  requirementsDescription: string;
-  requirements: DeploymentRequirement[];
-  finalConfigurationLabel: string;
-  deployActionLabel: string;
-}
+import { DeploymentOption } from '../../models/interfaces/deployment.interface';
 
 @Component({
   selector: 'app-deployment-page',
@@ -45,9 +26,8 @@ interface DeploymentOption {
     K8sDeployServiceFormComponent,
     ProxmoxClusterRegistrationFormComponent,
     ProxmoxVmCreationFormComponent,
-    ProxmoxRegistrationFormComponent,
     SliceRegistrationFormComponent
-  ],
+],
   templateUrl: './deployment-page.component.html',
   styleUrl: './deployment-page.component.scss'
 })
@@ -106,8 +86,8 @@ export class DeploymentPageComponent {
       label: 'K8s Deploy',
       shortLabel: 'K8s',
       description: 'Guide a Kubernetes deployment by preparing credentials, cluster access, and deployment settings.',
-      requirementsTitle: 'K8s registrations and configuration',
-      requirementsDescription: 'Open the relevant registration forms to prepare everything needed for a K8s deployment.',
+      requirementsTitle: 'K8s registrations',
+      requirementsDescription: 'Complete the required registrations before moving into the K8s deployment configuration step.',
       requirements: [
         {
           id: 'k8s-credentials',
@@ -122,13 +102,6 @@ export class DeploymentPageComponent {
           route: '/registration/k8s-cluster',
           type: 'registration',
           guidance: 'Register the Kubernetes cluster target and its connectivity details for the deployment flow.'
-        },
-        {
-          id: 'k8s-deploy',
-          label: 'K8s Deploy',
-          route: '/registration/k8s-deploy',
-          type: 'configuration',
-          guidance: 'Collect the runtime deployment settings here so Step 2 can later send the full payload in a single POST request.'
         }
       ],
       finalConfigurationLabel: 'K8s deployment configuration',
@@ -139,8 +112,8 @@ export class DeploymentPageComponent {
       label: 'Proxmox VM',
       shortLabel: 'Proxmox',
       description: 'Prepare a Proxmox-based virtual machine deployment with cluster and VM setup details.',
-      requirementsTitle: 'Proxmox registrations and configuration',
-      requirementsDescription: 'Use the existing Proxmox forms as references before confirming the VM deployment setup.',
+      requirementsTitle: 'Proxmox registrations',
+      requirementsDescription: 'Complete the required Proxmox registration before moving into the VM deployment configuration step.',
       requirements: [
         {
           id: 'proxmox-cluster',
@@ -148,20 +121,6 @@ export class DeploymentPageComponent {
           route: '/registration/proxmox-cluster',
           type: 'registration',
           guidance: 'Register the Proxmox cluster and connectivity details that the VM deployment will target.'
-        },
-        {
-          id: 'proxmox-vms',
-          label: 'Proxmox VMs',
-          route: '/registration/proxmox-vms',
-          type: 'configuration',
-          guidance: 'Keep the VM sizing, image, and placement details here so the deploy request can include the complete VM plan.'
-        },
-        {
-          id: 'proxmox-legacy',
-          label: 'Proxmox Legacy',
-          route: '/registration/proxmox',
-          type: 'registration',
-          guidance: 'Retain the legacy Proxmox registration context when this deployment still depends on that older integration path.'
         }
       ],
       finalConfigurationLabel: 'Proxmox VM configuration',

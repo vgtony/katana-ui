@@ -1,9 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import {
-  initialProxmoxVmCreationFormModel,
-  ProxmoxVmCreationFormModel
-} from './proxmox-vm-creation-form.model';
+import { initialProxmoxVmCreationFormModel } from './proxmox-vm-creation-form.model';
+import { ProxmoxVmCreationFormModel } from '../../../models/interfaces/proxmox-vm-creation-form.interface';
 
 @Component({
   selector: 'app-proxmox-vm-creation-form',

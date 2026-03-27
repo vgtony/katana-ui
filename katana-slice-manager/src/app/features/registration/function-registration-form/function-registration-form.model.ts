@@ -1,16 +1,4 @@
-export interface FunctionRegistrationFormModel {
-  id: string;
-  name: string;
-  gen: number;
-  func: number;
-  sharedAvailability: boolean;
-  type: number;
-  location: string;
-  nsdId: string;
-  nsName: string;
-  placement: number;
-  optional: boolean;
-}
+import { FunctionRegistrationFormModel } from '../../../models/interfaces/function-registration-form.interface';
 
 export const initialFunctionRegistrationFormModel: FunctionRegistrationFormModel = {
   id: '',

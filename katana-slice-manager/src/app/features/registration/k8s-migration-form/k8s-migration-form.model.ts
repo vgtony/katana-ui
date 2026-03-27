@@ -1,10 +1,4 @@
-export interface K8sMigrationFormModel {
-  podPrefix: string;
-  targetNode: string;
-  namespace: string;
-  deployment: string;
-  config: string;
-}
+import { K8sMigrationFormModel } from '../../../models/interfaces/k8s-migration-form.interface';
 
 export const initialK8sMigrationFormModel: K8sMigrationFormModel = {
   podPrefix: '',

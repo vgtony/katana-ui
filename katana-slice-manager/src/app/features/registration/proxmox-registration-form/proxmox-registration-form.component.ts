@@ -1,9 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import {
-  initialProxmoxRegistrationFormModel,
-  ProxmoxRegistrationFormModel
-} from './proxmox-registration-form.model';
+import { initialProxmoxRegistrationFormModel } from './proxmox-registration-form.model';
+import { ProxmoxRegistrationFormModel } from '../../../models/interfaces/proxmox-registration-form.interface';
 
 @Component({
   selector: 'app-proxmox-registration-form',

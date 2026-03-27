@@ -112,17 +112,8 @@
                     @case ('k8s-cluster') {
                       <app-k8s-cluster-registration-form></app-k8s-cluster-registration-form>
                     }
-                    @case ('k8s-deploy') {
-                      <app-k8s-deploy-service-form></app-k8s-deploy-service-form>
-                    }
                     @case ('proxmox-cluster') {
                       <app-proxmox-cluster-registration-form></app-proxmox-cluster-registration-form>
-                    }
-                    @case ('proxmox-vms') {
-                      <app-proxmox-vm-creation-form></app-proxmox-vm-creation-form>
-                    }
-                    @case ('proxmox-legacy') {
-                      <app-proxmox-registration-form></app-proxmox-registration-form>
                     }
                   }
                 </div>
@@ -201,37 +192,40 @@
       }
     }
 
-    @if (currentStep === 2 && !isSliceFlow()) {
+    @if (currentStep === 2 && selectedOption.id === 'k8s') {
       <div class="deployment-page__panel-header">
         <p class="deployment-page__kicker">Step 2</p>
-        <h3>{{ selectedOption.finalConfigurationLabel }}</h3>
-        <p>Review the selected deployment path and continue with the final action when you are ready.</p>
+        <h3>Deploy Configuration</h3>
+        <p>Complete the K8s deployment form here and trigger the deployment from this same step.</p>
       </div>
 
-      <div class="deployment-page__review">
-        <article class="deployment-page__review-card">
-          <p class="deployment-page__review-label">Deployment type</p>
-          <h4>{{ selectedOption.label }}</h4>
-          <p>{{ selectedOption.description }}</p>
-        </article>
+      <div class="deployment-page__embedded-form">
+        <app-k8s-deploy-service-form></app-k8s-deploy-service-form>
+      </div>
 
-        <article class="deployment-page__review-card">
-          <p class="deployment-page__review-label">Required items</p>
-          <ul class="deployment-page__review-list">
-            @for (requirement of selectedOption.requirements; track requirement.id) {
-              <li>
-                {{ requirement.label }}:
-                {{ isRequirementComplete(requirement.id) ? 'complete' : 'pending' }}
-              </li>
-            }
-          </ul>
-        </article>
+      <div class="deployment-page__actions">
+        <button class="deployment-page__secondary" type="button" (click)="goToStep(1)">Back</button>
+        <button class="deployment-page__primary" type="button" (click)="deploy()">
+          {{ selectedOption.deployActionLabel }}
+        </button>
+      </div>
 
-        <article class="deployment-page__review-card deployment-page__review-card--accent">
-          <p class="deployment-page__review-label">Final step</p>
-          <h4>{{ selectedOption.finalConfigurationLabel }}</h4>
-          <p>The deployment action becomes available here after the prerequisite registrations and configurations are reviewed.</p>
-        </article>
+      @if (deploymentStarted) {
+        <div class="deployment-page__success" role="status">
+          Deployment flow started for {{ selectedOption.label }}. This is the placeholder deploy action for the new stepper.
+        </div>
+      }
+    }
+
+    @if (currentStep === 2 && selectedOption.id === 'proxmox') {
+      <div class="deployment-page__panel-header">
+        <p class="deployment-page__kicker">Step 2</p>
+        <h3>Deploy Configuration</h3>
+        <p>Complete the Proxmox VM deployment form here and trigger the deployment from this same step.</p>
+      </div>
+
+      <div class="deployment-page__embedded-form">
+        <app-proxmox-vm-creation-form></app-proxmox-vm-creation-form>
       </div>
 
       <div class="deployment-page__actions">

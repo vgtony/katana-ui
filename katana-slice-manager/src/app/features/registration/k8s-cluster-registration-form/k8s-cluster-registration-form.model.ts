@@ -1,19 +1,4 @@
-export interface K8sClusterRegistrationFormModel {
-  schemaVersion: string;
-  credentials: string;
-  schemaType: string;
-  name: string;
-  description: string;
-  vimAccount: string;
-  nfvoIp: string;
-  nfvoUsername: string;
-  nfvoPassword: string;
-  k8sVersion: string;
-  k8sNet1: string;
-  namespace: string;
-  jujuBundle: boolean;
-  helmChartV3: boolean;
-}
+import { K8sClusterRegistrationFormModel } from '../../../models/interfaces/k8s-cluster-registration-form.interface';
 
 export const initialK8sClusterRegistrationFormModel: K8sClusterRegistrationFormModel = {
   schemaVersion: '1.0',

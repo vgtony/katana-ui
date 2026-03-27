@@ -1,10 +1,4 @@
-export interface KubernetesRegistrationFormModel {
-  clusterName: string;
-  apiServer: string;
-  namespace: string;
-  serviceAccount: string;
-  kubeconfigSecret: string;
-}
+import { KubernetesRegistrationFormModel } from '../../../models/interfaces/kubernetes-registration-form.interface';
 
 export const initialKubernetesRegistrationFormModel: KubernetesRegistrationFormModel = {
   clusterName: '',

@@ -1,10 +1,4 @@
-export interface ProxmoxClusterRegistrationFormModel {
-  name: string;
-  url: string;
-  username: string;
-  password: string;
-  node: string;
-}
+import { ProxmoxClusterRegistrationFormModel } from '../../../models/interfaces/proxmox-cluster-registration-form.interface';
 
 export const initialProxmoxClusterRegistrationFormModel: ProxmoxClusterRegistrationFormModel = {
   name: '',

@@ -1,9 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import {
-  initialNfvoRegistrationFormModel,
-  NfvoRegistrationFormModel
-} from './nfvo-registration-form.model';
+import { initialNfvoRegistrationFormModel } from './nfvo-registration-form.model';
+import { NfvoRegistrationFormModel } from '../../../models/interfaces/nfvo-registration-form.interface';
 
 @Component({
   selector: 'app-nfvo-registration-form',

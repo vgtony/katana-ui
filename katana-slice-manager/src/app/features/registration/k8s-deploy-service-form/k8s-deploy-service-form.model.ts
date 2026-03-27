@@ -1,10 +1,4 @@
-export interface K8sDeployServiceFormModel {
-  nfvoId: string;
-  nsdId: string;
-  nsName: string;
-  nsDescription: string;
-  vimAccountId: string;
-}
+import { K8sDeployServiceFormModel } from '../../../models/interfaces/k8s-deploy-service-form.interface';
 
 export const initialK8sDeployServiceFormModel: K8sDeployServiceFormModel = {
   nfvoId: '',

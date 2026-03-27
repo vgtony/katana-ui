@@ -1,7 +1,4 @@
-export interface LocationRegistrationFormModel {
-  id: string;
-  description: string;
-}
+import { LocationRegistrationFormModel } from '../../../models/interfaces/location-registration-form.interface';
 
 export const initialLocationRegistrationFormModel: LocationRegistrationFormModel = {
   id: '',

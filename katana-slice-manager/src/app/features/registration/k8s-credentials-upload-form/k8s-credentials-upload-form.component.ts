@@ -1,9 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import {
-  initialK8sCredentialsUploadFormModel,
-  K8sCredentialsUploadFormModel
-} from './k8s-credentials-upload-form.model';
+import { initialK8sCredentialsUploadFormModel } from './k8s-credentials-upload-form.model';
+import { K8sCredentialsUploadFormModel } from '../../../models/interfaces/k8s-credentials-upload-form.interface';
 
 @Component({
   selector: 'app-k8s-credentials-upload-form',
