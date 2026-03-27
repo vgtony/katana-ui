@@ -1,22 +1,25 @@
 .deployment-page {
   display: grid;
-  gap: 22px;
+  gap: 16px;
   color: #edf6ff
 }
 
 .deployment-page__hero,
 .deployment-page__panel {
-  padding: 28px;
+  text-align: center;
+  font-size: 2rem;
+  padding: 18px;
   border-radius: 28px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: linear-gradient(180deg, rgba(14, 31, 46, 0.96), rgba(10, 25, 38, 0.88));
 }
 
-.deployment-page__hero h2,
-.deployment-page__hero p,
+
 .deployment-page__panel-header h3,
 .deployment-page__panel-header p {
+  font-size: 1.2rem;
   margin: 0;
+  text-align: left;
 }
 
 .deployment-page__eyebrow,
@@ -28,15 +31,14 @@
   letter-spacing: 0.18em;
 }
 
-.deployment-page__eyebrow,
-.deployment-page__kicker {
-  font-size: 0.78rem;
+.deployment-page__eyebrow {
+  font-size: 2rem;
 }
 
-.deployment-page__hero h2 {
-  margin-top: 12px;
-  font-size: 2.3rem;
-}
+// .deployment-page__hero h2 {
+//   margin-top: 12px;
+//   font-size: 2.3rem;
+// }
 
 .deployment-page__hero p:last-child {
   margin-top: 14px;
@@ -177,6 +179,7 @@
 
 .deployment-page__progress,
 .deployment-page__notice {
+  font-size: 1.2rem;
   padding: 16px 18px;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.08);
