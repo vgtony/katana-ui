@@ -1,4 +1,4 @@
-import { ProxmoxVmCreationFormModel } from '../../../models/interfaces/proxmox-vm-creation-form.interface';
+import { ProxmoxVmCreationFormModel } from './interfaces/proxmox-vm-creation-form.interface';
 
 export const initialProxmoxVmCreationFormModel: ProxmoxVmCreationFormModel = {
   clusterName: '',

@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { initialKubernetesRegistrationFormModel } from './kubernetes-registration-form.model';
+import { initialKubernetesRegistrationFormModel } from '../../../models/kubernetes-registration-form.model';
 import { KubernetesRegistrationFormModel } from '../../../models/interfaces/kubernetes-registration-form.interface';
 
 @Component({

@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { initialPqcSliceDeploymentFormModel } from './pqc-slice-deployment-form.model';
+import { initialPqcSliceDeploymentFormModel } from '../../../models/pqc-slice-deployment-form.model';
 import { PqcSliceDeploymentFormModel } from '../../../models/interfaces/pqc-slice-deployment-form.interface';
 
 @Component({

@@ -1,4 +1,4 @@
-import { KubernetesRegistrationFormModel } from '../../../models/interfaces/kubernetes-registration-form.interface';
+import { KubernetesRegistrationFormModel } from './interfaces/kubernetes-registration-form.interface';
 
 export const initialKubernetesRegistrationFormModel: KubernetesRegistrationFormModel = {
   clusterName: '',

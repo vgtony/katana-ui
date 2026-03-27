@@ -1,4 +1,4 @@
-import { K8sMigrationFormModel } from '../../../models/interfaces/k8s-migration-form.interface';
+import { K8sMigrationFormModel } from './interfaces/k8s-migration-form.interface';
 
 export const initialK8sMigrationFormModel: K8sMigrationFormModel = {
   podPrefix: '',

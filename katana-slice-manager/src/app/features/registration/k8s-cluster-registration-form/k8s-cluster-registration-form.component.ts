@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { initialK8sClusterRegistrationFormModel } from './k8s-cluster-registration-form.model';
+import { initialK8sClusterRegistrationFormModel } from '../../../models/k8s-cluster-registration-form.model';
 import { K8sClusterRegistrationFormModel } from '../../../models/interfaces/k8s-cluster-registration-form.interface';
 
 @Component({

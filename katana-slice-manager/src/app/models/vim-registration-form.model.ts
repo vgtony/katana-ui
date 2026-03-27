@@ -1,4 +1,4 @@
-import { VimRegistrationFormModel } from '../../../models/interfaces/vim-registration-form.interface';
+import { VimRegistrationFormModel } from './interfaces/vim-registration-form.interface';
 
 export const initialVimRegistrationFormModel: VimRegistrationFormModel = {
   id: '',

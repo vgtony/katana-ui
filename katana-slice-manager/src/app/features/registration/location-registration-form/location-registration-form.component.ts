@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { initialLocationRegistrationFormModel } from './location-registration-form.model';
+import { initialLocationRegistrationFormModel } from '../../../models/location-registration-form.model';
 import { LocationRegistrationFormModel } from '../../../models/interfaces/location-registration-form.interface';
 
 @Component({

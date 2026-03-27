@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { initialSliceRegistrationFormModel } from './slice-registration-form.model';
+import { initialSliceRegistrationFormModel } from '../../../models/slice-registration-form.model';
 import { SliceRegistrationFormModel } from '../../../models/interfaces/slice-registration-form.interface';
 
 @Component({

@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { initialVimRegistrationFormModel } from './vim-registration-form.model';
+import { initialVimRegistrationFormModel } from '../../../models/vim-registration-form.model';
 import { VimRegistrationFormModel } from '../../../models/interfaces/vim-registration-form.interface';
 
 @Component({

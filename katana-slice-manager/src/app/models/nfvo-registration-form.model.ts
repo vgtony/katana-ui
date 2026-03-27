@@ -1,4 +1,4 @@
-import { NfvoRegistrationFormModel } from '../../../models/interfaces/nfvo-registration-form.interface';
+import { NfvoRegistrationFormModel } from './interfaces/nfvo-registration-form.interface';
 
 export const initialNfvoRegistrationFormModel: NfvoRegistrationFormModel = {
   id: '',

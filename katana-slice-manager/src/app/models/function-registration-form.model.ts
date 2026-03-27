@@ -1,4 +1,4 @@
-import { FunctionRegistrationFormModel } from '../../../models/interfaces/function-registration-form.interface';
+import { FunctionRegistrationFormModel } from './interfaces/function-registration-form.interface';
 
 export const initialFunctionRegistrationFormModel: FunctionRegistrationFormModel = {
   id: '',

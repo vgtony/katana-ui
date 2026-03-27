@@ -1,4 +1,4 @@
-import { PqcSliceDeploymentFormModel } from '../../../models/interfaces/pqc-slice-deployment-form.interface';
+import { PqcSliceDeploymentFormModel } from './interfaces/pqc-slice-deployment-form.interface';
 
 export const initialPqcSliceDeploymentFormModel: PqcSliceDeploymentFormModel = {
   sliceFile: 'slice.yaml',

@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { initialK8sMigrationFormModel } from './k8s-migration-form.model';
+import { initialK8sMigrationFormModel } from '../../../models/k8s-migration-form.model';
 import { K8sMigrationFormModel } from '../../../models/interfaces/k8s-migration-form.interface';
 
 @Component({

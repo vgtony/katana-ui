@@ -1,4 +1,4 @@
-import { K8sClusterRegistrationFormModel } from '../../../models/interfaces/k8s-cluster-registration-form.interface';
+import { K8sClusterRegistrationFormModel } from './interfaces/k8s-cluster-registration-form.interface';
 
 export const initialK8sClusterRegistrationFormModel: K8sClusterRegistrationFormModel = {
   schemaVersion: '1.0',

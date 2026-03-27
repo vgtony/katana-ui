@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { initialFunctionRegistrationFormModel } from './function-registration-form.model';
+import { initialFunctionRegistrationFormModel } from '../../../models/function-registration-form.model';
 import { FunctionRegistrationFormModel } from '../../../models/interfaces/function-registration-form.interface';
 
 @Component({

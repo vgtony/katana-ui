@@ -1,4 +1,4 @@
-import { ProxmoxRegistrationFormModel } from '../../../models/interfaces/proxmox-registration-form.interface';
+import { ProxmoxRegistrationFormModel } from './interfaces/proxmox-registration-form.interface';
 
 export const initialProxmoxRegistrationFormModel: ProxmoxRegistrationFormModel = {
   clusterName: '',

@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { initialProxmoxClusterRegistrationFormModel } from './proxmox-cluster-registration-form.model';
+import { initialProxmoxClusterRegistrationFormModel } from '../../../models/proxmox-cluster-registration-form.model';
 import { ProxmoxClusterRegistrationFormModel } from '../../../models/interfaces/proxmox-cluster-registration-form.interface';
 
 @Component({

@@ -1,4 +1,4 @@
-import { SliceRegistrationFormModel } from '../../../models/interfaces/slice-registration-form.interface';
+import { SliceRegistrationFormModel } from './interfaces/slice-registration-form.interface';
 
 export const initialSliceRegistrationFormModel: SliceRegistrationFormModel = {
   baseSliceDesId: '',
