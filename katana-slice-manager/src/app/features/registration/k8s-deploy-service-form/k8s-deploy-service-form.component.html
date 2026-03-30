@@ -1,8 +1,8 @@
 <section class="registration-form">
   <div class="registration-form__header">
     <p class="registration-form__eyebrow">K8s Deploy</p>
-    <h3>Deploy a service to a cluster</h3>
-    <p>Models `katana k8s deploy -f service.json` for NS deployment requests.</p>
+    <!-- <h3>Deploy a service to a cluster</h3>
+    <p>Models `katana k8s deploy -f service.json` for NS deployment requests.</p> -->
   </div>
 
   <form class="registration-form__grid" [formGroup]="form">
@@ -10,7 +10,9 @@
     <label><span>NSD ID</span><input type="text" formControlName="nsdId" /></label>
     <label><span>NS name</span><input type="text" formControlName="nsName" /></label>
     <label><span>VIM account ID</span><input type="text" formControlName="vimAccountId" /></label>
-    <label class="registration-form__full"><span>NS description</span><input type="text" formControlName="nsDescription" /></label>
+    <label class="registration-form__full"
+      ><span>NS description</span><input type="text" formControlName="nsDescription"
+    /></label>
     <button type="submit">Create K8s deploy payload</button>
   </form>
 </section>

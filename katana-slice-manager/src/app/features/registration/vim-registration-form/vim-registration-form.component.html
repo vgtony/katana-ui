@@ -1,8 +1,8 @@
 <section class="registration-form" id="vim-form">
   <div class="registration-form__header">
     <p class="registration-form__eyebrow">VIM</p>
-    <h3>Register a virtualized infrastructure manager</h3>
-    <p>Models `katana vim add -f vim.json` for OpenStack-backed VIM registration.</p>
+    <!-- <h3>Register a virtualized infrastructure manager</h3>
+    <p>Models `katana vim add -f vim.json` for OpenStack-backed VIM registration.</p> -->
   </div>
 
   <form class="registration-form__grid" [formGroup]="form">
@@ -58,7 +58,11 @@
 
     <label>
       <span>Monitoring endpoint *</span>
-      <input type="url" formControlName="infrastructureMonitoring" placeholder="http://<openstack-ip>:9093/metrics" />
+      <input
+        type="url"
+        formControlName="infrastructureMonitoring"
+        placeholder="http://<openstack-ip>:9093/metrics"
+      />
     </label>
 
     <label>

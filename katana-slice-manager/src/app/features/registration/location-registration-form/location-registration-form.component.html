@@ -1,13 +1,18 @@
 <section class="registration-form">
   <div class="registration-form__header">
     <p class="registration-form__eyebrow">Location</p>
-    <h3>Register a location</h3>
-    <p>Models `katana location add -f location.json` for VIM placement coverage.</p>
+    <!-- <h3>Register a location</h3>
+    <p>Models `katana location add -f location.json` for VIM placement coverage.</p> -->
   </div>
 
   <form class="registration-form__grid" [formGroup]="form">
-    <label><span>Location ID</span><input type="text" formControlName="id" placeholder="group0_edge" /></label>
-    <label><span>Description</span><input type="text" formControlName="description" placeholder="Group 0 Edge location" /></label>
+    <label
+      ><span>Location ID</span><input type="text" formControlName="id" placeholder="group0_edge"
+    /></label>
+    <label
+      ><span>Description</span
+      ><input type="text" formControlName="description" placeholder="Group 0 Edge location"
+    /></label>
     <button type="submit">Create location payload</button>
   </form>
 </section>
