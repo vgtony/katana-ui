@@ -1,9 +1,9 @@
 <section class="deployment-page">
   <header class="deployment-page__hero">
-    <p class="deployment-page__eyebrow">Deployment</p>
-    <p>
+    <div class="deployment-page__eyebrow">Deployment</div>
+    <div>
       {{ selectedOption.label }}
-    </p>
+    </div>
   </header>
 
   <section class="deployment-page__stepper" aria-label="Deployment progress">
@@ -17,7 +17,7 @@
       <span class="deployment-page__step-index">1</span>
       <span>
         <strong>Registrations</strong>
-        <small>Prepare requirements for {{ selectedOption.shortLabel }}</small>
+        <div>Prepare requirements for {{ selectedOption.shortLabel }}</div>
       </span>
     </button>
 
@@ -33,7 +33,7 @@
       <span class="deployment-page__step-index">2</span>
       <span>
         <strong>{{ isSliceFlow() ? 'Deploy Configuration' : 'Configuration' }}</strong>
-        <small>{{ selectedOption.finalConfigurationLabel }}</small>
+        <div>{{ selectedOption.finalConfigurationLabel }}</div>
       </span>
     </button>
   </section>
@@ -46,21 +46,15 @@
         <p>{{ selectedOption.requirementsDescription }}</p>
       </div>
 
-      <div class="deployment-page__progress">
-        <p class="deployment-page__progress-label">Progress</p>
-        <p>
-          {{ completedRequirementsCount() }} / {{ selectedOption.requirements.length }}
-          completed
-        </p>
-      </div>
-
       <div class="deployment-page__requirements">
         @for (requirement of selectedOption.requirements; track requirement.id) {
           <article class="deployment-page__requirement-card">
             <button
               class="deployment-page__requirement-toggle"
               type="button"
-              [class.deployment-page__requirement-toggle--expanded]="isRequirementExpanded(requirement.id)"
+              [class.deployment-page__requirement-toggle--expanded]="
+                isRequirementExpanded(requirement.id)
+              "
               (click)="toggleRequirement(requirement.id)"
               [attr.aria-expanded]="isRequirementExpanded(requirement.id)"
             >
@@ -69,7 +63,9 @@
                   <span class="deployment-page__requirement-type">{{ requirement.type }}</span>
                   <span
                     class="deployment-page__requirement-status"
-                    [class.deployment-page__requirement-status--complete]="isRequirementComplete(requirement.id)"
+                    [class.deployment-page__requirement-status--complete]="
+                      isRequirementComplete(requirement.id)
+                    "
                   >
                     {{ isRequirementComplete(requirement.id) ? 'Complete' : 'Pending' }}
                   </span>
@@ -121,7 +117,11 @@
                     type="button"
                     (click)="toggleRequirementComplete(requirement.id)"
                   >
-                    {{ isRequirementComplete(requirement.id) ? 'Mark as incomplete' : 'Mark as complete' }}
+                    {{
+                      isRequirementComplete(requirement.id)
+                        ? 'Mark as incomplete'
+                        : 'Mark as complete'
+                    }}
                   </button>
                 </div>
               </div>
@@ -132,7 +132,8 @@
 
       @if (!isStepOneComplete()) {
         <div class="deployment-page__notice" role="status">
-          Step 2 stays disabled until every required registration or configuration is marked complete.
+          Step 2 stays disabled until every required registration or configuration is marked
+          complete.
         </div>
       }
 
@@ -153,7 +154,9 @@
       <div class="deployment-page__panel-header">
         <p class="deployment-page__kicker">Step 2</p>
         <h3>Deploy Configuration</h3>
-        <p>Complete the slice registration form here and trigger the deployment from this same step.</p>
+        <p>
+          Complete the slice registration form here and trigger the deployment from this same step.
+        </p>
       </div>
 
       <div class="deployment-page__embedded-form">
@@ -168,7 +171,11 @@
 
       <div class="deployment-page__actions">
         <button class="deployment-page__secondary" type="button" (click)="goToStep(1)">Back</button>
-        <button class="deployment-page__secondary" type="button" (click)="toggleSliceConfigurationComplete()">
+        <button
+          class="deployment-page__secondary"
+          type="button"
+          (click)="toggleSliceConfigurationComplete()"
+        >
           {{ sliceConfigurationComplete ? 'Mark as incomplete' : 'Mark as complete' }}
         </button>
         <button
@@ -181,10 +188,11 @@
           Deploy Slice
         </button>
       </div>
-      
+
       @if (deploymentStarted) {
         <div class="deployment-page__success" role="status">
-          Deployment flow started for {{ selectedOption.label }}. This is the placeholder deploy action for the new stepper.
+          Deployment flow started for {{ selectedOption.label }}. This is the placeholder deploy
+          action for the new stepper.
         </div>
       }
     }
@@ -209,7 +217,8 @@
 
       @if (deploymentStarted) {
         <div class="deployment-page__success" role="status">
-          Deployment flow started for {{ selectedOption.label }}. This is the placeholder deploy action for the new stepper.
+          Deployment flow started for {{ selectedOption.label }}. This is the placeholder deploy
+          action for the new stepper.
         </div>
       }
     }
@@ -218,7 +227,10 @@
       <div class="deployment-page__panel-header">
         <p class="deployment-page__kicker">Step 2</p>
         <h3>Deploy Configuration</h3>
-        <p>Complete the Proxmox VM deployment form here and trigger the deployment from this same step.</p>
+        <p>
+          Complete the Proxmox VM deployment form here and trigger the deployment from this same
+          step.
+        </p>
       </div>
 
       <div class="deployment-page__embedded-form">
@@ -234,7 +246,8 @@
 
       @if (deploymentStarted) {
         <div class="deployment-page__success" role="status">
-          Deployment flow started for {{ selectedOption.label }}. This is the placeholder deploy action for the new stepper.
+          Deployment flow started for {{ selectedOption.label }}. This is the placeholder deploy
+          action for the new stepper.
         </div>
       }
     }

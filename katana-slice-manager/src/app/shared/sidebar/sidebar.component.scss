@@ -85,8 +85,8 @@
 }
 
 .sidebar__link--active {
-  background: linear-gradient(135deg, rgba(115, 213, 191, 0.18), rgba(98, 182, 255, 0.18));
-  border-color: rgba(115, 213, 191, 0.24);
+  background: linear-gradient(135deg, rgba(79, 168, 232, 0.18), rgba(98, 182, 255, 0.18));
+  border-color: rgba(79, 168, 232, 0.28);
   color: #ffffff;
 }
 
@@ -142,7 +142,7 @@
 
 .sidebar__sublink--active {
   color: #ffffff;
-  background: rgba(115, 213, 191, 0.14);
+  background: rgba(79, 168, 232, 0.14);
 }
 
 @media (max-width: 960px) {
