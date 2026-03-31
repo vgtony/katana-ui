@@ -9,7 +9,7 @@ export class WimApiService extends KatanaApiBaseService {
   }
 
   createWim(payload: unknown): Observable<string> {
-    return this.http.post<string>(this.buildApiUrl('wim'), payload);
+    return this.postText(this.buildApiUrl('wim'), payload);
   }
 
   getWim(wimId: string): Observable<unknown> {

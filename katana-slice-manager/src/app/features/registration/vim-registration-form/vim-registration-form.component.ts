@@ -1,7 +1,9 @@
-import { Component, inject } from '@angular/core';
+import { Component, NgZone, inject, output } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { finalize } from 'rxjs';
 import { initialVimRegistrationFormModel } from '../../../models/vim-registration-form.model';
 import { VimRegistrationFormModel } from '../../../models/interfaces/vim-registration-form.interface';
+import { VimApiService, getApiErrorMessage } from '../../../shared/services/api';
 
 @Component({
   selector: 'app-vim-registration-form',
@@ -11,7 +13,13 @@ import { VimRegistrationFormModel } from '../../../models/interfaces/vim-registr
 })
 export class VimRegistrationFormComponent {
   private readonly formBuilder = inject(FormBuilder);
+  private readonly ngZone = inject(NgZone);
+  private readonly vimApi = inject(VimApiService);
+  readonly completed = output<void>();
   protected readonly model: VimRegistrationFormModel = initialVimRegistrationFormModel;
+  protected submitting = false;
+  protected submitMessage = '';
+  protected submitError = '';
 
   protected readonly form = this.formBuilder.group({
     id: [this.model.id, Validators.required],
@@ -27,4 +35,39 @@ export class VimRegistrationFormComponent {
     infrastructureMonitoring: [this.model.infrastructureMonitoring],
     securityGroups: [this.model.securityGroups]
   });
+
+  protected submit(): void {
+    this.submitMessage = '';
+    this.submitError = '';
+
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    this.submitting = true;
+
+    this.vimApi
+      .createVim(this.form.getRawValue() as VimRegistrationFormModel)
+      .pipe(
+        finalize(() =>
+          this.ngZone.run(() => {
+            this.submitting = false;
+          })
+        )
+      )
+      .subscribe({
+        next: (id) => {
+          this.ngZone.run(() => {
+            this.submitMessage = `VIM registered successfully with id ${id}.`;
+            this.completed.emit();
+          });
+        },
+        error: (error: unknown) => {
+          this.ngZone.run(() => {
+            this.submitError = getApiErrorMessage(error, 'Unable to register VIM.');
+          });
+        }
+      });
+  }
 }

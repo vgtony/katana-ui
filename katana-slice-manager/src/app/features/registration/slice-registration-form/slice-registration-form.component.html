@@ -4,7 +4,7 @@
     <p>Models `katana slice add -f slice.json` with base and service descriptor fields.</p> -->
   </div>
 
-  <form class="registration-form__grid" [formGroup]="form">
+  <form class="registration-form__grid" [formGroup]="form" (ngSubmit)="submit()">
     <label
       ><span>Base slice descriptor ID</span
       ><input type="text" formControlName="baseSliceDesId" placeholder="group0_demo_slice"
@@ -37,6 +37,18 @@
     <label class="registration-form__checkbox"
       ><input type="checkbox" formControlName="optional" /><span>Optional service NS *</span></label
     >
-    <button type="submit">Create slice payload</button>
+    <button type="submit" [disabled]="form.invalid || submitting">
+      {{ submitting ? 'Creating slice...' : 'Create Slice' }}
+    </button>
+    @if (submitMessage) {
+      <p class="registration-form__status registration-form__status--success" role="status">
+        {{ submitMessage }}
+      </p>
+    }
+    @if (submitError) {
+      <p class="registration-form__status registration-form__status--error" role="alert">
+        {{ submitError }}
+      </p>
+    }
   </form>
 </section>

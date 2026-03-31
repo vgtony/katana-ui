@@ -12,7 +12,9 @@ import { ProxmoxClusterRegistrationFormComponent } from '../../features/registra
 import { ProxmoxVmCreationFormComponent } from '../../features/registration/proxmox-vm-creation-form/proxmox-vm-creation-form.component';
 import { ProxmoxRegistrationFormComponent } from '../../features/registration/proxmox-registration-form/proxmox-registration-form.component';
 import { SliceRegistrationFormComponent } from '../../features/registration/slice-registration-form/slice-registration-form.component';
+import { DeploymentPack } from '../../models/interfaces/deployment-pack.interface';
 import { DeploymentOption } from '../../models/interfaces/deployment.interface';
+import { DeploymentHistoryService } from '../../shared/services/deployment-history.service';
 
 @Component({
   selector: 'app-deployment-page',
@@ -33,6 +35,7 @@ import { DeploymentOption } from '../../models/interfaces/deployment.interface';
 })
 export class DeploymentPageComponent {
   private readonly route = inject(ActivatedRoute);
+  private readonly deploymentHistoryService = inject(DeploymentHistoryService);
 
   protected currentStep = 1;
   protected deploymentStarted = false;
@@ -52,28 +55,28 @@ export class DeploymentPageComponent {
         {
           id: 'nfvo',
           label: 'NFVO',
-          route: '/registration/nfvo',
+          route: '/deployment/slice',
           type: 'registration',
           guidance: 'Register the orchestrator endpoint, credentials, and onboarding details that the slice deployment depends on.'
         },
         {
           id: 'function',
           label: 'Function',
-          route: '/registration/function',
+          route: '/deployment/slice',
           type: 'registration',
           guidance: 'Keep the function package and its metadata ready here so the deployment request can reference the right service building blocks.'
         },
         {
           id: 'vim',
           label: 'VIM',
-          route: '/registration/vim',
+          route: '/deployment/slice',
           type: 'registration',
           guidance: 'Capture the OpenStack or virtualized infrastructure target where the slice resources will ultimately be placed.'
         },
         {
           id: 'location',
           label: 'Location',
-          route: '/registration/location',
+          route: '/deployment/slice',
           type: 'registration',
           guidance: 'Store the location context used to place and validate the slice deployment against the expected site.'
         }
@@ -92,14 +95,14 @@ export class DeploymentPageComponent {
         {
           id: 'k8s-credentials',
           label: 'K8s Credentials',
-          route: '/registration/k8s-credentials',
+          route: '/deployment/k8s',
           type: 'registration',
           guidance: 'Keep the cluster access credentials documented here so the future deploy request can reuse them directly.'
         },
         {
           id: 'k8s-cluster',
           label: 'K8s Cluster',
-          route: '/registration/k8s-cluster',
+          route: '/deployment/k8s',
           type: 'registration',
           guidance: 'Register the Kubernetes cluster target and its connectivity details for the deployment flow.'
         }
@@ -118,7 +121,7 @@ export class DeploymentPageComponent {
         {
           id: 'proxmox-cluster',
           label: 'Proxmox Cluster',
-          route: '/registration/proxmox-cluster',
+          route: '/deployment/proxmox',
           type: 'registration',
           guidance: 'Register the Proxmox cluster and connectivity details that the VM deployment will target.'
         }
@@ -209,6 +212,10 @@ export class DeploymentPageComponent {
     this.completedRequirementIds.add(requirementId);
   }
 
+  protected markRequirementDone(requirementId: string): void {
+    this.completedRequirementIds.add(requirementId);
+  }
+
   protected isRequirementComplete(requirementId: string): boolean {
     return this.completedRequirementIds.has(requirementId);
   }
@@ -224,6 +231,22 @@ export class DeploymentPageComponent {
   }
 
   protected deploy(): void {
+    const pack: Omit<DeploymentPack, 'id'> = {
+      name: `${this.selectedOption.label} Pack`,
+      optionId: this.selectedOption.id,
+      optionLabel: this.selectedOption.label,
+      shortLabel: this.selectedOption.shortLabel,
+      status: 'done',
+      completedAt: new Date().toISOString(),
+      finalConfigurationLabel: this.selectedOption.finalConfigurationLabel,
+      requirements: this.selectedOption.requirements.map((requirement) => ({
+        id: requirement.id,
+        label: requirement.label,
+        status: 'done'
+      }))
+    };
+
+    this.deploymentHistoryService.addPack(pack);
     this.deploymentStarted = true;
   }
 

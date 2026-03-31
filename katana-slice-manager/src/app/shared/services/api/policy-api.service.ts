@@ -9,7 +9,7 @@ export class PolicyApiService extends KatanaApiBaseService {
   }
 
   createPolicy(payload: unknown): Observable<string> {
-    return this.http.post<string>(this.buildApiUrl('policy'), payload);
+    return this.postText(this.buildApiUrl('policy'), payload);
   }
 
   getPolicy(policySystemId: string): Observable<unknown> {

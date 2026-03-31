@@ -1,0 +1,146 @@
+.history-page {
+  display: grid;
+  gap: 18px;
+  color: #edf6ff;
+}
+
+.history-page__hero,
+.history-page__card,
+.history-page__empty {
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(14, 31, 46, 0.96), rgba(10, 25, 38, 0.88));
+}
+
+.history-page__hero {
+  padding: 28px 32px;
+}
+
+.history-page__eyebrow,
+.history-page__label {
+  margin: 0;
+  color: #4fa8e8;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.72rem;
+}
+
+.history-page__hero-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.history-page__hero h2,
+.history-page__hero p,
+.history-page__card h3 {
+  margin: 0;
+}
+
+.history-page__hero h2 {
+  margin-top: 10px;
+  font-size: 2.2rem;
+}
+
+.history-page__hero p:last-child {
+  margin-top: 12px;
+  max-width: 60ch;
+  color: #b9cad8;
+  line-height: 1.7;
+}
+
+.history-page__clear,
+.history-page__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #edf6ff;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.history-page__grid {
+  display: grid;
+  gap: 16px;
+}
+
+.history-page__card {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+}
+
+.history-page__card-top,
+.history-page__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.history-page__status,
+.history-page__chip {
+  border-radius: 999px;
+  background: rgba(79, 168, 232, 0.18);
+  color: #d9f0ff;
+}
+
+.history-page__status {
+  padding: 0.45rem 0.8rem;
+  text-transform: uppercase;
+  font-size: 0.76rem;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  height: fit-content;
+}
+
+.history-page__meta {
+  flex-wrap: wrap;
+}
+
+.history-page__meta div,
+.history-page__requirements {
+  display: grid;
+  gap: 8px;
+}
+
+.history-page__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.history-page__chip {
+  padding: 0.4rem 0.7rem;
+  font-size: 0.88rem;
+}
+
+.history-page__empty {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  padding: 32px;
+}
+
+.history-page__empty h3,
+.history-page__empty p {
+  margin: 0;
+}
+
+.history-page__empty p {
+  color: #b9cad8;
+  line-height: 1.7;
+}
+
+@media (max-width: 860px) {
+  .history-page__hero-row,
+  .history-page__card-top,
+  .history-page__meta {
+    flex-direction: column;
+  }
+}

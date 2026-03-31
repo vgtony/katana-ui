@@ -9,7 +9,7 @@ export class EmsApiService extends KatanaApiBaseService {
   }
 
   createEms(payload: unknown): Observable<string> {
-    return this.http.post<string>(this.buildApiUrl('ems'), payload);
+    return this.postText(this.buildApiUrl('ems'), payload);
   }
 
   getEms(emsId: string): Observable<unknown> {

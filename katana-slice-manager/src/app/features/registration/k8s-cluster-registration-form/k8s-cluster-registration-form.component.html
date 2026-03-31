@@ -4,7 +4,7 @@
     <p>Models `katana k8s add -f k8s.json` including deployment method flags.</p> -->
   </div>
 
-  <form class="registration-form__grid" [formGroup]="form">
+  <form class="registration-form__grid" [formGroup]="form" (ngSubmit)="submit()">
     <label><span>Schema version</span><input type="text" formControlName="schemaVersion" /></label>
     <label><span>Credentials file</span><input type="text" formControlName="credentials" /></label>
     <label><span>Schema type</span><input type="text" formControlName="schemaType" /></label>
@@ -40,6 +40,18 @@
         >Enable helm-chart-v3 *</span
       ></label
     >
-    <button type="submit">Create K8s cluster payload</button>
+    <button type="submit" [disabled]="form.invalid || submitting">
+      {{ submitting ? 'Registering K8s cluster...' : 'Register K8s Cluster' }}
+    </button>
+    @if (submitMessage) {
+      <p class="registration-form__status registration-form__status--success" role="status">
+        {{ submitMessage }}
+      </p>
+    }
+    @if (submitError) {
+      <p class="registration-form__status registration-form__status--error" role="alert">
+        {{ submitError }}
+      </p>
+    }
   </form>
 </section>

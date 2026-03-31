@@ -1,7 +1,9 @@
-import { Component, inject } from '@angular/core';
+import { Component, NgZone, inject, output } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { finalize } from 'rxjs';
 import { initialNfvoRegistrationFormModel } from '../../../models/nfvo-registration-form.model';
 import { NfvoRegistrationFormModel } from '../../../models/interfaces/nfvo-registration-form.interface';
+import { NfvoApiService, getApiErrorMessage } from '../../../shared/services/api';
 
 @Component({
   selector: 'app-nfvo-registration-form',
@@ -11,7 +13,13 @@ import { NfvoRegistrationFormModel } from '../../../models/interfaces/nfvo-regis
 })
 export class NfvoRegistrationFormComponent {
   private readonly formBuilder = inject(FormBuilder);
+  private readonly ngZone = inject(NgZone);
+  private readonly nfvoApi = inject(NfvoApiService);
+  readonly completed = output<void>();
   protected readonly model: NfvoRegistrationFormModel = initialNfvoRegistrationFormModel;
+  protected submitting = false;
+  protected submitMessage = '';
+  protected submitError = '';
 
   protected readonly form = this.formBuilder.group({
     id: [this.model.id, Validators.required],
@@ -29,4 +37,39 @@ export class NfvoRegistrationFormComponent {
     configNfvoIp: [this.model.configNfvoIp, Validators.required],
     configTenantName: [this.model.configTenantName, Validators.required]
   });
+
+  protected submit(): void {
+    this.submitMessage = '';
+    this.submitError = '';
+
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    this.submitting = true;
+
+    this.nfvoApi
+      .createNfvo(this.form.getRawValue() as NfvoRegistrationFormModel)
+      .pipe(
+        finalize(() =>
+          this.ngZone.run(() => {
+            this.submitting = false;
+          })
+        )
+      )
+      .subscribe({
+        next: (id) => {
+          this.ngZone.run(() => {
+            this.submitMessage = `NFVO registered successfully with id ${id}.`;
+            this.completed.emit();
+          });
+        },
+        error: (error: unknown) => {
+          this.ngZone.run(() => {
+            this.submitError = getApiErrorMessage(error, 'Unable to register NFVO.');
+          });
+        }
+      });
+  }
 }

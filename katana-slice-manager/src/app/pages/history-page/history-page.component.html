@@ -1,0 +1,60 @@
+<section class="history-page">
+  <header class="history-page__hero">
+    <p class="history-page__eyebrow">History</p>
+    <div class="history-page__hero-row">
+      <div>
+        <h2>Deployment Packs</h2>
+        <p>Every completed deployment is saved as one pack so you can review what was finished.</p>
+      </div>
+      <button class="history-page__clear" type="button" (click)="clearHistory()">Clear History</button>
+    </div>
+  </header>
+
+  @if (packs$ | async; as packs) {
+    @if (packs.length) {
+      <div class="history-page__grid">
+        @for (pack of packs; track pack.id) {
+          <article class="history-page__card">
+            <div class="history-page__card-top">
+              <div>
+                <p class="history-page__label">Pack</p>
+                <h3>{{ pack.name }}</h3>
+              </div>
+              <span class="history-page__status">{{ pack.status }}</span>
+            </div>
+
+            <div class="history-page__meta">
+              <div>
+                <p class="history-page__label">Deployment</p>
+                <strong>{{ pack.optionLabel }}</strong>
+              </div>
+              <div>
+                <p class="history-page__label">Completed</p>
+                <strong>{{ pack.completedAt | date: 'medium' }}</strong>
+              </div>
+              <div>
+                <p class="history-page__label">Final step</p>
+                <strong>{{ pack.finalConfigurationLabel }}</strong>
+              </div>
+            </div>
+
+            <div class="history-page__requirements">
+              <p class="history-page__label">Included requirements</p>
+              <div class="history-page__chips">
+                @for (requirement of pack.requirements; track requirement.id) {
+                  <span class="history-page__chip">{{ requirement.label }}</span>
+                }
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+    } @else {
+      <section class="history-page__empty">
+        <h3>No deployment packs yet</h3>
+        <p>Complete a deployment from the guided flow and it will appear here automatically.</p>
+        <a class="history-page__link" routerLink="/deployment/slice">Open Deployment</a>
+      </section>
+    }
+  }
+</section>

@@ -67,7 +67,7 @@
                       isRequirementComplete(requirement.id)
                     "
                   >
-                    {{ isRequirementComplete(requirement.id) ? 'Complete' : 'Pending' }}
+                    {{ isRequirementComplete(requirement.id) ? 'Done' : 'Pending' }}
                   </span>
                 </span>
                 <span class="deployment-page__requirement-title-row">
@@ -88,22 +88,34 @@
                 <div class="deployment-page__embedded-form">
                   @switch (requirement.id) {
                     @case ('nfvo') {
-                      <app-nfvo-registration-form></app-nfvo-registration-form>
+                      <app-nfvo-registration-form
+                        (completed)="markRequirementDone('nfvo')"
+                      ></app-nfvo-registration-form>
                     }
                     @case ('function') {
-                      <app-function-registration-form></app-function-registration-form>
+                      <app-function-registration-form
+                        (completed)="markRequirementDone('function')"
+                      ></app-function-registration-form>
                     }
                     @case ('vim') {
-                      <app-vim-registration-form></app-vim-registration-form>
+                      <app-vim-registration-form
+                        (completed)="markRequirementDone('vim')"
+                      ></app-vim-registration-form>
                     }
                     @case ('location') {
-                      <app-location-registration-form></app-location-registration-form>
+                      <app-location-registration-form
+                        (completed)="markRequirementDone('location')"
+                      ></app-location-registration-form>
                     }
                     @case ('k8s-credentials') {
-                      <app-k8s-credentials-upload-form></app-k8s-credentials-upload-form>
+                      <app-k8s-credentials-upload-form
+                        (completed)="markRequirementDone('k8s-credentials')"
+                      ></app-k8s-credentials-upload-form>
                     }
                     @case ('k8s-cluster') {
-                      <app-k8s-cluster-registration-form></app-k8s-cluster-registration-form>
+                      <app-k8s-cluster-registration-form
+                        (completed)="markRequirementDone('k8s-cluster')"
+                      ></app-k8s-cluster-registration-form>
                     }
                     @case ('proxmox-cluster') {
                       <app-proxmox-cluster-registration-form></app-proxmox-cluster-registration-form>
@@ -119,8 +131,8 @@
                   >
                     {{
                       isRequirementComplete(requirement.id)
-                        ? 'Mark as incomplete'
-                        : 'Mark as complete'
+                        ? 'Mark as pending'
+                        : 'Mark as done'
                     }}
                   </button>
                 </div>
@@ -132,8 +144,7 @@
 
       @if (!isStepOneComplete()) {
         <div class="deployment-page__notice" role="status">
-          Step 2 stays disabled until every required registration or configuration is marked
-          complete.
+          Step 2 stays disabled until every required registration or configuration is marked done.
         </div>
       }
 
@@ -191,8 +202,7 @@
 
       @if (deploymentStarted) {
         <div class="deployment-page__success" role="status">
-          Deployment flow started for {{ selectedOption.label }}. This is the placeholder deploy
-          action for the new stepper.
+          {{ selectedOption.label }} pack saved to History as a completed deployment.
         </div>
       }
     }
@@ -217,8 +227,7 @@
 
       @if (deploymentStarted) {
         <div class="deployment-page__success" role="status">
-          Deployment flow started for {{ selectedOption.label }}. This is the placeholder deploy
-          action for the new stepper.
+          {{ selectedOption.label }} pack saved to History as a completed deployment.
         </div>
       }
     }
@@ -246,8 +255,7 @@
 
       @if (deploymentStarted) {
         <div class="deployment-page__success" role="status">
-          Deployment flow started for {{ selectedOption.label }}. This is the placeholder deploy
-          action for the new stepper.
+          {{ selectedOption.label }} pack saved to History as a completed deployment.
         </div>
       }
     }

@@ -1,5 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Type } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { Validators } from '@angular/forms';
 import { FunctionRegistrationFormComponent } from './function-registration-form/function-registration-form.component';
 import { K8sClusterRegistrationFormComponent } from './k8s-cluster-registration-form/k8s-cluster-registration-form.component';
@@ -53,7 +55,7 @@ const formDefinitions: FormDefinition[] = [
   {
     component: K8sCredentialsUploadFormComponent,
     name: 'K8sCredentialsUploadFormComponent',
-    requiredControls: ['credentialsFilePath'],
+    requiredControls: ['credentialsFile'],
     optionalControls: []
   },
   {
@@ -190,7 +192,8 @@ describe('Registration form components', () => {
 
       beforeEach(async () => {
         await TestBed.configureTestingModule({
-          imports: [definition.component]
+          imports: [definition.component],
+          providers: [provideHttpClient(), provideHttpClientTesting()]
         }).compileComponents();
 
         fixture = TestBed.createComponent(definition.component);
@@ -233,6 +236,48 @@ describe('Registration form components', () => {
           expect(control?.hasError('required')).toBe(false);
         });
       });
+    });
+  });
+
+  describe('LocationRegistrationFormComponent submission state', () => {
+    let fixture: ComponentFixture<LocationRegistrationFormComponent>;
+    let httpTestingController: HttpTestingController;
+
+    beforeEach(async () => {
+      await TestBed.configureTestingModule({
+        imports: [LocationRegistrationFormComponent],
+        providers: [provideHttpClient(), provideHttpClientTesting()]
+      }).compileComponents();
+
+      fixture = TestBed.createComponent(LocationRegistrationFormComponent);
+      httpTestingController = TestBed.inject(HttpTestingController);
+      fixture.detectChanges();
+    });
+
+    afterEach(() => {
+      httpTestingController.verify();
+    });
+
+    it('shows Created after a successful location response', () => {
+      const component = fixture.componentInstance as any;
+      component.form.setValue({
+        id: 'group0_edge',
+        description: 'Group 0 Edge location'
+      });
+
+      fixture.detectChanges();
+
+      const submitButton = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+      submitButton.click();
+      fixture.detectChanges();
+
+      const request = httpTestingController.expectOne((req) => req.url.includes('/location'));
+      expect(request.request.method).toBe('POST');
+      request.flush('c1f72df2-f5cf-447f-b53f-9a5d6ee5c9cb');
+      fixture.detectChanges();
+
+      expect(submitButton.textContent?.trim()).toBe('Created');
+      expect(fixture.nativeElement.textContent).toContain('Location created successfully');
     });
   });
 });

@@ -34,6 +34,10 @@ export abstract class KatanaApiBaseService {
     return this.buildUrl(this.apiRoot, segments);
   }
 
+  protected postText(url: string, payload: unknown) {
+    return this.http.post(url, payload, { responseType: 'text' });
+  }
+
   private buildUrl(base: string, segments: ApiPathSegment[]): string {
     const normalizedSegments = segments.map(encodePathSegment);
 

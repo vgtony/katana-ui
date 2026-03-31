@@ -1,4 +1,4 @@
-export type NavigationSectionKey = 'deployment' | 'registration';
+export type NavigationSectionKey = 'deployment';
 
 export interface NavigationChild {
   label: string;

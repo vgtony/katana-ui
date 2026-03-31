@@ -1,7 +1,12 @@
 import { HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { SliceRegistrationFormModel } from '../../../models/interfaces/slice-registration-form.interface';
 import { KatanaApiBaseService } from './katana-api-base.service';
+
+export interface CreateSliceRequest {
+  gst: SliceRegistrationFormModel;
+}
 
 @Injectable({ providedIn: 'root' })
 export class SliceApiService extends KatanaApiBaseService {
@@ -9,8 +14,8 @@ export class SliceApiService extends KatanaApiBaseService {
     return this.http.get<unknown[]>(this.buildApiUrl('slice'));
   }
 
-  createSlice(payload: unknown): Observable<string> {
-    return this.http.post<string>(this.buildApiUrl('slice'), payload);
+  createSlice(payload: CreateSliceRequest): Observable<string> {
+    return this.postText(this.buildApiUrl('slice'), payload);
   }
 
   getSlice(sliceId: string): Observable<unknown> {

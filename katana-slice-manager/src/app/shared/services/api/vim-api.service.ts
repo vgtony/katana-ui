@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { VimRegistrationFormModel } from '../../../models/interfaces/vim-registration-form.interface';
 import { KatanaApiBaseService } from './katana-api-base.service';
 
 @Injectable({ providedIn: 'root' })
@@ -8,15 +9,15 @@ export class VimApiService extends KatanaApiBaseService {
     return this.http.get<unknown[]>(this.buildApiUrl('vim'));
   }
 
-  createVim(payload: unknown): Observable<string> {
-    return this.http.post<string>(this.buildApiUrl('vim'), payload);
+  createVim(payload: VimRegistrationFormModel): Observable<string> {
+    return this.postText(this.buildApiUrl('vim'), payload);
   }
 
-  getVim(vimId: string): Observable<unknown> {
-    return this.http.get(this.buildApiUrl('vim', vimId));
+  getVim(vimId: string): Observable<VimRegistrationFormModel> {
+    return this.http.get<VimRegistrationFormModel>(this.buildApiUrl('vim', vimId));
   }
 
-  updateVim(vimId: string, payload: unknown): Observable<unknown> {
+  updateVim(vimId: string, payload: VimRegistrationFormModel): Observable<unknown> {
     return this.http.put(this.buildApiUrl('vim', vimId), payload);
   }
 

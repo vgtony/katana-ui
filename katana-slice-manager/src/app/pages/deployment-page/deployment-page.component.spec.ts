@@ -1,7 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRoute, convertToParamMap, ParamMap } from '@angular/router';
 import { By } from '@angular/platform-browser';
 import { BehaviorSubject } from 'rxjs';
+import { NfvoRegistrationFormComponent } from '../../features/registration/nfvo-registration-form/nfvo-registration-form.component';
 import { DeploymentPageComponent } from './deployment-page.component';
 
 describe('DeploymentPageComponent', () => {
@@ -10,9 +13,13 @@ describe('DeploymentPageComponent', () => {
   let paramMap$!: BehaviorSubject<ParamMap>;
 
   beforeEach(async () => {
+    localStorage.clear();
+
     await TestBed.configureTestingModule({
       imports: [DeploymentPageComponent],
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
         {
           provide: ActivatedRoute,
           useValue: {
@@ -77,7 +84,7 @@ describe('DeploymentPageComponent', () => {
   }
 
   function markExpandedRequirementComplete(): void {
-    getButtonByText('Mark as complete').click();
+    getButtonByText('Mark as done').click();
     fixture.detectChanges();
   }
 
@@ -144,7 +151,7 @@ describe('DeploymentPageComponent', () => {
       fixture.detectChanges();
 
       expect(component['deploymentStarted']).toBe(true);
-      expect(getTextContent()).toContain('Deployment flow started for K8s Deploy');
+      expect(getTextContent()).toContain('pack saved to History as a completed deployment');
     });
   });
 
@@ -175,6 +182,16 @@ describe('DeploymentPageComponent', () => {
       expect(component['completedRequirementsCount']()).toBe(4);
       expect(getStepperButton(2).disabled).toBe(false);
       expect(getButtonByText('Configuration').disabled).toBe(false);
+    });
+
+    it('marks a requirement as done after the embedded form emits success', () => {
+      const nfvoForm = fixture.debugElement.query(By.directive(NfvoRegistrationFormComponent));
+
+      (nfvoForm.componentInstance as NfvoRegistrationFormComponent).completed.emit();
+      fixture.detectChanges();
+
+      expect(component['isRequirementComplete']('nfvo')).toBe(true);
+      expect(getTextContent()).toContain('Done');
     });
 
     it('opens the Slice deploy configuration step once registrations are completed', () => {
@@ -209,7 +226,7 @@ describe('DeploymentPageComponent', () => {
 
       expect(component['sliceConfigurationComplete']).toBe(true);
       expect(component['deploymentStarted']).toBe(true);
-      expect(getTextContent()).toContain('Deployment flow started for Slice / OpenStack');
+      expect(getTextContent()).toContain('pack saved to History as a completed deployment');
     });
   });
 
@@ -256,7 +273,7 @@ describe('DeploymentPageComponent', () => {
       fixture.detectChanges();
 
       expect(component['deploymentStarted']).toBe(true);
-      expect(getTextContent()).toContain('Deployment flow started for Proxmox VM');
+      expect(getTextContent()).toContain('pack saved to History as a completed deployment');
     });
   });
 });

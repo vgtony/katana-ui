@@ -1,0 +1,117 @@
+<section class="dashboard-page">
+  <header class="dashboard-page__hero">
+    <p class="dashboard-page__eyebrow">Dashboard</p>
+    <h2>Database Overview</h2>
+    <p>Load every stored dataset into one workspace with search, filtering, and pagination.</p>
+  </header>
+
+  <section class="dashboard-page__toolbar">
+    <label class="dashboard-page__control">
+      <span>Search</span>
+      <input
+        type="search"
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="updateSearchTerm()"
+        placeholder="Search across all tables"
+      />
+    </label>
+
+    <label class="dashboard-page__control">
+      <span>Filter</span>
+      <select [(ngModel)]="selectedFilter" (ngModelChange)="updateFilter()">
+        @for (option of filterOptions; track option.value) {
+          <option [ngValue]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="dashboard-page__control dashboard-page__control--compact">
+      <span>Rows per table page</span>
+      <select [(ngModel)]="pageSize" (ngModelChange)="updatePageSize()">
+        <option [ngValue]="5">5</option>
+        <option [ngValue]="8">8</option>
+        <option [ngValue]="12">12</option>
+        <option [ngValue]="20">20</option>
+      </select>
+    </label>
+  </section>
+
+  <section class="dashboard-page__summary">
+    <article class="dashboard-page__summary-card">
+      <p class="dashboard-page__summary-label">Rows loaded</p>
+      <strong>{{ totalRows }}</strong>
+    </article>
+    <article class="dashboard-page__summary-card">
+      <p class="dashboard-page__summary-label">Filter</p>
+      <strong>{{ selectedFilter === 'all' ? 'All datasets' : formatColumnLabel(selectedFilter) }}</strong>
+    </article>
+  </section>
+
+  @if (loading) {
+    <section class="dashboard-page__empty">
+      <h3>Loading dashboard</h3>
+      <p>Fetching the latest data from the API services.</p>
+    </section>
+  } @else {
+    <div class="dashboard-page__sections">
+      @for (section of visibleSections; track trackBySection($index, section)) {
+        <article class="dashboard-page__section">
+          <div class="dashboard-page__section-top">
+            <div>
+              <p class="dashboard-page__section-label">{{ section.category }}</p>
+              <h3>{{ section.label }}</h3>
+            </div>
+            <span class="dashboard-page__section-count">{{ section.filteredCount }} rows</span>
+          </div>
+
+          <p class="dashboard-page__section-description">{{ section.description }}</p>
+
+          @if (section.error) {
+            <div class="dashboard-page__error" role="alert">{{ section.error }}</div>
+          } @else if (section.paginatedRows.length) {
+            <div class="dashboard-page__table-shell">
+              <table class="dashboard-page__table">
+                <thead>
+                  <tr>
+                    @for (column of section.columns; track column) {
+                      <th>{{ formatColumnLabel(column) }}</th>
+                    }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of section.paginatedRows; track trackByRow($index)) {
+                    <tr>
+                      @for (column of section.columns; track column) {
+                        <td>{{ row[column] ?? '—' }}</td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+
+            <div class="dashboard-page__pagination">
+              <button
+                type="button"
+                (click)="goToPreviousPage(section.key)"
+                [disabled]="section.currentPage === 1"
+              >
+                Previous
+              </button>
+              <span>Page {{ section.currentPage }} of {{ section.totalPages }}</span>
+              <button
+                type="button"
+                (click)="goToNextPage(section.key, section.totalPages)"
+                [disabled]="section.currentPage === section.totalPages"
+              >
+                Next
+              </button>
+            </div>
+          } @else {
+            <div class="dashboard-page__empty-row">No rows match the current search or filter.</div>
+          }
+        </article>
+      }
+    </div>
+  }
+</section>

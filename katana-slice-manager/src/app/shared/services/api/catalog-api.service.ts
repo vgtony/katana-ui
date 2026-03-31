@@ -23,7 +23,7 @@ export class CatalogApiService extends KatanaApiBaseService {
   }
 
   createBaseSliceDescriptor(payload: unknown): Observable<string> {
-    return this.http.post<string>(this.buildApiUrl('base_slice_des'), payload);
+    return this.postText(this.buildApiUrl('base_slice_des'), payload);
   }
 
   getBaseSliceDescriptor(id: string): Observable<unknown> {

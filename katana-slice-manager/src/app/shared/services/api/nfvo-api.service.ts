@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { NfvoRegistrationFormModel } from '../../../models/interfaces/nfvo-registration-form.interface';
 import { KatanaApiBaseService } from './katana-api-base.service';
 
 @Injectable({ providedIn: 'root' })
@@ -8,15 +9,15 @@ export class NfvoApiService extends KatanaApiBaseService {
     return this.http.get<unknown[]>(this.buildApiUrl('nfvo'));
   }
 
-  createNfvo(payload: unknown): Observable<string> {
-    return this.http.post<string>(this.buildApiUrl('nfvo'), payload);
+  createNfvo(payload: NfvoRegistrationFormModel): Observable<string> {
+    return this.postText(this.buildApiUrl('nfvo'), payload);
   }
 
-  getNfvo(nfvoId: string): Observable<unknown> {
-    return this.http.get(this.buildApiUrl('nfvo', nfvoId));
+  getNfvo(nfvoId: string): Observable<NfvoRegistrationFormModel> {
+    return this.http.get<NfvoRegistrationFormModel>(this.buildApiUrl('nfvo', nfvoId));
   }
 
-  updateNfvo(nfvoId: string, payload: unknown): Observable<unknown> {
+  updateNfvo(nfvoId: string, payload: NfvoRegistrationFormModel): Observable<unknown> {
     return this.http.put(this.buildApiUrl('nfvo', nfvoId), payload);
   }
 
