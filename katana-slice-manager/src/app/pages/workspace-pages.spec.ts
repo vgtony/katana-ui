@@ -22,7 +22,6 @@ describe('Workspace pages', () => {
                     key: 'locations',
                     label: 'Locations',
                     category: 'infrastructure',
-                    description: 'Stored locations',
                     columns: ['id', 'description'],
                     rows: [
                       { id: 'group0_edge', description: 'Group 0 Edge' },
@@ -41,7 +40,7 @@ describe('Workspace pages', () => {
     });
 
     it('renders dashboard sections from the loader service', () => {
-      expect(fixture.nativeElement.textContent).toContain('Database Overview');
+      expect(fixture.nativeElement.textContent).toContain('Dashboard');
       expect(fixture.nativeElement.textContent).toContain('Locations');
       expect(fixture.nativeElement.textContent).toContain('Group 0 Edge');
     });

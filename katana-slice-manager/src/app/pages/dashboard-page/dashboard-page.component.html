@@ -1,8 +1,6 @@
 <section class="dashboard-page">
   <header class="dashboard-page__hero">
     <p class="dashboard-page__eyebrow">Dashboard</p>
-    <h2>Database Overview</h2>
-    <p>Load every stored dataset into one workspace with search, filtering, and pagination.</p>
   </header>
 
   <section class="dashboard-page__toolbar">
@@ -36,17 +34,6 @@
     </label>
   </section>
 
-  <section class="dashboard-page__summary">
-    <article class="dashboard-page__summary-card">
-      <p class="dashboard-page__summary-label">Rows loaded</p>
-      <strong>{{ totalRows }}</strong>
-    </article>
-    <article class="dashboard-page__summary-card">
-      <p class="dashboard-page__summary-label">Filter</p>
-      <strong>{{ selectedFilter === 'all' ? 'All datasets' : formatColumnLabel(selectedFilter) }}</strong>
-    </article>
-  </section>
-
   @if (loading) {
     <section class="dashboard-page__empty">
       <h3>Loading dashboard</h3>
@@ -61,54 +48,64 @@
               <p class="dashboard-page__section-label">{{ section.category }}</p>
               <h3>{{ section.label }}</h3>
             </div>
-            <span class="dashboard-page__section-count">{{ section.filteredCount }} rows</span>
+            <div class="dashboard-page__section-actions">
+              <span class="dashboard-page__section-count">{{ section.filteredCount }} rows</span>
+              <button
+                type="button"
+                class="dashboard-page__section-toggle"
+                (click)="toggleSection(section.key)"
+                [attr.aria-expanded]="isSectionExpanded(section.key)"
+              >
+                {{ isSectionExpanded(section.key) ? 'Collapse' : 'Expand' }}
+              </button>
+            </div>
           </div>
 
-          <p class="dashboard-page__section-description">{{ section.description }}</p>
-
-          @if (section.error) {
-            <div class="dashboard-page__error" role="alert">{{ section.error }}</div>
-          } @else if (section.paginatedRows.length) {
-            <div class="dashboard-page__table-shell">
-              <table class="dashboard-page__table">
-                <thead>
-                  <tr>
-                    @for (column of section.columns; track column) {
-                      <th>{{ formatColumnLabel(column) }}</th>
-                    }
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (row of section.paginatedRows; track trackByRow($index)) {
+          @if (isSectionExpanded(section.key)) {
+            @if (section.error) {
+              <div class="dashboard-page__error" role="alert">{{ section.error }}</div>
+            } @else if (section.paginatedRows.length) {
+              <div class="dashboard-page__table-shell">
+                <table class="dashboard-page__table">
+                  <thead>
                     <tr>
                       @for (column of section.columns; track column) {
-                        <td>{{ row[column] ?? '—' }}</td>
+                        <th>{{ formatColumnLabel(column) }}</th>
                       }
                     </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    @for (row of section.paginatedRows; track trackByRow($index)) {
+                      <tr>
+                        @for (column of section.columns; track column) {
+                          <td>{{ row[column] ?? '—' }}</td>
+                        }
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
 
-            <div class="dashboard-page__pagination">
-              <button
-                type="button"
-                (click)="goToPreviousPage(section.key)"
-                [disabled]="section.currentPage === 1"
-              >
-                Previous
-              </button>
-              <span>Page {{ section.currentPage }} of {{ section.totalPages }}</span>
-              <button
-                type="button"
-                (click)="goToNextPage(section.key, section.totalPages)"
-                [disabled]="section.currentPage === section.totalPages"
-              >
-                Next
-              </button>
-            </div>
-          } @else {
-            <div class="dashboard-page__empty-row">No rows match the current search or filter.</div>
+              <div class="dashboard-page__pagination">
+                <button
+                  type="button"
+                  (click)="goToPreviousPage(section.key)"
+                  [disabled]="section.currentPage === 1"
+                >
+                  Previous
+                </button>
+                <span>Page {{ section.currentPage }} of {{ section.totalPages }}</span>
+                <button
+                  type="button"
+                  (click)="goToNextPage(section.key, section.totalPages)"
+                  [disabled]="section.currentPage === section.totalPages"
+                >
+                  Next
+                </button>
+              </div>
+            } @else {
+              <div class="dashboard-page__empty-row">No rows match the current search or filter.</div>
+            }
           }
         </article>
       }

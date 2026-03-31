@@ -33,12 +33,14 @@ export class DashboardPageComponent {
     { label: 'Catalog', value: 'catalog' },
     { label: 'Operations', value: 'operations' }
   ];
+  protected readonly expandedSections: Record<string, boolean> = {};
   private readonly pageByKey: Record<string, number> = {};
 
   constructor() {
     this.dashboardDataService.loadSections().subscribe((sections) => {
       this.sections = sections;
       this.loading = false;
+      this.resetExpandedSections();
       this.resetPagination();
     });
   }
@@ -48,10 +50,6 @@ export class DashboardPageComponent {
       .filter((section) => this.selectedFilter === 'all' || section.category === this.selectedFilter)
       .map((section) => this.buildSectionView(section))
       .filter((section) => section.filteredCount > 0 || !!section.error || !this.searchTerm.trim());
-  }
-
-  protected get totalRows(): number {
-    return this.sections.reduce((total, section) => total + section.rows.length, 0);
   }
 
   protected updateSearchTerm(): void {
@@ -89,6 +87,14 @@ export class DashboardPageComponent {
     return index;
   }
 
+  protected toggleSection(sectionKey: string): void {
+    this.expandedSections[sectionKey] = !this.isSectionExpanded(sectionKey);
+  }
+
+  protected isSectionExpanded(sectionKey: string): boolean {
+    return this.expandedSections[sectionKey] ?? true;
+  }
+
   private buildSectionView(section: DashboardSection): DashboardSectionView {
     const filteredRows = this.filterRows(section.rows);
     const totalPages = Math.max(1, Math.ceil(filteredRows.length / this.pageSize));
@@ -121,6 +127,12 @@ export class DashboardPageComponent {
   private resetPagination(): void {
     this.sections.forEach((section) => {
       this.pageByKey[section.key] = 1;
+    });
+  }
+
+  private resetExpandedSections(): void {
+    this.sections.forEach((section) => {
+      this.expandedSections[section.key] ??= true;
     });
   }
 }

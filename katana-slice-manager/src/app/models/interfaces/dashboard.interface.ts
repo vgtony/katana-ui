@@ -8,7 +8,6 @@ export interface DashboardSection {
   key: string;
   label: string;
   category: DashboardCategory;
-  description: string;
   columns: string[];
   rows: DashboardRow[];
   error: string | null;

@@ -22,7 +22,6 @@ interface DashboardSource {
   key: string;
   label: string;
   category: DashboardSection['category'];
-  description: string;
   request: Observable<unknown>;
 }
 
@@ -49,98 +48,84 @@ export class DashboardDataService {
         key: 'slices',
         label: 'Slices',
         category: 'deployment',
-        description: 'Created slice instances currently stored in the database.',
         request: this.sliceApi.getSlices()
       },
       {
         key: 'functions',
         label: 'Functions',
         category: 'deployment',
-        description: 'Registered network functions available for deployments.',
         request: this.functionApi.getFunctions()
       },
       {
         key: 'vims',
         label: 'VIMs',
         category: 'infrastructure',
-        description: 'Virtualized infrastructure managers registered in Katana.',
         request: this.vimApi.getVims()
       },
       {
         key: 'nfvos',
         label: 'NFVOs',
         category: 'infrastructure',
-        description: 'Registered orchestrators and onboarding endpoints.',
         request: this.nfvoApi.getNfvos()
       },
       {
         key: 'wims',
         label: 'WIMs',
         category: 'infrastructure',
-        description: 'Wide area infrastructure managers stored in the system.',
         request: this.wimApi.getWims()
       },
       {
         key: 'ems',
         label: 'EMS',
         category: 'infrastructure',
-        description: 'Element management systems registered in Katana.',
         request: this.emsApi.getEmsList()
       },
       {
         key: 'locations',
         label: 'Locations',
         category: 'infrastructure',
-        description: 'Infrastructure locations used for placement and coverage.',
         request: this.locationApi.getLocations()
       },
       {
         key: 'k8s',
         label: 'K8s Clusters',
         category: 'infrastructure',
-        description: 'Kubernetes clusters registered in Katana and OSM.',
         request: this.kubernetesApi.getK8sClusters()
       },
       {
         key: 'gsts',
         label: 'GSTs',
         category: 'catalog',
-        description: 'Generic slice templates available for instantiation.',
         request: this.catalogApi.getGsts()
       },
       {
         key: 'base-slice-descriptors',
         label: 'Base Slice Descriptors',
         category: 'catalog',
-        description: 'Base slice descriptors that belong to the catalog.',
         request: this.catalogApi.getBaseSliceDescriptors()
       },
       {
         key: 'ns-list',
         label: 'NS Descriptors',
         category: 'catalog',
-        description: 'Network service descriptors discovered from registered NFVOs.',
         request: this.catalogApi.getNsList()
       },
       {
         key: 'policies',
         label: 'Policies',
         category: 'operations',
-        description: 'Policy systems and rule engines registered in Katana.',
         request: this.policyApi.getPolicies()
       },
       {
         key: 'resources',
         label: 'Resources',
         category: 'operations',
-        description: 'Latest platform resource inventory snapshot.',
         request: this.resourcesApi.getResources()
       },
       {
         key: 'lot',
         label: 'LoT Monitors',
         category: 'operations',
-        description: 'Level of Trust monitors currently configured.',
         request: this.trustApi.getLotMonitors()
       }
     ];
@@ -177,7 +162,6 @@ export class DashboardDataService {
       key: source.key,
       label: source.label,
       category: source.category,
-      description: source.description,
       columns,
       rows,
       error
