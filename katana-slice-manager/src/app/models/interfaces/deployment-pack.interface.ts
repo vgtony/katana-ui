@@ -7,13 +7,16 @@ export interface DeploymentPackRequirement {
   status: 'done';
 }
 
+export type DeploymentPackStatus = 'done' | 'failed';
+
 export interface DeploymentPack {
   id: string;
   name: string;
   optionId: DeploymentOption['id'];
   optionLabel: string;
   shortLabel: string;
-  status: 'done';
+  status: DeploymentPackStatus;
+  errorType?: string;
   completedAt: string;
   finalConfigurationLabel: string;
   requirements: DeploymentPackRequirement[];

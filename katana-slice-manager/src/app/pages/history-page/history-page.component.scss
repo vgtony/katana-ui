@@ -99,6 +99,11 @@
   height: fit-content;
 }
 
+.history-page__status--failed {
+  background: rgba(255, 108, 99, 0.18);
+  color: #ffd5d1;
+}
+
 .history-page__meta {
   flex-wrap: wrap;
 }

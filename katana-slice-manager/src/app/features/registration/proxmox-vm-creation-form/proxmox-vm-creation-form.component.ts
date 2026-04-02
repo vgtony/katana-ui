@@ -3,13 +3,19 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { initialProxmoxVmCreationFormModel } from '../../../models/proxmox-vm-creation-form.model';
 import { ProxmoxVmCreationFormModel } from '../../../models/interfaces/proxmox-vm-creation-form.interface';
+import { DeploymentPackStatus } from '../../../models/interfaces/deployment-pack.interface';
 import {
   ProxmoxBridgeConfig,
   ProxmoxVmConfig,
   ProxmoxVmDeploymentRequest
 } from '../../../models/interfaces/proxmox.interface';
-import { ProxmoxApiService, getApiErrorMessage } from '../../../shared/services/api';
+import { ProxmoxApiService, getApiErrorMessage, getApiErrorType } from '../../../shared/services/api';
 import { DeploymentDraftService } from '../../../shared/services/deployment-draft.service';
+
+export interface DeploymentAttemptEvent {
+  status: DeploymentPackStatus;
+  errorType?: string;
+}
 
 @Component({
   selector: 'app-proxmox-vm-creation-form',
@@ -23,7 +29,7 @@ export class ProxmoxVmCreationFormComponent {
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly proxmoxApi = inject(ProxmoxApiService);
   private readonly deploymentDraftService = inject(DeploymentDraftService);
-  readonly deployed = output<void>();
+  readonly deployed = output<DeploymentAttemptEvent>();
   protected readonly model: ProxmoxVmCreationFormModel = this.deploymentDraftService.getFormValue(
     'proxmox',
     'proxmox-vm',
@@ -89,7 +95,7 @@ export class ProxmoxVmCreationFormComponent {
             );
             this.submitSucceeded = true;
             this.submitMessage = `${response.message}. Status: ${response.deployment_status}. Estimated time: ${response.estimated_time}.`;
-            this.deployed.emit();
+            this.deployed.emit({ status: 'done' });
             this.changeDetectorRef.detectChanges();
           });
         },
@@ -97,6 +103,10 @@ export class ProxmoxVmCreationFormComponent {
           this.ngZone.run(() => {
             this.submitSucceeded = false;
             this.submitError = getApiErrorMessage(error, 'Unable to deploy Proxmox VM.');
+            this.deployed.emit({
+              status: 'failed',
+              errorType: getApiErrorType(error) ?? 'Failed'
+            });
             this.changeDetectorRef.detectChanges();
           });
         }

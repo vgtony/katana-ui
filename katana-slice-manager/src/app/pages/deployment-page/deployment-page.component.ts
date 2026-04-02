@@ -12,7 +12,8 @@ import { ProxmoxClusterRegistrationFormComponent } from '../../features/registra
 import { ProxmoxVmCreationFormComponent } from '../../features/registration/proxmox-vm-creation-form/proxmox-vm-creation-form.component';
 import { ProxmoxRegistrationFormComponent } from '../../features/registration/proxmox-registration-form/proxmox-registration-form.component';
 import { SliceRegistrationFormComponent } from '../../features/registration/slice-registration-form/slice-registration-form.component';
-import { DeploymentPack } from '../../models/interfaces/deployment-pack.interface';
+import { DeploymentAttemptEvent } from '../../features/registration/proxmox-vm-creation-form/proxmox-vm-creation-form.component';
+import { DeploymentPack, DeploymentPackStatus } from '../../models/interfaces/deployment-pack.interface';
 import { DeploymentOption } from '../../models/interfaces/deployment.interface';
 import { DeploymentDraftService } from '../../shared/services/deployment-draft.service';
 import { DeploymentHistoryService } from '../../shared/services/deployment-history.service';
@@ -45,6 +46,7 @@ export class DeploymentPageComponent {
   protected expandedRequirementIds = new Set<string>();
   protected completedRequirementIds = new Set<string>();
   protected sliceConfigurationComplete = false;
+  protected lastDeploymentStatus: DeploymentPackStatus = 'done';
 
   protected readonly deploymentOptions: DeploymentOption[] = [
     {
@@ -243,13 +245,14 @@ export class DeploymentPageComponent {
     return this.completedRequirementsCount() === this.selectedOption.requirements.length;
   }
 
-  protected deploy(): void {
+  protected deploy(attempt: DeploymentAttemptEvent = { status: 'done' }): void {
     const pack: Omit<DeploymentPack, 'id'> = {
       name: `${this.selectedOption.label} Pack`,
       optionId: this.selectedOption.id,
       optionLabel: this.selectedOption.label,
       shortLabel: this.selectedOption.shortLabel,
-      status: 'done',
+      status: attempt.status,
+      errorType: attempt.errorType,
       completedAt: new Date().toISOString(),
       finalConfigurationLabel: this.selectedOption.finalConfigurationLabel,
       formSnapshots: this.deploymentDraftService.getSnapshotsForOption(this.selectedOption.id),
@@ -261,7 +264,14 @@ export class DeploymentPageComponent {
     };
 
     this.deploymentHistoryService.addPack(pack);
+    this.lastDeploymentStatus = attempt.status;
     this.deploymentStarted = true;
+  }
+
+  protected getDeploymentFeedbackMessage(): string {
+    return this.lastDeploymentStatus === 'failed'
+      ? `${this.selectedOption.label} pack saved to History with a failed deployment.`
+      : `${this.selectedOption.label} pack saved to History as a completed deployment.`;
   }
 
   private resetStepState(): void {

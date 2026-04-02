@@ -277,11 +277,27 @@ describe('DeploymentPageComponent', () => {
 
       const proxmoxVmForm = fixture.debugElement.query(By.css('app-proxmox-vm-creation-form'))
         .componentInstance as ProxmoxVmCreationFormComponent;
-      proxmoxVmForm.deployed.emit();
+      proxmoxVmForm.deployed.emit({ status: 'done' });
       fixture.detectChanges();
 
       expect(component['deploymentStarted']).toBe(true);
       expect(getTextContent()).toContain('pack saved to History as a completed deployment');
+    });
+
+    it('saves failed Proxmox deployments to history and shows the failure state', () => {
+      completeStepOne(['Proxmox Cluster']);
+
+      getStepperButton(2).click();
+      fixture.detectChanges();
+
+      const proxmoxVmForm = fixture.debugElement.query(By.css('app-proxmox-vm-creation-form'))
+        .componentInstance as ProxmoxVmCreationFormComponent;
+      proxmoxVmForm.deployed.emit({ status: 'failed', errorType: 'Internal Server Error' });
+      fixture.detectChanges();
+
+      expect(component['deploymentStarted']).toBe(true);
+      expect(component['lastDeploymentStatus']).toBe('failed');
+      expect(getTextContent()).toContain('pack saved to History with a failed deployment');
     });
   });
 });

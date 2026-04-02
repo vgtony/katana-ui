@@ -435,5 +435,59 @@ describe('Registration form components', () => {
 
       expect(submitButton.textContent?.trim()).toBe('Deployment Started');
     });
+
+    it('emits a failed deployment attempt with the API error type when deployment fails', () => {
+      const component = fixture.componentInstance as any;
+      const deploymentAttempts: Array<{ status: string; errorType?: string }> = [];
+      component.deployed.subscribe((event: { status: string; errorType?: string }) => {
+        deploymentAttempts.push(event);
+      });
+
+      component.form.setValue({
+        clusterName: 'prod-cluster-01',
+        vmName: 'web-server-01',
+        template: 'ubuntu-2204-cloudinit',
+        cpu: 4,
+        ram: 4096,
+        storageType: 'local-lvm',
+        diskSize: 50,
+        managementBridgeName: 'vmbr0',
+        managementBridgeType: 'management',
+        customBridgeName: '',
+        customBridgeType: '',
+        customIp: '',
+        customNetmask: '',
+        customGateway: ''
+      });
+
+      fixture.detectChanges();
+
+      const submitButton = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+      submitButton.click();
+      fixture.detectChanges();
+
+      const request = httpTestingController.expectOne((req) => req.url.includes('/proxmox/vm'));
+      request.flush(
+        {
+          type: 'Template Missing',
+          message: 'Template ubuntu-2204-cloudinit could not be found.'
+        },
+        {
+          status: 500,
+          statusText: 'Internal Server Error'
+        }
+      );
+      fixture.detectChanges();
+
+      expect(deploymentAttempts).toEqual([
+        {
+          status: 'failed',
+          errorType: 'Template Missing'
+        }
+      ]);
+      expect(fixture.nativeElement.textContent).toContain(
+        'Template ubuntu-2204-cloudinit could not be found.'
+      );
+    });
   });
 });

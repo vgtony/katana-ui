@@ -204,7 +204,7 @@
 
       @if (deploymentStarted) {
         <div class="deployment-page__success" role="status">
-          {{ selectedOption.label }} pack saved to History as a completed deployment.
+          {{ getDeploymentFeedbackMessage() }}
         </div>
       }
     }
@@ -229,7 +229,7 @@
 
       @if (deploymentStarted) {
         <div class="deployment-page__success" role="status">
-          {{ selectedOption.label }} pack saved to History as a completed deployment.
+          {{ getDeploymentFeedbackMessage() }}
         </div>
       }
     }
@@ -245,7 +245,7 @@
       </div>
 
       <div class="deployment-page__embedded-form">
-        <app-proxmox-vm-creation-form (deployed)="deploy()"></app-proxmox-vm-creation-form>
+        <app-proxmox-vm-creation-form (deployed)="deploy($event)"></app-proxmox-vm-creation-form>
       </div>
 
       <div class="deployment-page__actions">
@@ -254,7 +254,7 @@
 
       @if (deploymentStarted) {
         <div class="deployment-page__success" role="status">
-          {{ selectedOption.label }} pack saved to History as a completed deployment.
+          {{ getDeploymentFeedbackMessage() }}
         </div>
       }
     }

@@ -30,4 +30,8 @@ export class HistoryPageComponent {
       }
     });
   }
+
+  protected getPackStatusLabel(pack: DeploymentPack): string {
+    return pack.status === 'failed' ? pack.errorType ?? 'Failed' : 'Done';
+  }
 }

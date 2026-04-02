@@ -70,6 +70,18 @@ describe('Workspace pages', () => {
                     { id: 'nfvo', label: 'NFVO', status: 'done' },
                     { id: 'vim', label: 'VIM', status: 'done' }
                   ]
+                },
+                {
+                  id: 'pack-2',
+                  name: 'Proxmox VM Pack',
+                  optionId: 'proxmox',
+                  optionLabel: 'Proxmox VM',
+                  shortLabel: 'Proxmox',
+                  status: 'failed',
+                  errorType: 'Internal Server Error',
+                  completedAt: '2026-04-01T09:00:00.000Z',
+                  finalConfigurationLabel: 'Proxmox VM configuration',
+                  requirements: [{ id: 'proxmox-cluster', label: 'Proxmox Cluster', status: 'done' }]
                 }
               ]),
               clearPacks: () => undefined
@@ -82,9 +94,11 @@ describe('Workspace pages', () => {
       fixture.detectChanges();
     });
 
-    it('renders completed deployment packs', () => {
+    it('renders completed and failed deployment packs', () => {
       expect(fixture.nativeElement.textContent).toContain('Deployment Packs');
       expect(fixture.nativeElement.textContent).toContain('Slice / OpenStack Pack');
+      expect(fixture.nativeElement.textContent).toContain('Proxmox VM Pack');
+      expect(fixture.nativeElement.textContent).toContain('Internal Server Error');
       expect(fixture.nativeElement.textContent).toContain('NFVO');
     });
   });
