@@ -5,12 +5,14 @@ import { ActivatedRoute, convertToParamMap, ParamMap } from '@angular/router';
 import { By } from '@angular/platform-browser';
 import { BehaviorSubject } from 'rxjs';
 import { NfvoRegistrationFormComponent } from '../../features/registration/nfvo-registration-form/nfvo-registration-form.component';
+import { ProxmoxVmCreationFormComponent } from '../../features/registration/proxmox-vm-creation-form/proxmox-vm-creation-form.component';
 import { DeploymentPageComponent } from './deployment-page.component';
 
 describe('DeploymentPageComponent', () => {
   let fixture!: ComponentFixture<DeploymentPageComponent>;
   let component!: DeploymentPageComponent;
   let paramMap$!: BehaviorSubject<ParamMap>;
+  let queryParamMap$!: BehaviorSubject<ParamMap>;
 
   beforeEach(async () => {
     localStorage.clear();
@@ -25,6 +27,9 @@ describe('DeploymentPageComponent', () => {
           useValue: {
             get paramMap() {
               return paramMap$.asObservable();
+            },
+            get queryParamMap() {
+              return queryParamMap$.asObservable();
             }
           }
         }
@@ -34,6 +39,7 @@ describe('DeploymentPageComponent', () => {
 
   function createComponentForOption(option: 'slice' | 'k8s' | 'proxmox'): void {
     paramMap$ = new BehaviorSubject(convertToParamMap({ option }));
+    queryParamMap$ = new BehaviorSubject(convertToParamMap({}));
     fixture = TestBed.createComponent(DeploymentPageComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -269,7 +275,9 @@ describe('DeploymentPageComponent', () => {
       getStepperButton(2).click();
       fixture.detectChanges();
 
-      getButtonByText('Deploy VM').click();
+      const proxmoxVmForm = fixture.debugElement.query(By.css('app-proxmox-vm-creation-form'))
+        .componentInstance as ProxmoxVmCreationFormComponent;
+      proxmoxVmForm.deployed.emit();
       fixture.detectChanges();
 
       expect(component['deploymentStarted']).toBe(true);

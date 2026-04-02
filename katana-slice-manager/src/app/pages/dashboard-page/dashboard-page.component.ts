@@ -1,5 +1,6 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DashboardCategory, DashboardSection } from '../../models/interfaces/dashboard.interface';
 import { DashboardDataService } from '../../shared/services/dashboard-data.service';
 
@@ -20,6 +21,8 @@ interface DashboardSectionView extends DashboardSection {
 })
 export class DashboardPageComponent {
   private readonly dashboardDataService = inject(DashboardDataService);
+  private readonly ngZone = inject(NgZone);
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
 
   protected loading = true;
   protected searchTerm = '';
@@ -37,12 +40,18 @@ export class DashboardPageComponent {
   private readonly pageByKey: Record<string, number> = {};
 
   constructor() {
-    this.dashboardDataService.loadSections().subscribe((sections) => {
-      this.sections = sections;
-      this.loading = false;
-      this.resetExpandedSections();
-      this.resetPagination();
-    });
+    this.dashboardDataService
+      .loadSections()
+      .pipe(takeUntilDestroyed())
+      .subscribe((sections) => {
+        this.ngZone.run(() => {
+          this.sections = sections;
+          this.loading = false;
+          this.resetExpandedSections();
+          this.resetPagination();
+          this.changeDetectorRef.markForCheck();
+        });
+      });
   }
 
   protected get visibleSections(): DashboardSectionView[] {
@@ -132,7 +141,7 @@ export class DashboardPageComponent {
 
   private resetExpandedSections(): void {
     this.sections.forEach((section) => {
-      this.expandedSections[section.key] ??= true;
+      this.expandedSections[section.key] ??= false;
     });
   }
 }

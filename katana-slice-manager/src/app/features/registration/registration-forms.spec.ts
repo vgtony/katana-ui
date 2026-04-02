@@ -131,11 +131,15 @@ const formDefinitions: FormDefinition[] = [
       'storageType',
       'diskSize',
       'managementBridgeName',
-      'managementBridgeType',
-      'customBridgeName',
-      'customBridgeType'
+      'managementBridgeType'
     ],
-    optionalControls: ['customIp', 'customNetmask', 'customGateway']
+    optionalControls: [
+      'customBridgeName',
+      'customBridgeType',
+      'customIp',
+      'customNetmask',
+      'customGateway'
+    ]
   },
   {
     component: SliceRegistrationFormComponent,
@@ -278,6 +282,158 @@ describe('Registration form components', () => {
 
       expect(submitButton.textContent?.trim()).toBe('Created');
       expect(fixture.nativeElement.textContent).toContain('Location created successfully');
+    });
+  });
+
+  describe('ProxmoxClusterRegistrationFormComponent submission state', () => {
+    let fixture: ComponentFixture<ProxmoxClusterRegistrationFormComponent>;
+    let httpTestingController: HttpTestingController;
+
+    beforeEach(async () => {
+      await TestBed.configureTestingModule({
+        imports: [ProxmoxClusterRegistrationFormComponent],
+        providers: [provideHttpClient(), provideHttpClientTesting()]
+      }).compileComponents();
+
+      fixture = TestBed.createComponent(ProxmoxClusterRegistrationFormComponent);
+      httpTestingController = TestBed.inject(HttpTestingController);
+      fixture.detectChanges();
+    });
+
+    afterEach(() => {
+      httpTestingController.verify();
+    });
+
+    it('shows Registered after a successful Proxmox cluster response', () => {
+      const component = fixture.componentInstance as any;
+      component.form.setValue({
+        name: 'prod-cluster-01',
+        url: 'https://10.0.0.10:8006',
+        username: 'root@pam',
+        password: 'securepassword123',
+        node: 'pve1'
+      });
+
+      fixture.detectChanges();
+
+      const submitButton = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+      submitButton.click();
+      fixture.detectChanges();
+
+      const request = httpTestingController.expectOne((req) => req.url.includes('/proxmox/cluster'));
+      expect(request.request.method).toBe('POST');
+      request.flush({
+        message: 'Proxmox cluster registered successfully',
+        cluster_id: '550e8400-e29b-41d4-a716-446655440000'
+      });
+      fixture.detectChanges();
+
+      expect(submitButton.textContent?.trim()).toBe('Registered');
+      expect(fixture.nativeElement.textContent).toContain('Proxmox cluster registered successfully');
+    });
+  });
+
+  describe('ProxmoxVmCreationFormComponent submission state', () => {
+    let fixture: ComponentFixture<ProxmoxVmCreationFormComponent>;
+    let httpTestingController: HttpTestingController;
+
+    beforeEach(async () => {
+      await TestBed.configureTestingModule({
+        imports: [ProxmoxVmCreationFormComponent],
+        providers: [provideHttpClient(), provideHttpClientTesting()]
+      }).compileComponents();
+
+      fixture = TestBed.createComponent(ProxmoxVmCreationFormComponent);
+      httpTestingController = TestBed.inject(HttpTestingController);
+      fixture.detectChanges();
+    });
+
+    afterEach(() => {
+      httpTestingController.verify();
+    });
+
+    it('shows Deployment Started after a successful Proxmox VM response', () => {
+      const component = fixture.componentInstance as any;
+      component.form.setValue({
+        clusterName: 'prod-cluster-01',
+        vmName: 'web-server-01',
+        template: 'ubuntu-2204-cloudinit',
+        cpu: 4,
+        ram: 4096,
+        storageType: 'local-lvm',
+        diskSize: 50,
+        managementBridgeName: 'vmbr0',
+        managementBridgeType: 'management',
+        customBridgeName: 'vmbr1',
+        customBridgeType: 'service',
+        customIp: '192.168.1.100',
+        customNetmask: '255.255.255.0',
+        customGateway: '192.168.1.1'
+      });
+
+      fixture.detectChanges();
+
+      const submitButton = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+      submitButton.click();
+      fixture.detectChanges();
+
+      const request = httpTestingController.expectOne((req) => req.url.includes('/proxmox/vm'));
+      expect(request.request.method).toBe('POST');
+      expect(request.request.body.cluster_name).toBe('prod-cluster-01');
+      expect(request.request.body.vms[0].bridges).toHaveLength(2);
+      request.flush({
+        message: 'Proxmox VM deployment initiated successfully',
+        deployment_status: 'in_progress',
+        estimated_time: '2-3 minutes',
+        vms: []
+      });
+      fixture.detectChanges();
+
+      expect(submitButton.textContent?.trim()).toBe('Deployment Started');
+      expect(fixture.nativeElement.textContent).toContain('Proxmox VM deployment initiated successfully');
+    });
+
+    it('allows deploying without custom bridge values', () => {
+      const component = fixture.componentInstance as any;
+      component.form.setValue({
+        clusterName: 'prod-cluster-01',
+        vmName: 'web-server-01',
+        template: 'ubuntu-2204-cloudinit',
+        cpu: 4,
+        ram: 4096,
+        storageType: 'local-lvm',
+        diskSize: 50,
+        managementBridgeName: 'vmbr0',
+        managementBridgeType: 'management',
+        customBridgeName: '',
+        customBridgeType: '',
+        customIp: '',
+        customNetmask: '',
+        customGateway: ''
+      });
+
+      fixture.detectChanges();
+
+      const submitButton = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+      submitButton.click();
+      fixture.detectChanges();
+
+      const request = httpTestingController.expectOne((req) => req.url.includes('/proxmox/vm'));
+      expect(request.request.method).toBe('POST');
+      expect(request.request.body.vms[0].bridges).toHaveLength(1);
+      expect(request.request.body.vms[0].bridges[0]).toEqual({
+        name: 'vmbr0',
+        type: 'management'
+      });
+      request.flush({
+        message: 'Proxmox VM deployment initiated successfully',
+        deployment_status: 'in_progress',
+        estimated_time: '2-3 minutes',
+        vms: []
+      });
+      fixture.detectChanges();
+
+      expect(submitButton.textContent?.trim()).toBe('Deployment Started');
     });
   });
 });

@@ -4,7 +4,7 @@
     <p>Models `katana proxmox add -f proxmox_cluster.yaml` using the YAML fields you shared.</p> -->
   </div>
 
-  <form class="registration-form__grid" [formGroup]="form">
+  <form class="registration-form__grid" [formGroup]="form" (ngSubmit)="submit()">
     <label
       ><span>Name</span><input type="text" formControlName="name" placeholder="MyCluster"
     /></label>
@@ -14,6 +14,24 @@
     <label class="registration-form__full"
       ><span>Node</span><input type="text" formControlName="node" placeholder="proxmox-node-01"
     /></label>
-    <button type="submit">Create Proxmox cluster payload</button>
+    <button type="submit" [disabled]="form.invalid || submitting">
+      {{
+        submitting
+          ? 'Registering cluster...'
+          : submitSucceeded
+            ? 'Registered'
+            : 'Register Proxmox Cluster'
+      }}
+    </button>
+    @if (submitMessage) {
+      <p class="registration-form__status registration-form__status--success" role="status">
+        {{ submitMessage }}
+      </p>
+    }
+    @if (submitError) {
+      <p class="registration-form__status registration-form__status--error" role="alert">
+        {{ submitError }}
+      </p>
+    }
   </form>
 </section>

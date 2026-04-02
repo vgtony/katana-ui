@@ -4,6 +4,7 @@ import { finalize } from 'rxjs';
 import { initialLocationRegistrationFormModel } from '../../../models/location-registration-form.model';
 import { LocationRegistrationFormModel } from '../../../models/interfaces/location-registration-form.interface';
 import { LocationApiService, getApiErrorMessage } from '../../../shared/services/api';
+import { DeploymentDraftService } from '../../../shared/services/deployment-draft.service';
 
 @Component({
   selector: 'app-location-registration-form',
@@ -16,8 +17,13 @@ export class LocationRegistrationFormComponent {
   private readonly ngZone = inject(NgZone);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly locationApi = inject(LocationApiService);
+  private readonly deploymentDraftService = inject(DeploymentDraftService);
   readonly completed = output<void>();
-  protected readonly model: LocationRegistrationFormModel = initialLocationRegistrationFormModel;
+  protected readonly model: LocationRegistrationFormModel = this.deploymentDraftService.getFormValue(
+    'slice',
+    'location',
+    initialLocationRegistrationFormModel
+  );
   protected submitting = false;
   protected submitSucceeded = false;
   protected submitMessage = '';
@@ -53,6 +59,11 @@ export class LocationRegistrationFormComponent {
       .subscribe({
         next: (id) => {
           this.ngZone.run(() => {
+            this.deploymentDraftService.saveFormValue(
+              'slice',
+              'location',
+              this.form.getRawValue() as LocationRegistrationFormModel
+            );
             this.submitSucceeded = true;
             this.submitMessage = `Location created successfully with id ${id}.`;
             this.completed.emit();

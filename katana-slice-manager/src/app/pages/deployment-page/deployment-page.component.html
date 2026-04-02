@@ -118,7 +118,9 @@
                       ></app-k8s-cluster-registration-form>
                     }
                     @case ('proxmox-cluster') {
-                      <app-proxmox-cluster-registration-form></app-proxmox-cluster-registration-form>
+                      <app-proxmox-cluster-registration-form
+                        (completed)="markRequirementDone('proxmox-cluster')"
+                      ></app-proxmox-cluster-registration-form>
                     }
                   }
                 </div>
@@ -243,14 +245,11 @@
       </div>
 
       <div class="deployment-page__embedded-form">
-        <app-proxmox-vm-creation-form></app-proxmox-vm-creation-form>
+        <app-proxmox-vm-creation-form (deployed)="deploy()"></app-proxmox-vm-creation-form>
       </div>
 
       <div class="deployment-page__actions">
         <button class="deployment-page__secondary" type="button" (click)="goToStep(1)">Back</button>
-        <button class="deployment-page__primary" type="button" (click)="deploy()">
-          {{ selectedOption.deployActionLabel }}
-        </button>
       </div>
 
       @if (deploymentStarted) {

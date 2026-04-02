@@ -10,6 +10,7 @@ import {
   LocationApiService,
   NfvoApiService,
   PolicyApiService,
+  ProxmoxApiService,
   ResourcesApiService,
   SliceApiService,
   TrustApiService,
@@ -39,7 +40,8 @@ export class DashboardDataService {
     private readonly catalogApi: CatalogApiService,
     private readonly locationApi: LocationApiService,
     private readonly kubernetesApi: KubernetesApiService,
-    private readonly trustApi: TrustApiService
+    private readonly trustApi: TrustApiService,
+    private readonly proxmoxApi: ProxmoxApiService
   ) {}
 
   loadSections(): Observable<DashboardSection[]> {
@@ -91,6 +93,12 @@ export class DashboardDataService {
         label: 'K8s Clusters',
         category: 'infrastructure',
         request: this.kubernetesApi.getK8sClusters()
+      },
+      {
+        key: 'proxmox-clusters',
+        label: 'Proxmox Clusters',
+        category: 'infrastructure',
+        request: this.proxmoxApi.getClusters()
       },
       {
         key: 'gsts',

@@ -22,6 +22,10 @@ export class DeploymentHistoryService {
     return this.packsSubject.value;
   }
 
+  getPackById(packId: string): DeploymentPack | undefined {
+    return this.packsSubject.value.find((pack) => pack.id === packId);
+  }
+
   addPack(pack: Omit<DeploymentPack, 'id'>): DeploymentPack {
     const createdPack: DeploymentPack = {
       ...pack,

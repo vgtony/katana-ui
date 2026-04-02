@@ -4,6 +4,7 @@ import { finalize } from 'rxjs';
 import { initialSliceRegistrationFormModel } from '../../../models/slice-registration-form.model';
 import { SliceRegistrationFormModel } from '../../../models/interfaces/slice-registration-form.interface';
 import { CreateSliceRequest, SliceApiService, getApiErrorMessage } from '../../../shared/services/api';
+import { DeploymentDraftService } from '../../../shared/services/deployment-draft.service';
 
 @Component({
   selector: 'app-slice-registration-form',
@@ -15,7 +16,12 @@ export class SliceRegistrationFormComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly ngZone = inject(NgZone);
   private readonly sliceApi = inject(SliceApiService);
-  protected readonly model: SliceRegistrationFormModel = initialSliceRegistrationFormModel;
+  private readonly deploymentDraftService = inject(DeploymentDraftService);
+  protected readonly model: SliceRegistrationFormModel = this.deploymentDraftService.getFormValue(
+    'slice',
+    'slice',
+    initialSliceRegistrationFormModel
+  );
   protected submitting = false;
   protected submitMessage = '';
   protected submitError = '';
@@ -62,6 +68,11 @@ export class SliceRegistrationFormComponent {
       .subscribe({
         next: (id) => {
           this.ngZone.run(() => {
+            this.deploymentDraftService.saveFormValue(
+              'slice',
+              'slice',
+              this.form.getRawValue() as SliceRegistrationFormModel
+            );
             this.submitMessage = `Slice created successfully with id ${id}.`;
           });
         },

@@ -4,6 +4,7 @@ import { finalize } from 'rxjs';
 import { initialVimRegistrationFormModel } from '../../../models/vim-registration-form.model';
 import { VimRegistrationFormModel } from '../../../models/interfaces/vim-registration-form.interface';
 import { VimApiService, getApiErrorMessage } from '../../../shared/services/api';
+import { DeploymentDraftService } from '../../../shared/services/deployment-draft.service';
 
 @Component({
   selector: 'app-vim-registration-form',
@@ -15,8 +16,13 @@ export class VimRegistrationFormComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly ngZone = inject(NgZone);
   private readonly vimApi = inject(VimApiService);
+  private readonly deploymentDraftService = inject(DeploymentDraftService);
   readonly completed = output<void>();
-  protected readonly model: VimRegistrationFormModel = initialVimRegistrationFormModel;
+  protected readonly model: VimRegistrationFormModel = this.deploymentDraftService.getFormValue(
+    'slice',
+    'vim',
+    initialVimRegistrationFormModel
+  );
   protected submitting = false;
   protected submitMessage = '';
   protected submitError = '';
@@ -59,6 +65,11 @@ export class VimRegistrationFormComponent {
       .subscribe({
         next: (id) => {
           this.ngZone.run(() => {
+            this.deploymentDraftService.saveFormValue(
+              'slice',
+              'vim',
+              this.form.getRawValue() as VimRegistrationFormModel
+            );
             this.submitMessage = `VIM registered successfully with id ${id}.`;
             this.completed.emit();
           });

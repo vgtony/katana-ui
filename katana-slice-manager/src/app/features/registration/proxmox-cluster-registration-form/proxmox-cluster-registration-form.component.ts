@@ -1,7 +1,10 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, inject, output } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { finalize } from 'rxjs';
 import { initialProxmoxClusterRegistrationFormModel } from '../../../models/proxmox-cluster-registration-form.model';
 import { ProxmoxClusterRegistrationFormModel } from '../../../models/interfaces/proxmox-cluster-registration-form.interface';
+import { ProxmoxApiService, getApiErrorMessage } from '../../../shared/services/api';
+import { DeploymentDraftService } from '../../../shared/services/deployment-draft.service';
 
 @Component({
   selector: 'app-proxmox-cluster-registration-form',
@@ -11,7 +14,20 @@ import { ProxmoxClusterRegistrationFormModel } from '../../../models/interfaces/
 })
 export class ProxmoxClusterRegistrationFormComponent {
   private readonly formBuilder = inject(FormBuilder);
-  protected readonly model: ProxmoxClusterRegistrationFormModel = initialProxmoxClusterRegistrationFormModel;
+  private readonly ngZone = inject(NgZone);
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
+  private readonly proxmoxApi = inject(ProxmoxApiService);
+  private readonly deploymentDraftService = inject(DeploymentDraftService);
+  readonly completed = output<void>();
+  protected readonly model: ProxmoxClusterRegistrationFormModel = this.deploymentDraftService.getFormValue(
+    'proxmox',
+    'proxmox-cluster',
+    initialProxmoxClusterRegistrationFormModel
+  );
+  protected submitting = false;
+  protected submitSucceeded = false;
+  protected submitMessage = '';
+  protected submitError = '';
 
   protected readonly form = this.formBuilder.group({
     name: [this.model.name, Validators.required],
@@ -20,4 +36,50 @@ export class ProxmoxClusterRegistrationFormComponent {
     password: [this.model.password, Validators.required],
     node: [this.model.node, Validators.required]
   });
+
+  protected submit(): void {
+    this.submitSucceeded = false;
+    this.submitMessage = '';
+    this.submitError = '';
+
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    this.submitting = true;
+
+    this.proxmoxApi
+      .createCluster(this.form.getRawValue() as ProxmoxClusterRegistrationFormModel)
+      .pipe(
+        finalize(() =>
+          this.ngZone.run(() => {
+            this.submitting = false;
+            this.changeDetectorRef.detectChanges();
+          })
+        )
+      )
+      .subscribe({
+        next: (response) => {
+          this.ngZone.run(() => {
+            this.deploymentDraftService.saveFormValue(
+              'proxmox',
+              'proxmox-cluster',
+              this.form.getRawValue() as ProxmoxClusterRegistrationFormModel
+            );
+            this.submitSucceeded = true;
+            this.submitMessage = `${response.message}. Cluster id: ${response.cluster_id}.`;
+            this.completed.emit();
+            this.changeDetectorRef.detectChanges();
+          });
+        },
+        error: (error: unknown) => {
+          this.ngZone.run(() => {
+            this.submitSucceeded = false;
+            this.submitError = getApiErrorMessage(error, 'Unable to register Proxmox cluster.');
+            this.changeDetectorRef.detectChanges();
+          });
+        }
+      });
+  }
 }

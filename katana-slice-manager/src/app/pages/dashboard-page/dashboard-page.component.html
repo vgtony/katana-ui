@@ -3,43 +3,76 @@
     <p class="dashboard-page__eyebrow">Dashboard</p>
   </header>
 
-  <section class="dashboard-page__toolbar">
-    <label class="dashboard-page__control">
-      <span>Search</span>
-      <input
-        type="search"
-        [(ngModel)]="searchTerm"
-        (ngModelChange)="updateSearchTerm()"
-        placeholder="Search across all tables"
-      />
-    </label>
-
-    <label class="dashboard-page__control">
-      <span>Filter</span>
-      <select [(ngModel)]="selectedFilter" (ngModelChange)="updateFilter()">
-        @for (option of filterOptions; track option.value) {
-          <option [ngValue]="option.value">{{ option.label }}</option>
-        }
-      </select>
-    </label>
-
-    <label class="dashboard-page__control dashboard-page__control--compact">
-      <span>Rows per table page</span>
-      <select [(ngModel)]="pageSize" (ngModelChange)="updatePageSize()">
-        <option [ngValue]="5">5</option>
-        <option [ngValue]="8">8</option>
-        <option [ngValue]="12">12</option>
-        <option [ngValue]="20">20</option>
-      </select>
-    </label>
-  </section>
-
   @if (loading) {
-    <section class="dashboard-page__empty">
-      <h3>Loading dashboard</h3>
-      <p>Fetching the latest data from the API services.</p>
+    <section class="dashboard-page__toolbar dashboard-page__toolbar--skeleton" aria-hidden="true">
+      @for (item of [1, 2, 3]; track item) {
+        <div class="dashboard-page__control">
+          <span class="dashboard-page__skeleton dashboard-page__skeleton--label"></span>
+          <div class="dashboard-page__skeleton dashboard-page__skeleton--input"></div>
+        </div>
+      }
     </section>
+
+    <div class="dashboard-page__sections dashboard-page__sections--skeleton" aria-hidden="true">
+      @for (item of [1, 2, 3]; track item) {
+        <article class="dashboard-page__section">
+          <div class="dashboard-page__section-top">
+            <div class="dashboard-page__section-heading">
+              <span class="dashboard-page__skeleton dashboard-page__skeleton--label"></span>
+              <span class="dashboard-page__skeleton dashboard-page__skeleton--title"></span>
+            </div>
+            <div class="dashboard-page__section-actions">
+              <span class="dashboard-page__skeleton dashboard-page__skeleton--pill"></span>
+              <span class="dashboard-page__skeleton dashboard-page__skeleton--button"></span>
+            </div>
+          </div>
+
+          <div class="dashboard-page__table-shell">
+            <div class="dashboard-page__skeleton-table">
+              @for (row of [1, 2, 3, 4]; track row) {
+                <div class="dashboard-page__skeleton-row">
+                  @for (column of [1, 2, 3, 4]; track column) {
+                    <span class="dashboard-page__skeleton dashboard-page__skeleton--cell"></span>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </article>
+      }
+    </div>
   } @else {
+    <section class="dashboard-page__toolbar">
+      <label class="dashboard-page__control">
+        <span>Search</span>
+        <input
+          type="search"
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="updateSearchTerm()"
+          placeholder="Search across all tables"
+        />
+      </label>
+
+      <label class="dashboard-page__control">
+        <span>Filter</span>
+        <select [(ngModel)]="selectedFilter" (ngModelChange)="updateFilter()">
+          @for (option of filterOptions; track option.value) {
+            <option [ngValue]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="dashboard-page__control dashboard-page__control--compact">
+        <span>Rows per table page</span>
+        <select [(ngModel)]="pageSize" (ngModelChange)="updatePageSize()">
+          <option [ngValue]="5">5</option>
+          <option [ngValue]="8">8</option>
+          <option [ngValue]="12">12</option>
+          <option [ngValue]="20">20</option>
+        </select>
+      </label>
+    </section>
+
     <div class="dashboard-page__sections">
       @for (section of visibleSections; track trackBySection($index, section)) {
         <article class="dashboard-page__section">
@@ -61,52 +94,57 @@
             </div>
           </div>
 
-          @if (isSectionExpanded(section.key)) {
-            @if (section.error) {
-              <div class="dashboard-page__error" role="alert">{{ section.error }}</div>
-            } @else if (section.paginatedRows.length) {
-              <div class="dashboard-page__table-shell">
-                <table class="dashboard-page__table">
-                  <thead>
-                    <tr>
-                      @for (column of section.columns; track column) {
-                        <th>{{ formatColumnLabel(column) }}</th>
-                      }
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (row of section.paginatedRows; track trackByRow($index)) {
+          <div
+            class="dashboard-page__section-body"
+            [class.dashboard-page__section-body--expanded]="isSectionExpanded(section.key)"
+          >
+            <div class="dashboard-page__section-body-inner">
+              @if (section.error) {
+                <div class="dashboard-page__error" role="alert">{{ section.error }}</div>
+              } @else if (section.paginatedRows.length) {
+                <div class="dashboard-page__table-shell">
+                  <table class="dashboard-page__table">
+                    <thead>
                       <tr>
                         @for (column of section.columns; track column) {
-                          <td>{{ row[column] ?? '—' }}</td>
+                          <th>{{ formatColumnLabel(column) }}</th>
                         }
                       </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      @for (row of section.paginatedRows; track trackByRow($index)) {
+                        <tr>
+                          @for (column of section.columns; track column) {
+                            <td>{{ row[column] ?? '—' }}</td>
+                          }
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
 
-              <div class="dashboard-page__pagination">
-                <button
-                  type="button"
-                  (click)="goToPreviousPage(section.key)"
-                  [disabled]="section.currentPage === 1"
-                >
-                  Previous
-                </button>
-                <span>Page {{ section.currentPage }} of {{ section.totalPages }}</span>
-                <button
-                  type="button"
-                  (click)="goToNextPage(section.key, section.totalPages)"
-                  [disabled]="section.currentPage === section.totalPages"
-                >
-                  Next
-                </button>
-              </div>
-            } @else {
-              <div class="dashboard-page__empty-row">No rows match the current search or filter.</div>
-            }
-          }
+                <div class="dashboard-page__pagination">
+                  <button
+                    type="button"
+                    (click)="goToPreviousPage(section.key)"
+                    [disabled]="section.currentPage === 1"
+                  >
+                    Previous
+                  </button>
+                  <span>Page {{ section.currentPage }} of {{ section.totalPages }}</span>
+                  <button
+                    type="button"
+                    (click)="goToNextPage(section.key, section.totalPages)"
+                    [disabled]="section.currentPage === section.totalPages"
+                  >
+                    Next
+                  </button>
+                </div>
+              } @else {
+                <div class="dashboard-page__empty-row">No rows match the current search or filter.</div>
+              }
+            </div>
+          </div>
         </article>
       }
     </div>

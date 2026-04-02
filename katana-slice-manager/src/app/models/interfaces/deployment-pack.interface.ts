@@ -1,4 +1,5 @@
 import { DeploymentOption } from './deployment.interface';
+import { DeploymentFormSnapshots } from './deployment-draft.interface';
 
 export interface DeploymentPackRequirement {
   id: string;
@@ -16,4 +17,5 @@ export interface DeploymentPack {
   completedAt: string;
   finalConfigurationLabel: string;
   requirements: DeploymentPackRequirement[];
+  formSnapshots?: DeploymentFormSnapshots;
 }

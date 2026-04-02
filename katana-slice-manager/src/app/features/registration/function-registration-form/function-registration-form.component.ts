@@ -4,6 +4,7 @@ import { finalize } from 'rxjs';
 import { initialFunctionRegistrationFormModel } from '../../../models/function-registration-form.model';
 import { FunctionRegistrationFormModel } from '../../../models/interfaces/function-registration-form.interface';
 import { FunctionApiService, getApiErrorMessage } from '../../../shared/services/api';
+import { DeploymentDraftService } from '../../../shared/services/deployment-draft.service';
 
 @Component({
   selector: 'app-function-registration-form',
@@ -15,8 +16,13 @@ export class FunctionRegistrationFormComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly ngZone = inject(NgZone);
   private readonly functionApi = inject(FunctionApiService);
+  private readonly deploymentDraftService = inject(DeploymentDraftService);
   readonly completed = output<void>();
-  protected readonly model: FunctionRegistrationFormModel = initialFunctionRegistrationFormModel;
+  protected readonly model: FunctionRegistrationFormModel = this.deploymentDraftService.getFormValue(
+    'slice',
+    'function',
+    initialFunctionRegistrationFormModel
+  );
   protected submitting = false;
   protected submitMessage = '';
   protected submitError = '';
@@ -58,6 +64,11 @@ export class FunctionRegistrationFormComponent {
       .subscribe({
         next: (id) => {
           this.ngZone.run(() => {
+            this.deploymentDraftService.saveFormValue(
+              'slice',
+              'function',
+              this.form.getRawValue() as FunctionRegistrationFormModel
+            );
             this.submitMessage = `Function created successfully with id ${id}.`;
             this.completed.emit();
           });

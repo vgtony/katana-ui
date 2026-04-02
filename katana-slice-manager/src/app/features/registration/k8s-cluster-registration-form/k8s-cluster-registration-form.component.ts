@@ -4,6 +4,7 @@ import { finalize } from 'rxjs';
 import { initialK8sClusterRegistrationFormModel } from '../../../models/k8s-cluster-registration-form.model';
 import { K8sClusterRegistrationFormModel } from '../../../models/interfaces/k8s-cluster-registration-form.interface';
 import { KubernetesApiService, getApiErrorMessage } from '../../../shared/services/api';
+import { DeploymentDraftService } from '../../../shared/services/deployment-draft.service';
 
 @Component({
   selector: 'app-k8s-cluster-registration-form',
@@ -15,8 +16,13 @@ export class K8sClusterRegistrationFormComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly ngZone = inject(NgZone);
   private readonly kubernetesApi = inject(KubernetesApiService);
+  private readonly deploymentDraftService = inject(DeploymentDraftService);
   readonly completed = output<void>();
-  protected readonly model: K8sClusterRegistrationFormModel = initialK8sClusterRegistrationFormModel;
+  protected readonly model: K8sClusterRegistrationFormModel = this.deploymentDraftService.getFormValue(
+    'k8s',
+    'k8s-cluster',
+    initialK8sClusterRegistrationFormModel
+  );
   protected submitting = false;
   protected submitMessage = '';
   protected submitError = '';
@@ -61,6 +67,11 @@ export class K8sClusterRegistrationFormComponent {
       .subscribe({
         next: (id) => {
           this.ngZone.run(() => {
+            this.deploymentDraftService.saveFormValue(
+              'k8s',
+              'k8s-cluster',
+              this.form.getRawValue() as K8sClusterRegistrationFormModel
+            );
             this.submitMessage = `Kubernetes cluster registered successfully with id ${id}.`;
             this.completed.emit();
           });

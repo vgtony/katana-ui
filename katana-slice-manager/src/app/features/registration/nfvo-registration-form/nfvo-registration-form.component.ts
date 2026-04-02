@@ -4,6 +4,7 @@ import { finalize } from 'rxjs';
 import { initialNfvoRegistrationFormModel } from '../../../models/nfvo-registration-form.model';
 import { NfvoRegistrationFormModel } from '../../../models/interfaces/nfvo-registration-form.interface';
 import { NfvoApiService, getApiErrorMessage } from '../../../shared/services/api';
+import { DeploymentDraftService } from '../../../shared/services/deployment-draft.service';
 
 @Component({
   selector: 'app-nfvo-registration-form',
@@ -15,8 +16,13 @@ export class NfvoRegistrationFormComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly ngZone = inject(NgZone);
   private readonly nfvoApi = inject(NfvoApiService);
+  private readonly deploymentDraftService = inject(DeploymentDraftService);
   readonly completed = output<void>();
-  protected readonly model: NfvoRegistrationFormModel = initialNfvoRegistrationFormModel;
+  protected readonly model: NfvoRegistrationFormModel = this.deploymentDraftService.getFormValue(
+    'slice',
+    'nfvo',
+    initialNfvoRegistrationFormModel
+  );
   protected submitting = false;
   protected submitMessage = '';
   protected submitError = '';
@@ -61,6 +67,11 @@ export class NfvoRegistrationFormComponent {
       .subscribe({
         next: (id) => {
           this.ngZone.run(() => {
+            this.deploymentDraftService.saveFormValue(
+              'slice',
+              'nfvo',
+              this.form.getRawValue() as NfvoRegistrationFormModel
+            );
             this.submitMessage = `NFVO registered successfully with id ${id}.`;
             this.completed.emit();
           });

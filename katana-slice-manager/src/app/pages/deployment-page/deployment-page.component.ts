@@ -14,6 +14,7 @@ import { ProxmoxRegistrationFormComponent } from '../../features/registration/pr
 import { SliceRegistrationFormComponent } from '../../features/registration/slice-registration-form/slice-registration-form.component';
 import { DeploymentPack } from '../../models/interfaces/deployment-pack.interface';
 import { DeploymentOption } from '../../models/interfaces/deployment.interface';
+import { DeploymentDraftService } from '../../shared/services/deployment-draft.service';
 import { DeploymentHistoryService } from '../../shared/services/deployment-history.service';
 
 @Component({
@@ -36,6 +37,8 @@ import { DeploymentHistoryService } from '../../shared/services/deployment-histo
 export class DeploymentPageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly deploymentHistoryService = inject(DeploymentHistoryService);
+  private readonly deploymentDraftService = inject(DeploymentDraftService);
+  private restoredPackId: string | null = null;
 
   protected currentStep = 1;
   protected deploymentStarted = false;
@@ -136,7 +139,17 @@ export class DeploymentPageComponent {
   constructor() {
     this.route.paramMap
       .pipe(takeUntilDestroyed())
-      .subscribe((params) => this.setSelectedOption(params.get('option')));
+      .subscribe((params) => {
+        this.setSelectedOption(params.get('option'));
+        this.restoreHistoryPackState();
+      });
+
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed())
+      .subscribe((params) => {
+        this.restoredPackId = params.get('packId');
+        this.restoreHistoryPackState();
+      });
   }
 
   private setSelectedOption(optionId: string | null): void {
@@ -239,6 +252,7 @@ export class DeploymentPageComponent {
       status: 'done',
       completedAt: new Date().toISOString(),
       finalConfigurationLabel: this.selectedOption.finalConfigurationLabel,
+      formSnapshots: this.deploymentDraftService.getSnapshotsForOption(this.selectedOption.id),
       requirements: this.selectedOption.requirements.map((requirement) => ({
         id: requirement.id,
         label: requirement.label,
@@ -258,5 +272,23 @@ export class DeploymentPageComponent {
     this.expandedRequirementIds = new Set<string>(
       this.selectedOption.requirements[0] ? [this.selectedOption.requirements[0].id] : []
     );
+  }
+
+  private restoreHistoryPackState(): void {
+    if (!this.restoredPackId) {
+      return;
+    }
+
+    const pack = this.deploymentHistoryService.getPackById(this.restoredPackId);
+
+    if (!pack || pack.optionId !== this.selectedOption.id) {
+      return;
+    }
+
+    this.completedRequirementIds = new Set(pack.requirements.map((requirement) => requirement.id));
+    this.expandedRequirementIds = new Set<string>();
+    this.currentStep = 2;
+    this.deploymentStarted = false;
+    this.sliceConfigurationComplete = this.selectedOption.id === 'slice';
   }
 }

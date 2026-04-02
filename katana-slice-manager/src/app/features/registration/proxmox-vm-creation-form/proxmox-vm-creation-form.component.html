@@ -4,7 +4,7 @@
     <p>Models `katana proxmox vm-add -f proxmox_vms.yaml` and the `--prox` slice flow.</p> -->
   </div>
 
-  <form class="registration-form__grid" [formGroup]="form">
+  <form class="registration-form__grid" [formGroup]="form" (ngSubmit)="submit()">
     <label
       ><span>Cluster name</span
       ><input type="text" formControlName="clusterName" placeholder="MyCluster"
@@ -25,13 +25,27 @@
       ><span>Custom bridge</span><input type="text" formControlName="customBridgeName"
     /></label>
     <label><span>Custom type</span><input type="text" formControlName="customBridgeType" /></label>
-    <label><span>Custom IP *</span><input type="text" formControlName="customIp" /></label>
-    <label
-      ><span>Custom netmask *</span><input type="text" formControlName="customNetmask"
-    /></label>
-    <label
-      ><span>Custom gateway *</span><input type="text" formControlName="customGateway"
-    /></label>
-    <button type="submit">Create Proxmox VM payload</button>
+    <label><span>Custom IP</span><input type="text" formControlName="customIp" /></label>
+    <label><span>Custom netmask</span><input type="text" formControlName="customNetmask" /></label>
+    <label><span>Custom gateway</span><input type="text" formControlName="customGateway" /></label>
+    <button type="submit" [disabled]="form.invalid || submitting">
+      {{
+        submitting
+          ? 'Deploying VMs...'
+          : submitSucceeded
+            ? 'Deployment Started'
+            : 'Deploy Proxmox VM'
+      }}
+    </button>
+    @if (submitMessage) {
+      <p class="registration-form__status registration-form__status--success" role="status">
+        {{ submitMessage }}
+      </p>
+    }
+    @if (submitError) {
+      <p class="registration-form__status registration-form__status--error" role="alert">
+        {{ submitError }}
+      </p>
+    }
   </form>
 </section>

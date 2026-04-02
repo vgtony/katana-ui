@@ -1,7 +1,9 @@
 import { Component, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { initialK8sDeployServiceFormModel } from '../../../models/k8s-deploy-service-form.model';
 import { K8sDeployServiceFormModel } from '../../../models/interfaces/k8s-deploy-service-form.interface';
+import { DeploymentDraftService } from '../../../shared/services/deployment-draft.service';
 
 @Component({
   selector: 'app-k8s-deploy-service-form',
@@ -11,7 +13,12 @@ import { K8sDeployServiceFormModel } from '../../../models/interfaces/k8s-deploy
 })
 export class K8sDeployServiceFormComponent {
   private readonly formBuilder = inject(FormBuilder);
-  protected readonly model: K8sDeployServiceFormModel = initialK8sDeployServiceFormModel;
+  private readonly deploymentDraftService = inject(DeploymentDraftService);
+  protected readonly model: K8sDeployServiceFormModel = this.deploymentDraftService.getFormValue(
+    'k8s',
+    'k8s-deploy',
+    initialK8sDeployServiceFormModel
+  );
 
   protected readonly form = this.formBuilder.group({
     nfvoId: [this.model.nfvoId, Validators.required],
@@ -20,4 +27,12 @@ export class K8sDeployServiceFormComponent {
     nsDescription: [this.model.nsDescription, Validators.required],
     vimAccountId: [this.model.vimAccountId, Validators.required]
   });
+
+  constructor() {
+    this.deploymentDraftService.saveFormValue('k8s', 'k8s-deploy', this.form.getRawValue());
+
+    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.deploymentDraftService.saveFormValue('k8s', 'k8s-deploy', this.form.getRawValue());
+    });
+  }
 }
