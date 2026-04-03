@@ -50,6 +50,27 @@ describe('DeploymentDraftService', () => {
     });
   });
 
+  it('returns fallback defaults for a new form when only sibling drafts exist', () => {
+    service.saveFormValue('proxmox', 'proxmox-cluster', {
+      name: 'cluster-a',
+      url: 'https://cluster-a.example:8006'
+    });
+
+    expect(
+      service.getFormValue('proxmox', 'proxmox-vm', {
+        clusterName: '',
+        vmName: 'katana-vm-1',
+        template: '101',
+        cpu: 4
+      })
+    ).toEqual({
+      clusterName: '',
+      vmName: 'katana-vm-1',
+      template: '101',
+      cpu: 4
+    });
+  });
+
   it('overwrites stale option drafts when a history pack is opened', () => {
     service.saveFormValue('proxmox', 'proxmox-cluster', {
       name: 'old-cluster',
@@ -85,6 +106,43 @@ describe('DeploymentDraftService', () => {
     ).toEqual({
       name: '',
       url: ''
+    });
+  });
+
+  it('clears history-only behavior after saving a form again', () => {
+    const pack: DeploymentPack = {
+      id: 'pack-3',
+      name: 'Proxmox VM Pack',
+      optionId: 'proxmox',
+      optionLabel: 'Proxmox VM',
+      shortLabel: 'Proxmox',
+      status: 'done',
+      errorType: undefined,
+      completedAt: '2026-04-01T09:00:00.000Z',
+      finalConfigurationLabel: 'Proxmox VM configuration',
+      requirements: [{ id: 'proxmox-cluster', label: 'Proxmox Cluster', status: 'done' }],
+      formSnapshots: {
+        'proxmox-vm': {
+          clusterName: 'prod-cluster-01',
+          vmName: 'web-server-01'
+        }
+      }
+    };
+
+    service.loadPackAsDraft(pack);
+    service.saveFormValue('proxmox', 'proxmox-cluster', {
+      name: 'cluster-a',
+      url: 'https://cluster-a.example:8006'
+    });
+
+    expect(
+      service.getFormValue('proxmox', 'proxmox-cluster', {
+        name: 'fallback',
+        url: 'https://fallback.example:8006'
+      })
+    ).toEqual({
+      name: 'cluster-a',
+      url: 'https://cluster-a.example:8006'
     });
   });
 });

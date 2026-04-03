@@ -286,6 +286,7 @@ export class DeploymentPageComponent {
 
   private restoreHistoryPackState(): void {
     if (!this.restoredPackId) {
+      this.deploymentDraftService.clearHistoryContext();
       return;
     }
 
