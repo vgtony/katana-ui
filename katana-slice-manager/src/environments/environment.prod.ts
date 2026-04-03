@@ -1,4 +1,9 @@
+import { buildKatanaApiEndpoints } from './api-endpoints';
+
+const apiBase = '/api';
+
 export const environment = {
   production: true,
-  apiBase: '/api'  // proxied through Nginx in production
+  apiBase,
+  endpoints: buildKatanaApiEndpoints(apiBase)
 };
