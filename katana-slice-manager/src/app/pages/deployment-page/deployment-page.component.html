@@ -48,7 +48,12 @@
 
       <div class="deployment-page__requirements">
         @for (requirement of selectedOption.requirements; track requirement.id) {
-          <article class="deployment-page__requirement-card">
+          <article
+            class="deployment-page__requirement-card"
+            [class.deployment-page__requirement-card--expanded]="
+              isRequirementExpanded(requirement.id)
+            "
+          >
             <button
               class="deployment-page__requirement-toggle"
               type="button"
@@ -77,7 +82,14 @@
               </span>
             </button>
 
-            @if (isRequirementExpanded(requirement.id)) {
+            <div
+              class="deployment-page__requirement-body-wrap"
+              [class.deployment-page__requirement-body-wrap--expanded]="
+                isRequirementExpanded(requirement.id)
+              "
+              [attr.aria-hidden]="!isRequirementExpanded(requirement.id)"
+              [attr.inert]="isRequirementExpanded(requirement.id) ? null : ''"
+            >
               <div class="deployment-page__requirement-body">
                 <!-- <p>{{ requirement.guidance }}</p>
                 <p>
@@ -139,7 +151,7 @@
                   </button>
                 </div>
               </div>
-            }
+            </div>
           </article>
         }
       </div>

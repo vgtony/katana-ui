@@ -4,9 +4,10 @@
     <div class="history-page__hero-row">
       <div>
         <h2>Deployment Packs</h2>
-        <p>Every deployment attempt is saved as one pack so you can review both completed and failed runs.</p>
       </div>
-      <button class="history-page__clear" type="button" (click)="clearHistory()">Clear History</button>
+      <button class="history-page__clear" type="button" (click)="clearHistory()">
+        Clear History
+      </button>
     </div>
   </header>
 
@@ -61,7 +62,10 @@
     } @else {
       <section class="history-page__empty">
         <h3>No deployment packs yet</h3>
-        <p>Start a deployment from the guided flow and each completed or failed attempt will appear here automatically.</p>
+        <p>
+          Start a deployment from the guided flow and each completed or failed attempt will appear
+          here automatically.
+        </p>
         <a class="history-page__link" routerLink="/deployment/slice">Open Deployment</a>
       </section>
     }

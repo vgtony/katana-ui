@@ -4,11 +4,13 @@
 }
 
 .home-page__hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   padding: 32px;
-  border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, rgba(14, 31, 46, 0.96), rgba(10, 25, 38, 0.88));
-  color: #edf6ff;
+  // color: #edf6ff;
+  color: #4fa8e8;
 }
 
 .home-page__hero h2,
