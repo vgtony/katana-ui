@@ -34,6 +34,19 @@
       <span>
         <strong>{{ isSliceFlow() ? 'Deploy Configuration' : 'Configuration' }}</strong>
         <div>{{ selectedOption.finalConfigurationLabel }}</div>
+        @if (getFinalConfigurationContextTag(); as configurationTag) {
+          @if (isFinalConfigurationActive()) {
+            <button
+              class="deployment-page__requirement-context-tag deployment-page__requirement-context-tag--interactive"
+              type="button"
+              (click)="requestConfigurationDeactivation(); $event.stopPropagation()"
+            >
+              {{ configurationTag }}
+            </button>
+          } @else {
+            <span class="deployment-page__requirement-context-tag">{{ configurationTag }}</span>
+          }
+        }
       </span>
     </button>
   </section>
@@ -77,10 +90,45 @@
                 </span>
                 <span class="deployment-page__requirement-title-row">
                   <h4>{{ requirement.label }}</h4>
+                  @if (getRequirementContextTag(requirement.id); as contextTag) {
+                    @if (isRequirementActive(requirement.id)) {
+                      <button
+                        class="deployment-page__requirement-context-tag deployment-page__requirement-context-tag--interactive"
+                        type="button"
+                        (click)="requestRequirementDeactivation($event, requirement.id)"
+                      >
+                        {{ contextTag }}
+                      </button>
+                    } @else {
+                      <span class="deployment-page__requirement-context-tag">{{ contextTag }}</span>
+                    }
+                  }
                   <span class="deployment-page__requirement-chevron" aria-hidden="true">▾</span>
                 </span>
               </span>
             </button>
+
+            @if (isRequirementDeactivationPending(requirement.id)) {
+              <div class="deployment-page__deactivation-notice" role="alertdialog" aria-modal="false">
+                <p>Deactivate this active registration? Its values will stay saved as a draft.</p>
+                <div class="deployment-page__deactivation-actions">
+                  <button
+                    class="deployment-page__secondary"
+                    type="button"
+                    (click)="confirmRequirementDeactivation(requirement.id)"
+                  >
+                    Yes
+                  </button>
+                  <button
+                    class="deployment-page__secondary"
+                    type="button"
+                    (click)="cancelRequirementDeactivation()"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            }
 
             <div
               class="deployment-page__requirement-body-wrap"
@@ -182,6 +230,33 @@
         <p>
           Complete the slice registration form here and trigger the deployment from this same step.
         </p>
+        @if (getFinalConfigurationNotice(); as configurationNotice) {
+          <div class="deployment-page__notice" role="status">
+            {{ configurationNotice }}
+            @if (isFinalConfigurationActive()) {
+              <button
+                class="deployment-page__notice-action"
+                type="button"
+                (click)="requestConfigurationDeactivation()"
+              >
+                Deactivate
+              </button>
+            }
+          </div>
+        }
+        @if (pendingConfigurationDeactivation) {
+          <div class="deployment-page__deactivation-notice" role="alertdialog" aria-modal="false">
+            <p>Deactivate this active configuration? Its values will stay saved as a draft.</p>
+            <div class="deployment-page__deactivation-actions">
+              <button class="deployment-page__secondary" type="button" (click)="confirmConfigurationDeactivation()">
+                Yes
+              </button>
+              <button class="deployment-page__secondary" type="button" (click)="cancelConfigurationDeactivation()">
+                Cancel
+              </button>
+            </div>
+          </div>
+        }
       </div>
 
       <div class="deployment-page__embedded-form">
@@ -226,17 +301,41 @@
         <p class="deployment-page__kicker">Step 2</p>
         <h3>Deploy Configuration</h3>
         <p>Complete the K8s deployment form here and trigger the deployment from this same step.</p>
+        @if (getFinalConfigurationNotice(); as configurationNotice) {
+          <div class="deployment-page__notice" role="status">
+            {{ configurationNotice }}
+            @if (isFinalConfigurationActive()) {
+              <button
+                class="deployment-page__notice-action"
+                type="button"
+                (click)="requestConfigurationDeactivation()"
+              >
+                Deactivate
+              </button>
+            }
+          </div>
+        }
+        @if (pendingConfigurationDeactivation) {
+          <div class="deployment-page__deactivation-notice" role="alertdialog" aria-modal="false">
+            <p>Deactivate this active configuration? Its values will stay saved as a draft.</p>
+            <div class="deployment-page__deactivation-actions">
+              <button class="deployment-page__secondary" type="button" (click)="confirmConfigurationDeactivation()">
+                Yes
+              </button>
+              <button class="deployment-page__secondary" type="button" (click)="cancelConfigurationDeactivation()">
+                Cancel
+              </button>
+            </div>
+          </div>
+        }
       </div>
 
       <div class="deployment-page__embedded-form">
-        <app-k8s-deploy-service-form></app-k8s-deploy-service-form>
+        <app-k8s-deploy-service-form (deployed)="deploy($event)"></app-k8s-deploy-service-form>
       </div>
 
       <div class="deployment-page__actions">
         <button class="deployment-page__secondary" type="button" (click)="goToStep(1)">Back</button>
-        <button class="deployment-page__primary" type="button" (click)="deploy()">
-          {{ selectedOption.deployActionLabel }}
-        </button>
       </div>
 
       @if (deploymentStarted) {
@@ -254,6 +353,33 @@
           Complete the Proxmox VM deployment form here and trigger the deployment from this same
           step.
         </p>
+        @if (getFinalConfigurationNotice(); as configurationNotice) {
+          <div class="deployment-page__notice" role="status">
+            {{ configurationNotice }}
+            @if (isFinalConfigurationActive()) {
+              <button
+                class="deployment-page__notice-action"
+                type="button"
+                (click)="requestConfigurationDeactivation()"
+              >
+                Deactivate
+              </button>
+            }
+          </div>
+        }
+        @if (pendingConfigurationDeactivation) {
+          <div class="deployment-page__deactivation-notice" role="alertdialog" aria-modal="false">
+            <p>Deactivate this active configuration? Its values will stay saved as a draft.</p>
+            <div class="deployment-page__deactivation-actions">
+              <button class="deployment-page__secondary" type="button" (click)="confirmConfigurationDeactivation()">
+                Yes
+              </button>
+              <button class="deployment-page__secondary" type="button" (click)="cancelConfigurationDeactivation()">
+                Cancel
+              </button>
+            </div>
+          </div>
+        }
       </div>
 
       <div class="deployment-page__embedded-form">

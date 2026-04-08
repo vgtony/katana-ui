@@ -1,4 +1,5 @@
 import { ChangeDetectorRef, Component, NgZone, inject, output } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { initialProxmoxClusterRegistrationFormModel } from '../../../models/proxmox-cluster-registration-form.model';
@@ -24,6 +25,16 @@ export class ProxmoxClusterRegistrationFormComponent {
     'proxmox-cluster',
     initialProxmoxClusterRegistrationFormModel
   );
+  protected readonly savedState = this.deploymentDraftService.getFormState(
+    'proxmox',
+    'proxmox-cluster'
+  );
+  protected readonly restoreMessage =
+    this.savedState === 'active'
+      ? 'Active Proxmox cluster registration loaded. Update it only if you want to replace it.'
+      : this.savedState === 'draft'
+        ? 'Saved Proxmox cluster draft restored.'
+        : '';
   protected submitting = false;
   protected submitSucceeded = false;
   protected submitMessage = '';
@@ -36,6 +47,17 @@ export class ProxmoxClusterRegistrationFormComponent {
     password: [this.model.password, Validators.required],
     node: [this.model.node, Validators.required]
   });
+
+  constructor() {
+    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.deploymentDraftService.saveFormValue(
+        'proxmox',
+        'proxmox-cluster',
+        this.form.getRawValue() as ProxmoxClusterRegistrationFormModel,
+        'draft'
+      );
+    });
+  }
 
   protected submit(): void {
     this.submitSucceeded = false;
@@ -65,7 +87,8 @@ export class ProxmoxClusterRegistrationFormComponent {
             this.deploymentDraftService.saveFormValue(
               'proxmox',
               'proxmox-cluster',
-              this.form.getRawValue() as ProxmoxClusterRegistrationFormModel
+              this.form.getRawValue() as ProxmoxClusterRegistrationFormModel,
+              'active'
             );
             this.submitSucceeded = true;
             this.submitMessage = `${response.message}. Cluster id: ${response.cluster_id}.`;

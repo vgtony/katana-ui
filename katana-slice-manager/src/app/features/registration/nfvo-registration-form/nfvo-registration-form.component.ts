@@ -1,4 +1,5 @@
 import { Component, NgZone, inject, output } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { initialNfvoRegistrationFormModel } from '../../../models/nfvo-registration-form.model';
@@ -23,6 +24,13 @@ export class NfvoRegistrationFormComponent {
     'nfvo',
     initialNfvoRegistrationFormModel
   );
+  protected readonly savedState = this.deploymentDraftService.getFormState('slice', 'nfvo');
+  protected readonly restoreMessage =
+    this.savedState === 'active'
+      ? 'Active NFVO registration loaded. Update it only if you want to replace it.'
+      : this.savedState === 'draft'
+        ? 'Saved NFVO draft restored.'
+        : '';
   protected submitting = false;
   protected submitMessage = '';
   protected submitError = '';
@@ -43,6 +51,17 @@ export class NfvoRegistrationFormComponent {
     configNfvoIp: [this.model.configNfvoIp, Validators.required],
     configTenantName: [this.model.configTenantName, Validators.required]
   });
+
+  constructor() {
+    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.deploymentDraftService.saveFormValue(
+        'slice',
+        'nfvo',
+        this.form.getRawValue() as NfvoRegistrationFormModel,
+        'draft'
+      );
+    });
+  }
 
   protected submit(): void {
     this.submitMessage = '';
@@ -70,7 +89,8 @@ export class NfvoRegistrationFormComponent {
             this.deploymentDraftService.saveFormValue(
               'slice',
               'nfvo',
-              this.form.getRawValue() as NfvoRegistrationFormModel
+              this.form.getRawValue() as NfvoRegistrationFormModel,
+              'active'
             );
             this.submitMessage = `NFVO registered successfully with id ${id}.`;
             this.completed.emit();

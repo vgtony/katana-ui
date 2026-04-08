@@ -4,6 +4,11 @@ import { finalize } from 'rxjs';
 import { initialK8sCredentialsUploadFormModel } from '../../../models/k8s-credentials-upload-form.model';
 import { K8sCredentialsUploadFormModel } from '../../../models/interfaces/k8s-credentials-upload-form.interface';
 import { KubernetesApiService, getApiErrorMessage } from '../../../shared/services/api';
+import { DeploymentDraftService } from '../../../shared/services/deployment-draft.service';
+
+interface K8sCredentialsSnapshot {
+  fileName: string;
+}
 
 @Component({
   selector: 'app-k8s-credentials-upload-form',
@@ -15,12 +20,23 @@ export class K8sCredentialsUploadFormComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly ngZone = inject(NgZone);
   private readonly kubernetesApi = inject(KubernetesApiService);
+  private readonly deploymentDraftService = inject(DeploymentDraftService);
   readonly completed = output<void>();
   protected readonly model: K8sCredentialsUploadFormModel = initialK8sCredentialsUploadFormModel;
+  private readonly savedSnapshot =
+    this.deploymentDraftService.getSavedFormSnapshot<K8sCredentialsSnapshot>(
+      'k8s',
+      'k8s-credentials'
+    );
+  protected readonly savedState = this.deploymentDraftService.getFormState('k8s', 'k8s-credentials');
+  protected readonly restoreMessage =
+    this.savedState === 'active'
+      ? `Active K8s credentials found${this.savedSnapshot?.fileName ? `: ${this.savedSnapshot.fileName}` : ''}. Upload a new file only if you need to replace them.`
+      : '';
   protected submitting = false;
   protected submitMessage = '';
   protected submitError = '';
-  protected selectedFileName = '';
+  protected selectedFileName = this.savedSnapshot?.fileName ?? '';
 
   protected readonly form = this.formBuilder.group({
     credentialsFile: this.formBuilder.control<File | null>(this.model.credentialsFile, Validators.required)
@@ -58,9 +74,16 @@ export class K8sCredentialsUploadFormComponent {
         )
       )
       .subscribe({
-        next: (id) => {
+        next: (response) => {
           this.ngZone.run(() => {
-            this.submitMessage = `Kubernetes credentials uploaded successfully with id ${id}.`;
+            this.deploymentDraftService.saveFormValue(
+              'k8s',
+              'k8s-credentials',
+              { fileName: file.name } as K8sCredentialsSnapshot,
+              'active'
+            );
+            this.submitMessage =
+              response.message || `Kubernetes credentials '${file.name}' uploaded successfully.`;
             this.completed.emit();
           });
         },

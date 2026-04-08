@@ -6,6 +6,7 @@ export type DeploymentFormKey =
   | 'vim'
   | 'location'
   | 'slice'
+  | 'k8s-credentials'
   | 'k8s-cluster'
   | 'k8s-deploy'
   | 'proxmox-cluster'
@@ -14,3 +15,5 @@ export type DeploymentFormKey =
 export type DeploymentFormSnapshots = Partial<Record<DeploymentFormKey, unknown>>;
 
 export type DeploymentDraftMap = Partial<Record<DeploymentOption['id'], DeploymentFormSnapshots>>;
+
+export type DeploymentFormState = 'missing' | 'draft' | 'active';

@@ -5,6 +5,9 @@
   </div>
 
   <form class="registration-form__grid" [formGroup]="form" (ngSubmit)="submit()">
+    @if (restoreMessage) {
+      <p class="registration-form__status" role="status">{{ restoreMessage }}</p>
+    }
     <label
       ><span>ID</span><input type="text" formControlName="id" placeholder="osm_privateer"
     /></label>

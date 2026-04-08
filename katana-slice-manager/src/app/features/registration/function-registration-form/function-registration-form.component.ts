@@ -1,4 +1,5 @@
 import { Component, NgZone, inject, output } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { initialFunctionRegistrationFormModel } from '../../../models/function-registration-form.model';
@@ -23,6 +24,13 @@ export class FunctionRegistrationFormComponent {
     'function',
     initialFunctionRegistrationFormModel
   );
+  protected readonly savedState = this.deploymentDraftService.getFormState('slice', 'function');
+  protected readonly restoreMessage =
+    this.savedState === 'active'
+      ? 'Active function registration loaded. Update it only if you want to replace it.'
+      : this.savedState === 'draft'
+        ? 'Saved function draft restored.'
+        : '';
   protected submitting = false;
   protected submitMessage = '';
   protected submitError = '';
@@ -40,6 +48,17 @@ export class FunctionRegistrationFormComponent {
     placement: [this.model.placement, Validators.required],
     optional: [this.model.optional]
   });
+
+  constructor() {
+    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.deploymentDraftService.saveFormValue(
+        'slice',
+        'function',
+        this.form.getRawValue() as FunctionRegistrationFormModel,
+        'draft'
+      );
+    });
+  }
 
   protected submit(): void {
     this.submitMessage = '';
@@ -67,7 +86,8 @@ export class FunctionRegistrationFormComponent {
             this.deploymentDraftService.saveFormValue(
               'slice',
               'function',
-              this.form.getRawValue() as FunctionRegistrationFormModel
+              this.form.getRawValue() as FunctionRegistrationFormModel,
+              'active'
             );
             this.submitMessage = `Function created successfully with id ${id}.`;
             this.completed.emit();

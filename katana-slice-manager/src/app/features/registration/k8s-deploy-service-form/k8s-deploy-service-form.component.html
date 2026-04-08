@@ -4,7 +4,10 @@
     <p>Models `katana k8s deploy -f service.json` for NS deployment requests.</p> -->
   </div>
 
-  <form class="registration-form__grid" [formGroup]="form">
+  <form class="registration-form__grid" [formGroup]="form" (ngSubmit)="submit()">
+    @if (restoreMessage) {
+      <p class="registration-form__status" role="status">{{ restoreMessage }}</p>
+    }
     <label><span>NFVO ID</span><input type="text" formControlName="nfvoId" /></label>
     <label><span>NSD ID</span><input type="text" formControlName="nsdId" /></label>
     <label><span>NS name</span><input type="text" formControlName="nsName" /></label>
@@ -12,6 +15,18 @@
     <label class="registration-form__full"
       ><span>NS description</span><input type="text" formControlName="nsDescription"
     /></label>
-    <button type="submit">Create K8s deploy payload</button>
+    <button type="submit" [disabled]="form.invalid || submitting">
+      {{ submitting ? 'Deploying to K8s...' : 'Deploy To K8s' }}
+    </button>
+    @if (submitMessage) {
+      <p class="registration-form__status registration-form__status--success" role="status">
+        {{ submitMessage }}
+      </p>
+    }
+    @if (submitError) {
+      <p class="registration-form__status registration-form__status--error" role="alert">
+        {{ submitError }}
+      </p>
+    }
   </form>
 </section>

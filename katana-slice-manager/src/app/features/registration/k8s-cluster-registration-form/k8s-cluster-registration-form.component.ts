@@ -1,4 +1,5 @@
 import { Component, NgZone, inject, output } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { initialK8sClusterRegistrationFormModel } from '../../../models/k8s-cluster-registration-form.model';
@@ -23,6 +24,13 @@ export class K8sClusterRegistrationFormComponent {
     'k8s-cluster',
     initialK8sClusterRegistrationFormModel
   );
+  protected readonly savedState = this.deploymentDraftService.getFormState('k8s', 'k8s-cluster');
+  protected readonly restoreMessage =
+    this.savedState === 'active'
+      ? 'Active K8s cluster registration loaded. Update it only if you want to replace it.'
+      : this.savedState === 'draft'
+        ? 'Saved K8s cluster draft restored.'
+        : '';
   protected submitting = false;
   protected submitMessage = '';
   protected submitError = '';
@@ -43,6 +51,17 @@ export class K8sClusterRegistrationFormComponent {
     jujuBundle: [this.model.jujuBundle],
     helmChartV3: [this.model.helmChartV3]
   });
+
+  constructor() {
+    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.deploymentDraftService.saveFormValue(
+        'k8s',
+        'k8s-cluster',
+        this.form.getRawValue() as K8sClusterRegistrationFormModel,
+        'draft'
+      );
+    });
+  }
 
   protected submit(): void {
     this.submitMessage = '';
@@ -65,14 +84,17 @@ export class K8sClusterRegistrationFormComponent {
         )
       )
       .subscribe({
-        next: (id) => {
+        next: (response) => {
           this.ngZone.run(() => {
             this.deploymentDraftService.saveFormValue(
               'k8s',
               'k8s-cluster',
-              this.form.getRawValue() as K8sClusterRegistrationFormModel
+              this.form.getRawValue() as K8sClusterRegistrationFormModel,
+              'active'
             );
-            this.submitMessage = `Kubernetes cluster registered successfully with id ${id}.`;
+            this.submitMessage = response.id
+              ? `${response.message}. Cluster id: ${response.id}.`
+              : response.message;
             this.completed.emit();
           });
         },

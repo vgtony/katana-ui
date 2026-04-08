@@ -1,4 +1,5 @@
 import { Component, NgZone, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { initialSliceRegistrationFormModel } from '../../../models/slice-registration-form.model';
@@ -22,6 +23,13 @@ export class SliceRegistrationFormComponent {
     'slice',
     initialSliceRegistrationFormModel
   );
+  protected readonly savedState = this.deploymentDraftService.getFormState('slice', 'slice');
+  protected readonly restoreMessage =
+    this.savedState === 'active'
+      ? 'Active slice configuration loaded. Update it only if you want to create a new slice.'
+      : this.savedState === 'draft'
+        ? 'Saved slice configuration draft restored.'
+        : '';
   protected submitting = false;
   protected submitMessage = '';
   protected submitError = '';
@@ -40,6 +48,17 @@ export class SliceRegistrationFormComponent {
     placement: [this.model.placement, Validators.required],
     optional: [this.model.optional]
   });
+
+  constructor() {
+    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.deploymentDraftService.saveFormValue(
+        'slice',
+        'slice',
+        this.form.getRawValue() as SliceRegistrationFormModel,
+        'draft'
+      );
+    });
+  }
 
   protected submit(): void {
     this.submitMessage = '';
@@ -71,7 +90,8 @@ export class SliceRegistrationFormComponent {
             this.deploymentDraftService.saveFormValue(
               'slice',
               'slice',
-              this.form.getRawValue() as SliceRegistrationFormModel
+              this.form.getRawValue() as SliceRegistrationFormModel,
+              'active'
             );
             this.submitMessage = `Slice created successfully with id ${id}.`;
           });

@@ -1,4 +1,5 @@
 import { ChangeDetectorRef, Component, NgZone, inject, output } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { initialProxmoxVmCreationFormModel } from '../../../models/proxmox-vm-creation-form.model';
@@ -35,6 +36,13 @@ export class ProxmoxVmCreationFormComponent {
     'proxmox-vm',
     initialProxmoxVmCreationFormModel
   );
+  protected readonly savedState = this.deploymentDraftService.getFormState('proxmox', 'proxmox-vm');
+  protected readonly restoreMessage =
+    this.savedState === 'active'
+      ? 'Active Proxmox VM configuration loaded. Update it only if you want to deploy a different VM.'
+      : this.savedState === 'draft'
+        ? 'Saved Proxmox VM draft restored.'
+        : '';
   protected submitting = false;
   protected submitSucceeded = false;
   protected submitMessage = '';
@@ -56,6 +64,17 @@ export class ProxmoxVmCreationFormComponent {
     customNetmask: [this.model.customNetmask],
     customGateway: [this.model.customGateway]
   });
+
+  constructor() {
+    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.deploymentDraftService.saveFormValue(
+        'proxmox',
+        'proxmox-vm',
+        this.form.getRawValue() as ProxmoxVmCreationFormModel,
+        'draft'
+      );
+    });
+  }
 
   protected submit(): void {
     this.submitSucceeded = false;
@@ -91,7 +110,8 @@ export class ProxmoxVmCreationFormComponent {
             this.deploymentDraftService.saveFormValue(
               'proxmox',
               'proxmox-vm',
-              this.form.getRawValue() as ProxmoxVmCreationFormModel
+              this.form.getRawValue() as ProxmoxVmCreationFormModel,
+              'active'
             );
             this.submitSucceeded = true;
             this.submitMessage = `${response.message}. Status: ${response.deployment_status}. Estimated time: ${response.estimated_time}.`;

@@ -5,6 +5,9 @@
   </div>
 
   <form class="registration-form__grid" [formGroup]="form" (ngSubmit)="submit()">
+    @if (restoreMessage) {
+      <p class="registration-form__status" role="status">{{ restoreMessage }}</p>
+    }
     <label
       ><span>Cluster name</span
       ><input type="text" formControlName="clusterName" placeholder="MyCluster"

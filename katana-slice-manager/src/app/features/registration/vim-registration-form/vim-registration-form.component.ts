@@ -1,4 +1,5 @@
 import { Component, NgZone, inject, output } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { initialVimRegistrationFormModel } from '../../../models/vim-registration-form.model';
@@ -23,6 +24,13 @@ export class VimRegistrationFormComponent {
     'vim',
     initialVimRegistrationFormModel
   );
+  protected readonly savedState = this.deploymentDraftService.getFormState('slice', 'vim');
+  protected readonly restoreMessage =
+    this.savedState === 'active'
+      ? 'Active VIM registration loaded. Update it only if you want to replace it.'
+      : this.savedState === 'draft'
+        ? 'Saved VIM draft restored.'
+        : '';
   protected submitting = false;
   protected submitMessage = '';
   protected submitError = '';
@@ -41,6 +49,17 @@ export class VimRegistrationFormComponent {
     infrastructureMonitoring: [this.model.infrastructureMonitoring],
     securityGroups: [this.model.securityGroups]
   });
+
+  constructor() {
+    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.deploymentDraftService.saveFormValue(
+        'slice',
+        'vim',
+        this.form.getRawValue() as VimRegistrationFormModel,
+        'draft'
+      );
+    });
+  }
 
   protected submit(): void {
     this.submitMessage = '';
@@ -68,7 +87,8 @@ export class VimRegistrationFormComponent {
             this.deploymentDraftService.saveFormValue(
               'slice',
               'vim',
-              this.form.getRawValue() as VimRegistrationFormModel
+              this.form.getRawValue() as VimRegistrationFormModel,
+              'active'
             );
             this.submitMessage = `VIM registered successfully with id ${id}.`;
             this.completed.emit();

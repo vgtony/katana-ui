@@ -5,6 +5,9 @@
   </div>
 
   <form class="registration-form__grid" [formGroup]="form" (ngSubmit)="submit()">
+    @if (restoreMessage) {
+      <p class="registration-form__status" role="status">{{ restoreMessage }}</p>
+    }
     <label
       ><span>Base slice descriptor ID</span
       ><input type="text" formControlName="baseSliceDesId" placeholder="group0_demo_slice"

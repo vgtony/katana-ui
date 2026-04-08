@@ -62,6 +62,10 @@
   display: block;
 }
 
+.deployment-page__step .deployment-page__requirement-context-tag {
+  margin-top: 10px;
+}
+
 .deployment-page__step small {
   margin-top: 4px;
   color: #b9cad8;
@@ -187,6 +191,15 @@
   background: rgba(255, 255, 255, 0.03);
 }
 
+.deployment-page__notice,
+.deployment-page__deactivation-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+}
+
 .deployment-page__progress {
   display: flex;
   align-items: center;
@@ -249,6 +262,58 @@
 .deployment-page__requirement-status--complete {
   background: rgba(79, 168, 232, 0.18);
   color: #d6eeff;
+}
+
+.deployment-page__requirement-context-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(79, 168, 232, 0.16);
+  border: 1px solid rgba(79, 168, 232, 0.24);
+  color: #d9efff;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.deployment-page__requirement-context-tag--interactive {
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.deployment-page__requirement-context-tag--interactive:hover {
+  transform: translateY(-1px);
+  border-color: rgba(115, 193, 255, 0.4);
+  background: rgba(79, 168, 232, 0.22);
+}
+
+.deployment-page__deactivation-notice {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 210, 122, 0.2);
+  background: rgba(255, 196, 92, 0.08);
+}
+
+.deployment-page__deactivation-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.deployment-page__notice-action {
+  border: 0;
+  background: transparent;
+  color: #8ecfff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+.deployment-page__notice-action:hover {
+  text-decoration: underline;
 }
 
 .deployment-page__requirement-title-row h4 {

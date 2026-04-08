@@ -1,4 +1,5 @@
 import { ChangeDetectorRef, Component, NgZone, inject, output } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { initialLocationRegistrationFormModel } from '../../../models/location-registration-form.model';
@@ -24,6 +25,13 @@ export class LocationRegistrationFormComponent {
     'location',
     initialLocationRegistrationFormModel
   );
+  protected readonly savedState = this.deploymentDraftService.getFormState('slice', 'location');
+  protected readonly restoreMessage =
+    this.savedState === 'active'
+      ? 'Active location registration loaded. Update it only if you want to replace it.'
+      : this.savedState === 'draft'
+        ? 'Saved location draft restored.'
+        : '';
   protected submitting = false;
   protected submitSucceeded = false;
   protected submitMessage = '';
@@ -33,6 +41,17 @@ export class LocationRegistrationFormComponent {
     id: [this.model.id, Validators.required],
     description: [this.model.description, Validators.required]
   });
+
+  constructor() {
+    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.deploymentDraftService.saveFormValue(
+        'slice',
+        'location',
+        this.form.getRawValue() as LocationRegistrationFormModel,
+        'draft'
+      );
+    });
+  }
 
   protected submit(): void {
     this.submitSucceeded = false;
@@ -62,7 +81,8 @@ export class LocationRegistrationFormComponent {
             this.deploymentDraftService.saveFormValue(
               'slice',
               'location',
-              this.form.getRawValue() as LocationRegistrationFormModel
+              this.form.getRawValue() as LocationRegistrationFormModel,
+              'active'
             );
             this.submitSucceeded = true;
             this.submitMessage = `Location created successfully with id ${id}.`;

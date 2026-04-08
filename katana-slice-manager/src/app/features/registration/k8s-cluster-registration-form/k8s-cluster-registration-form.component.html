@@ -5,6 +5,9 @@
   </div>
 
   <form class="registration-form__grid" [formGroup]="form" (ngSubmit)="submit()">
+    @if (restoreMessage) {
+      <p class="registration-form__status" role="status">{{ restoreMessage }}</p>
+    }
     <label><span>Schema version</span><input type="text" formControlName="schemaVersion" /></label>
     <label><span>Credentials file</span><input type="text" formControlName="credentials" /></label>
     <label><span>Schema type</span><input type="text" formControlName="schemaType" /></label>

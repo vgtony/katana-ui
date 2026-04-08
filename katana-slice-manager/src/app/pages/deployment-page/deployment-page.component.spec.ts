@@ -4,6 +4,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRoute, convertToParamMap, ParamMap } from '@angular/router';
 import { By } from '@angular/platform-browser';
 import { BehaviorSubject } from 'rxjs';
+import { K8sDeployServiceFormComponent } from '../../features/registration/k8s-deploy-service-form/k8s-deploy-service-form.component';
 import { NfvoRegistrationFormComponent } from '../../features/registration/nfvo-registration-form/nfvo-registration-form.component';
 import { ProxmoxVmCreationFormComponent } from '../../features/registration/proxmox-vm-creation-form/proxmox-vm-creation-form.component';
 import { DeploymentPageComponent } from './deployment-page.component';
@@ -153,7 +154,8 @@ describe('DeploymentPageComponent', () => {
       getStepperButton(2).click();
       fixture.detectChanges();
 
-      getButtonByText('Deploy To K8s').click();
+      const k8sForm = fixture.debugElement.query(By.directive(K8sDeployServiceFormComponent));
+      (k8sForm.componentInstance as K8sDeployServiceFormComponent).deployed.emit({ status: 'done' });
       fixture.detectChanges();
 
       expect(component['deploymentStarted']).toBe(true);
@@ -256,6 +258,58 @@ describe('DeploymentPageComponent', () => {
       expect(component['completedRequirementsCount']()).toBe(1);
       expect(getStepperButton(2).disabled).toBe(false);
       expect(getButtonByText('Configuration').disabled).toBe(false);
+    });
+
+    it('shows the active Proxmox registration tag when a cluster draft already exists', () => {
+      localStorage.setItem(
+        'katana-slice-manager.deployment-drafts',
+        JSON.stringify({
+          proxmox: {
+            'proxmox-cluster': {
+              state: 'active',
+              value: {
+                name: 'lab-cluster',
+                node: 'pve-node-01'
+              }
+            }
+          }
+        })
+      );
+
+      createComponentForOption('proxmox');
+
+      expect(getTextContent()).toContain('Active: lab-cluster / pve-node-01');
+    });
+
+    it('asks to deactivate an active registration and converts it back to a draft', () => {
+      localStorage.setItem(
+        'katana-slice-manager.deployment-drafts',
+        JSON.stringify({
+          proxmox: {
+            'proxmox-cluster': {
+              state: 'active',
+              value: {
+                name: 'lab-cluster',
+                node: 'pve-node-01'
+              }
+            }
+          }
+        })
+      );
+
+      createComponentForOption('proxmox');
+
+      getButtonByText('Active: lab-cluster / pve-node-01').click();
+      fixture.detectChanges();
+
+      expect(getTextContent()).toContain('Deactivate this active registration?');
+
+      getButtonByText('Yes').click();
+      fixture.detectChanges();
+
+      expect(getTextContent()).toContain('Saved draft: lab-cluster / pve-node-01');
+      expect(component['isRequirementComplete']('proxmox-cluster')).toBe(false);
+      expect(getStepperButton(2).disabled).toBe(true);
     });
 
     it('opens the Proxmox VM configuration step once step 1 is completed', () => {

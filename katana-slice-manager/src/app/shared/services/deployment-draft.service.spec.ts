@@ -145,4 +145,74 @@ describe('DeploymentDraftService', () => {
       url: 'https://cluster-a.example:8006'
     });
   });
+
+  it('tracks whether a saved form is still a draft or already active', () => {
+    service.saveFormValue(
+      'slice',
+      'nfvo',
+      {
+        id: 'nfvo-1',
+        name: 'NFVO Alpha'
+      },
+      'draft'
+    );
+
+    expect(service.getFormState('slice', 'nfvo')).toBe('draft');
+
+    service.saveFormValue(
+      'slice',
+      'nfvo',
+      {
+        id: 'nfvo-1',
+        name: 'NFVO Alpha'
+      },
+      'active'
+    );
+
+    expect(service.getFormState('slice', 'nfvo')).toBe('active');
+  });
+
+  it('treats legacy stored snapshots as active and unwraps snapshots for history packs', () => {
+    localStorage.setItem(
+      'katana-slice-manager.deployment-drafts',
+      JSON.stringify({
+        proxmox: {
+          'proxmox-cluster': {
+            name: 'legacy-cluster',
+            node: 'pve-node-01'
+          }
+        }
+      })
+    );
+
+    expect(service.getFormState('proxmox', 'proxmox-cluster')).toBe('active');
+    expect(service.getSnapshotsForOption('proxmox')).toEqual({
+      'proxmox-cluster': {
+        name: 'legacy-cluster',
+        node: 'pve-node-01'
+      }
+    });
+  });
+
+  it('deactivates an active form without clearing its saved values', () => {
+    service.saveFormValue(
+      'proxmox',
+      'proxmox-cluster',
+      {
+        name: 'lab-cluster',
+        node: 'pve-node-01'
+      },
+      'active'
+    );
+
+    service.deactivateForm('proxmox', 'proxmox-cluster');
+
+    expect(service.getFormState('proxmox', 'proxmox-cluster')).toBe('draft');
+    expect(
+      service.getSavedFormSnapshot<{ name: string; node: string }>('proxmox', 'proxmox-cluster')
+    ).toEqual({
+      name: 'lab-cluster',
+      node: 'pve-node-01'
+    });
+  });
 });
