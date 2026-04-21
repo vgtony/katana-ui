@@ -1,28 +1,21 @@
 .deployment-page {
   position: relative;
   display: grid;
-  gap: 18px;
+  gap: 26px;
   color: var(--app-text);
 }
 
-.deployment-page__hero,
 .deployment-page__inventory-shell,
 .deployment-page__panel,
 .deployment-page__modal {
-  border-radius: 28px;
-  border: 1px solid var(--app-border);
-  background: var(--app-surface);
-}
-
-.deployment-page__hero,
-.deployment-page__inventory-shell,
-.deployment-page__panel {
-  padding: 24px;
+  display: grid;
+  gap: 24px;
 }
 
 .deployment-page__hero {
   display: grid;
   gap: 12px;
+  padding: 4px 0 0;
 }
 
 .deployment-page__hero h2,
@@ -64,11 +57,20 @@
   line-height: 1.7;
 }
 
-.deployment-page__inventory-shell,
-.deployment-page__panel,
+.deployment-page__inventory-shell {
+  gap: 0;
+}
+
+.deployment-page__panel {
+  padding: 28px;
+  border-radius: 24px;
+  background: var(--app-surface);
+}
+
 .deployment-page__modal {
-  display: grid;
-  gap: 24px;
+  border-radius: 24px;
+  background: var(--app-surface-elevated);
+  box-shadow: var(--app-shadow);
 }
 
 .deployment-page__inventory-header,
@@ -84,6 +86,10 @@
 .deployment-page__inventory-header,
 .deployment-page__modal-header {
   justify-content: space-between;
+}
+
+.deployment-page__inventory-header {
+  padding-bottom: 18px;
 }
 
 .deployment-page__modal-title,
@@ -113,27 +119,21 @@
   grid-template-columns: 1fr;
 }
 
-.deployment-page__inventory-card,
-.deployment-page__requirement-card,
-.deployment-page__option-card {
-  border-radius: 22px;
-  border: 1px solid var(--app-border);
-  background: var(--app-surface);
-}
-
-.deployment-page__inventory-card,
-.deployment-page__requirement-card {
-  padding: 18px;
-}
-
 .deployment-page__inventory-card {
   display: grid;
-  gap: 16px;
+  gap: 18px;
+  padding: 24px 0 0;
+  border-top: 1px solid var(--app-border);
+}
+
+.deployment-page__inventory-card:first-child {
+  padding-top: 12px;
+  border-top: 0;
 }
 
 .deployment-page__inventory-card-top {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
@@ -189,11 +189,15 @@
   font-weight: 600;
 }
 
+.deployment-page__inventory-count {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--app-text-muted);
+}
+
 .deployment-page__table-shell {
   overflow-x: auto;
-  border-radius: 18px;
-  border: 1px solid var(--app-pill-bg);
-  background: var(--app-surface-overlay);
 }
 
 .deployment-page__table {
@@ -204,22 +208,32 @@
 
 .deployment-page__table th,
 .deployment-page__table td {
-  padding: 0.95rem 1rem;
-  border-bottom: 1px solid var(--app-border);
+  padding: 0.9rem 0.4rem;
+  border-bottom: 1px solid var(--app-border-muted);
   text-align: left;
   vertical-align: top;
 }
 
+.deployment-page__table th:first-child,
+.deployment-page__table td:first-child {
+  padding-left: 0;
+}
+
+.deployment-page__table th:last-child,
+.deployment-page__table td:last-child {
+  padding-right: 0;
+}
+
 .deployment-page__table th {
   color: var(--app-accent-heading);
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   white-space: nowrap;
 }
 
 .deployment-page__table td {
-  color: var(--app-text-muted);
+  color: var(--app-text);
 }
 
 .deployment-page__table tbody tr:last-child td {
@@ -227,11 +241,22 @@
 }
 
 .deployment-page__table tbody tr:hover {
-  background: var(--app-surface);
+  background: var(--app-row-hover);
 }
 
 .deployment-page__option-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deployment-page__requirement-card,
+.deployment-page__option-card {
+  border-radius: 20px;
+  border: 1px solid var(--app-border-muted);
+  background: transparent;
+}
+
+.deployment-page__requirement-card {
+  padding: 20px;
 }
 
 .deployment-page__option-card {
@@ -256,7 +281,7 @@
 
 .deployment-page__option-card:hover {
   border-color: var(--app-button-primary-border);
-  background: var(--app-option-hover-bg);
+  background: var(--app-accent-soft-2);
 }
 
 .deployment-page__modal-backdrop {
@@ -279,8 +304,6 @@
   max-height: calc(100dvh - 96px);
   padding: 0;
   overflow-y: auto;
-  background: var(--app-surface-elevated);
-  box-shadow: var(--app-shadow);
 }
 
 .deployment-page__modal-header,
@@ -377,8 +400,7 @@
 
 .deployment-page__requirement-card--expanded {
   border-color: var(--app-border-accent);
-  background: var(--app-surface-accent);
-  box-shadow: 0 18px 36px var(--app-overlay);
+  background: transparent;
 }
 
 .deployment-page__requirement-card p {
@@ -391,10 +413,11 @@
 .deployment-page__deactivation-notice,
 .deployment-page__success,
 .deployment-page__error {
-  padding: 16px 18px;
-  border-radius: 18px;
-  border: 1px solid var(--app-border);
-  background: var(--app-surface);
+  padding: 12px 0 0 14px;
+  border-radius: 0;
+  border: 0;
+  border-left: 2px solid var(--app-border);
+  background: transparent;
 }
 
 .deployment-page__notice,
@@ -457,8 +480,7 @@
 }
 
 .deployment-page__deactivation-notice {
-  border: 1px solid var(--app-warning-border);
-  background: var(--app-warning-soft);
+  border-left-color: var(--app-warning);
 }
 
 .deployment-page__notice-action {
@@ -494,11 +516,7 @@
 }
 
 .deployment-page__embedded-form {
-  padding: 18px;
-  border-radius: 18px;
-  border: 1px solid var(--app-border);
-  background: var(--app-embedded-surface);
-  box-shadow: inset 0 1px 0 var(--app-surface);
+  padding-top: 8px;
 }
 
 .deployment-page__link,
@@ -534,8 +552,8 @@
   width: 40px;
   height: 40px;
   border: 1px solid var(--app-interactive-border);
-  border-radius: 12px;
-  background: var(--app-surface);
+  border-radius: 10px;
+  background: transparent;
   color: var(--app-text);
   font-size: 1.6rem;
   line-height: 1;
@@ -546,18 +564,18 @@
 .deployment-page__icon-button:hover {
   transform: translateY(-1px);
   border-color: var(--app-button-primary-border);
-  background: var(--app-pill-bg);
+  background: var(--app-accent-soft-2);
 }
 
 .deployment-page__link,
 .deployment-page__secondary {
   border: 1px solid var(--app-interactive-border);
-  background: var(--app-surface);
+  background: transparent;
   color: var(--app-text);
 }
 
 .deployment-page__primary {
-  border: 1px solid var(--app-button-primary-border);
+  border: 0;
   background: var(--app-primary-gradient);
   color: var(--app-accent-contrast);
 }
@@ -576,15 +594,12 @@
 
 @media (max-width: 1100px) {
   .deployment-page__inventory-grid,
-  .deployment-page__requirements,
   .deployment-page__option-grid {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 760px) {
-  .deployment-page__hero,
-  .deployment-page__inventory-shell,
   .deployment-page__panel,
   .deployment-page__modal {
     padding: 20px;
