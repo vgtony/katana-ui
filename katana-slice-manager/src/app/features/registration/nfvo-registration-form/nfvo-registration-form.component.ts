@@ -19,6 +19,7 @@ export class NfvoRegistrationFormComponent {
   private readonly nfvoApi = inject(NfvoApiService);
   private readonly deploymentDraftService = inject(DeploymentDraftService);
   readonly completed = output<void>();
+  readonly failed = output<void>();
   protected readonly model: NfvoRegistrationFormModel = this.deploymentDraftService.getFormValue(
     'slice',
     'nfvo',
@@ -99,6 +100,7 @@ export class NfvoRegistrationFormComponent {
         error: (error: unknown) => {
           this.ngZone.run(() => {
             this.submitError = getApiErrorMessage(error, 'Unable to register NFVO.');
+            this.failed.emit();
           });
         }
       });

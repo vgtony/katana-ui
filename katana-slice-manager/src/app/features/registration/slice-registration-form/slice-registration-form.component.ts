@@ -1,4 +1,4 @@
-import { Component, NgZone, inject } from '@angular/core';
+import { Component, NgZone, inject, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
@@ -18,6 +18,7 @@ export class SliceRegistrationFormComponent {
   private readonly ngZone = inject(NgZone);
   private readonly sliceApi = inject(SliceApiService);
   private readonly deploymentDraftService = inject(DeploymentDraftService);
+  readonly created = output<void>();
   protected readonly model: SliceRegistrationFormModel = this.deploymentDraftService.getFormValue(
     'slice',
     'slice',
@@ -94,6 +95,7 @@ export class SliceRegistrationFormComponent {
               'active'
             );
             this.submitMessage = `Slice created successfully with id ${id}.`;
+            this.created.emit();
           });
         },
         error: (error: unknown) => {

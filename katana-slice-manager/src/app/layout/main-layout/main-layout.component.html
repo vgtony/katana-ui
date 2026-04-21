@@ -2,6 +2,18 @@
   <app-sidebar></app-sidebar>
 
   <main class="layout-content">
+    <div class="layout-toolbar">
+      <button
+        class="layout-theme-toggle"
+        type="button"
+        [attr.aria-label]="getThemeActionLabel()"
+        (click)="toggleTheme()"
+      >
+        <span class="layout-theme-toggle__icon" aria-hidden="true">{{ getThemeIcon() }}</span>
+        <span>{{ getThemeLabel() }}</span>
+      </button>
+    </div>
+
     <router-outlet></router-outlet>
   </main>
 </div>

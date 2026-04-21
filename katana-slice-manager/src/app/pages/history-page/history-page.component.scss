@@ -1,14 +1,14 @@
 .history-page {
   display: grid;
   gap: 18px;
-  color: #edf6ff;
+  color: var(--app-text);
 }
 
 .history-page__card,
 .history-page__empty {
   border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, rgba(14, 31, 46, 0.96), rgba(10, 25, 38, 0.88));
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-strong);
 }
 
 .history-page__hero {
@@ -18,7 +18,7 @@
 .history-page__eyebrow,
 .history-page__label {
   margin: 0;
-  color: #4fa8e8;
+  color: var(--app-accent);
   text-transform: uppercase;
   letter-spacing: 0.18em;
   font-size: 0.72rem;
@@ -45,7 +45,7 @@
 .history-page__hero p:last-child {
   margin-top: 12px;
   max-width: 60ch;
-  color: #b9cad8;
+  color: var(--app-text-muted);
   line-height: 1.7;
 }
 
@@ -57,9 +57,9 @@
   min-height: 46px;
   padding: 0 16px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  color: #edf6ff;
+  border: 1px solid var(--app-border-strong);
+  background: var(--app-surface-2);
+  color: var(--app-text);
   text-decoration: none;
   cursor: pointer;
 }
@@ -85,8 +85,8 @@
 .history-page__status,
 .history-page__chip {
   border-radius: 999px;
-  background: rgba(79, 168, 232, 0.18);
-  color: #d9f0ff;
+  background: var(--app-accent-soft);
+  color: var(--app-accent-pill-text);
 }
 
 .history-page__status {
@@ -99,8 +99,8 @@
 }
 
 .history-page__status--failed {
-  background: rgba(255, 108, 99, 0.18);
-  color: #ffd5d1;
+  background: var(--app-danger-soft);
+  color: var(--app-danger-strong);
 }
 
 .history-page__meta {
@@ -137,7 +137,7 @@
 }
 
 .history-page__empty p {
-  color: #b9cad8;
+  color: var(--app-text-muted);
   line-height: 1.7;
 }
 

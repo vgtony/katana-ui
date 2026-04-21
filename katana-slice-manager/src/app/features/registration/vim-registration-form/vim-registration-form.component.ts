@@ -19,6 +19,7 @@ export class VimRegistrationFormComponent {
   private readonly vimApi = inject(VimApiService);
   private readonly deploymentDraftService = inject(DeploymentDraftService);
   readonly completed = output<void>();
+  readonly failed = output<void>();
   protected readonly model: VimRegistrationFormModel = this.deploymentDraftService.getFormValue(
     'slice',
     'vim',
@@ -97,6 +98,7 @@ export class VimRegistrationFormComponent {
         error: (error: unknown) => {
           this.ngZone.run(() => {
             this.submitError = getApiErrorMessage(error, 'Unable to register VIM.');
+            this.failed.emit();
           });
         }
       });

@@ -19,6 +19,7 @@ export class K8sClusterRegistrationFormComponent {
   private readonly kubernetesApi = inject(KubernetesApiService);
   private readonly deploymentDraftService = inject(DeploymentDraftService);
   readonly completed = output<void>();
+  readonly failed = output<void>();
   protected readonly model: K8sClusterRegistrationFormModel = this.deploymentDraftService.getFormValue(
     'k8s',
     'k8s-cluster',
@@ -104,6 +105,7 @@ export class K8sClusterRegistrationFormComponent {
               error,
               'Unable to register Kubernetes cluster.'
             );
+            this.failed.emit();
           });
         }
       });

@@ -22,6 +22,7 @@ export class K8sCredentialsUploadFormComponent {
   private readonly kubernetesApi = inject(KubernetesApiService);
   private readonly deploymentDraftService = inject(DeploymentDraftService);
   readonly completed = output<void>();
+  readonly failed = output<void>();
   protected readonly model: K8sCredentialsUploadFormModel = initialK8sCredentialsUploadFormModel;
   private readonly savedSnapshot =
     this.deploymentDraftService.getSavedFormSnapshot<K8sCredentialsSnapshot>(
@@ -93,6 +94,7 @@ export class K8sCredentialsUploadFormComponent {
               error,
               'Unable to upload Kubernetes credentials.'
             );
+            this.failed.emit();
           });
         }
       });

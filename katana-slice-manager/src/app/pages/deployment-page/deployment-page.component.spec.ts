@@ -1,12 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { ActivatedRoute, convertToParamMap, ParamMap } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, ParamMap, provideRouter } from '@angular/router';
 import { By } from '@angular/platform-browser';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, of } from 'rxjs';
 import { K8sDeployServiceFormComponent } from '../../features/registration/k8s-deploy-service-form/k8s-deploy-service-form.component';
-import { NfvoRegistrationFormComponent } from '../../features/registration/nfvo-registration-form/nfvo-registration-form.component';
 import { ProxmoxVmCreationFormComponent } from '../../features/registration/proxmox-vm-creation-form/proxmox-vm-creation-form.component';
+import {
+  KubernetesApiService,
+  ProxmoxApiService,
+  SliceApiService
+} from '../../shared/services/api';
 import { DeploymentPageComponent } from './deployment-page.component';
 
 describe('DeploymentPageComponent', () => {
@@ -21,6 +25,7 @@ describe('DeploymentPageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [DeploymentPageComponent],
       providers: [
+        provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
         {
@@ -33,13 +38,32 @@ describe('DeploymentPageComponent', () => {
               return queryParamMap$.asObservable();
             }
           }
+        },
+        {
+          provide: SliceApiService,
+          useValue: {
+            getSlices: () => of([{ id: 'slice-1', status: 'running', coverage: ['group0_edge'] }])
+          }
+        },
+        {
+          provide: KubernetesApiService,
+          useValue: {
+            getK8sClusters: () =>
+              of([{ name: 'k8s-lab', namespace: 'default', k8s_version: '1.30' }])
+          }
+        },
+        {
+          provide: ProxmoxApiService,
+          useValue: {
+            getClusters: () => of([{ name: 'pve-cluster', node: 'pve-01', status: 'online' }])
+          }
         }
       ]
     }).compileComponents();
   });
 
-  function createComponentForOption(option: 'slice' | 'k8s' | 'proxmox'): void {
-    paramMap$ = new BehaviorSubject(convertToParamMap({ option }));
+  function createComponentForOption(option: 'slice' | 'k8s' | 'proxmox' | null): void {
+    paramMap$ = new BehaviorSubject(convertToParamMap(option ? { option } : {}));
     queryParamMap$ = new BehaviorSubject(convertToParamMap({}));
     fixture = TestBed.createComponent(DeploymentPageComponent);
     component = fixture.componentInstance;
@@ -65,93 +89,114 @@ describe('DeploymentPageComponent', () => {
     return match;
   }
 
-  function getStepperButton(stepIndex: number): HTMLButtonElement {
-    const stepButtons = fixture.nativeElement.querySelectorAll('.deployment-page__step');
-    const match = stepButtons.item(stepIndex - 1) as HTMLButtonElement | null;
-
-    if (!match) {
-      throw new Error(`Stepper button ${stepIndex} not found.`);
-    }
-
-    return match;
+  function getWizardButtons(): HTMLButtonElement[] {
+    return Array.from(fixture.nativeElement.querySelectorAll('.deployment-page__step')) as HTMLButtonElement[];
   }
 
-  function toggleRequirementCard(label: string): void {
-    const toggles = fixture.debugElement.queryAll(By.css('.deployment-page__requirement-toggle'));
-    const match = toggles.find((toggle) =>
-      toggle.nativeElement.textContent?.replace(/\s+/g, ' ').includes(label)
-    );
-
-    if (!match) {
-      throw new Error(`Requirement toggle for "${label}" not found.`);
-    }
-
-    match.nativeElement.click();
-    fixture.detectChanges();
-  }
-
-  function markExpandedRequirementComplete(): void {
-    getButtonByText('Mark as done').click();
-    fixture.detectChanges();
-  }
-
-  function completeStepOne(requirementLabels: string[]): void {
-    requirementLabels.forEach((label, index) => {
-      if (index > 0) {
-        toggleRequirementCard(label);
-      }
-
-      markExpandedRequirementComplete();
+  describe('Deployment chooser', () => {
+    beforeEach(() => {
+      createComponentForOption(null);
     });
-  }
 
-  describe('K8s flow', () => {
+    it('renders current resources and opens the deployment modal chooser', () => {
+      expect(getTextContent()).toContain('Live slices and cluster targets');
+      expect(getTextContent()).toContain('slice-1');
+      expect(getTextContent()).toContain('k8s-lab');
+      expect(getTextContent()).toContain('pve-cluster');
+
+      getButtonByText('+ New Deployment').click();
+      fixture.detectChanges();
+
+      expect(getTextContent()).toContain('Deploy New Network Slice');
+      expect(getTextContent()).toContain('Deployment Type');
+      expect(getTextContent()).toContain('Slice / OpenStack');
+      expect(getTextContent()).toContain('K8s Deploy');
+      expect(getTextContent()).toContain('Proxmox VM');
+    });
+
+    it('collapses and expands an inventory table independently', () => {
+      const firstToggle = getButtonByText('Collapse');
+
+      expect(fixture.nativeElement.querySelectorAll('.deployment-page__table').length).toBe(3);
+
+      firstToggle.click();
+      fixture.detectChanges();
+
+      expect(component['isInventorySectionExpanded']('slice')).toBe(false);
+      expect(getButtonByText('Expand')).toBeTruthy();
+
+      firstToggle.click();
+      fixture.detectChanges();
+
+      expect(component['isInventorySectionExpanded']('slice')).toBe(true);
+    });
+  });
+
+  describe('Slice/OpenStack wizard', () => {
+    beforeEach(() => {
+      createComponentForOption('slice');
+    });
+
+    it('shows five sequential wizard steps in the expected order', () => {
+      const wizardLabels = getWizardButtons().map((button) =>
+        button.textContent?.replace(/\s+/g, ' ').trim()
+      );
+
+      expect(wizardLabels).toHaveLength(5);
+      expect(wizardLabels[0]).toContain('NFVO');
+      expect(wizardLabels[1]).toContain('Location');
+      expect(wizardLabels[2]).toContain('Function');
+      expect(wizardLabels[3]).toContain('VIM');
+      expect(wizardLabels[4]).toContain('Deploy');
+      expect(getTextContent()).toContain('Register the orchestrator endpoint');
+    });
+
+    it('advances one form at a time and unlocks deploy after all registrations are active', () => {
+      component['markRequirementDone']('nfvo');
+      fixture.detectChanges();
+
+      expect(component['currentStep']).toBe(2);
+      expect(getTextContent()).toContain('Store the location context');
+
+      component['markRequirementDone']('location');
+      fixture.detectChanges();
+      component['markRequirementDone']('function');
+      fixture.detectChanges();
+      component['markRequirementDone']('vim');
+      fixture.detectChanges();
+
+      expect(component['canAccessStepTwo']()).toBe(true);
+      expect(component['currentStep']).toBe(5);
+      expect(getTextContent()).toContain('Complete the slice registration form here');
+      expect(getButtonByText('Deploy Slice').disabled).toBe(true);
+    });
+  });
+
+  describe('K8s wizard', () => {
     beforeEach(() => {
       createComponentForOption('k8s');
     });
 
-    it('loads the K8s deployment option from the route', () => {
-      expect(component['selectedOption'].id).toBe('k8s');
-      expect(getTextContent()).toContain('K8s registrations');
-      expect(getTextContent()).not.toContain('Proxmox registrations');
-    });
+    it('uses a sequential two-registration flow before deploy', () => {
+      expect(getWizardButtons()).toHaveLength(3);
+      expect(getTextContent()).toContain('Keep the cluster access credentials documented here');
 
-    it('keeps step 2 disabled until all K8s step 1 requirements are completed', () => {
-      const stepTwoButton = getStepperButton(2);
-      const primaryButton = getButtonByText('Configuration');
-
-      expect(stepTwoButton.disabled).toBe(true);
-      expect(primaryButton.disabled).toBe(true);
-
-      markExpandedRequirementComplete();
-
-      expect(component['completedRequirementsCount']()).toBe(1);
-      expect(getButtonByText('Configuration').disabled).toBe(true);
-
-      toggleRequirementCard('K8s Cluster');
-      markExpandedRequirementComplete();
-
-      expect(component['completedRequirementsCount']()).toBe(2);
-      expect(getButtonByText('Configuration').disabled).toBe(false);
-      expect(getStepperButton(2).disabled).toBe(false);
-    });
-
-    it('opens the K8s deploy configuration step once step 1 is completed', () => {
-      completeStepOne(['K8s Credentials', 'K8s Cluster']);
-
-      getButtonByText('Configuration').click();
+      component['markRequirementDone']('k8s-credentials');
       fixture.detectChanges();
 
       expect(component['currentStep']).toBe(2);
-      expect(getTextContent()).toContain('Deploy Configuration');
-      expect(getTextContent()).toContain('Complete the K8s deployment form here');
-      expect(fixture.debugElement.query(By.css('app-k8s-deploy-service-form'))).not.toBeNull();
+      expect(getTextContent()).toContain('Register the Kubernetes cluster target');
+
+      component['markRequirementDone']('k8s-cluster');
+      fixture.detectChanges();
+
+      expect(component['currentStep']).toBe(3);
+      expect(fixture.debugElement.query(By.directive(K8sDeployServiceFormComponent))).not.toBeNull();
     });
 
-    it('shows the deployment started status after deploying from the K8s step 2 panel', () => {
-      completeStepOne(['K8s Credentials', 'K8s Cluster']);
-
-      getStepperButton(2).click();
+    it('shows deployment feedback after the K8s deploy form emits success', () => {
+      component['markRequirementDone']('k8s-credentials');
+      component['markRequirementDone']('k8s-cluster');
       fixture.detectChanges();
 
       const k8sForm = fixture.debugElement.query(By.directive(K8sDeployServiceFormComponent));
@@ -163,195 +208,21 @@ describe('DeploymentPageComponent', () => {
     });
   });
 
-  describe('Slice/OpenStack flow', () => {
-    beforeEach(() => {
-      createComponentForOption('slice');
-    });
-
-    it('loads the Slice/OpenStack deployment option from the route', () => {
-      expect(component['selectedOption'].id).toBe('slice');
-      expect(getTextContent()).toContain('Slice registrations');
-      expect(getTextContent()).not.toContain('K8s registrations');
-    });
-
-    it('keeps step 2 disabled until all Slice step 1 requirements are completed', () => {
-      expect(getStepperButton(2).disabled).toBe(true);
-      expect(getButtonByText('Configuration').disabled).toBe(true);
-
-      completeStepOne(['NFVO', 'Function', 'VIM']);
-
-      expect(component['completedRequirementsCount']()).toBe(3);
-      expect(getStepperButton(2).disabled).toBe(true);
-      expect(getButtonByText('Configuration').disabled).toBe(true);
-
-      toggleRequirementCard('Location');
-      markExpandedRequirementComplete();
-
-      expect(component['completedRequirementsCount']()).toBe(4);
-      expect(getStepperButton(2).disabled).toBe(false);
-      expect(getButtonByText('Configuration').disabled).toBe(false);
-    });
-
-    it('marks a requirement as done after the embedded form emits success', () => {
-      const nfvoForm = fixture.debugElement.query(By.directive(NfvoRegistrationFormComponent));
-
-      (nfvoForm.componentInstance as NfvoRegistrationFormComponent).completed.emit();
-      fixture.detectChanges();
-
-      expect(component['isRequirementComplete']('nfvo')).toBe(true);
-      expect(getTextContent()).toContain('Done');
-    });
-
-    it('opens the Slice deploy configuration step once registrations are completed', () => {
-      completeStepOne(['NFVO', 'Function', 'VIM', 'Location']);
-
-      getButtonByText('Configuration').click();
-      fixture.detectChanges();
-
-      expect(component['currentStep']).toBe(2);
-      expect(getTextContent()).toContain('Deploy Configuration');
-      expect(getTextContent()).toContain('Complete the slice registration form here');
-      expect(fixture.debugElement.query(By.css('app-slice-registration-form'))).not.toBeNull();
-      expect(getButtonByText('Deploy Slice').disabled).toBe(true);
-    });
-
-    it('enables Deploy Slice only after the slice configuration is marked complete', () => {
-      completeStepOne(['NFVO', 'Function', 'VIM', 'Location']);
-
-      getStepperButton(2).click();
-      fixture.detectChanges();
-
-      const deployButton = getButtonByText('Deploy Slice');
-      expect(deployButton.disabled).toBe(true);
-
-      getButtonByText('Mark as complete').click();
-      fixture.detectChanges();
-
-      expect(getButtonByText('Deploy Slice').disabled).toBe(false);
-
-      getButtonByText('Deploy Slice').click();
-      fixture.detectChanges();
-
-      expect(component['sliceConfigurationComplete']).toBe(true);
-      expect(component['deploymentStarted']).toBe(true);
-      expect(getTextContent()).toContain('pack saved to History as a completed deployment');
-    });
-  });
-
-  describe('Proxmox VM flow', () => {
+  describe('Proxmox wizard', () => {
     beforeEach(() => {
       createComponentForOption('proxmox');
     });
 
-    it('loads the Proxmox deployment option from the route', () => {
-      expect(component['selectedOption'].id).toBe('proxmox');
-      expect(getTextContent()).toContain('Proxmox registrations');
-      expect(getTextContent()).not.toContain('Slice registrations');
-    });
+    it('unlocks the deploy step only after the cluster registration is active', () => {
+      expect(getWizardButtons()).toHaveLength(2);
+      expect(component['canAccessStepTwo']()).toBe(false);
 
-    it('enables step 2 after the Proxmox cluster requirement is completed', () => {
-      expect(getStepperButton(2).disabled).toBe(true);
-      expect(getButtonByText('Configuration').disabled).toBe(true);
-
-      markExpandedRequirementComplete();
-
-      expect(component['completedRequirementsCount']()).toBe(1);
-      expect(getStepperButton(2).disabled).toBe(false);
-      expect(getButtonByText('Configuration').disabled).toBe(false);
-    });
-
-    it('shows the active Proxmox registration tag when a cluster draft already exists', () => {
-      localStorage.setItem(
-        'katana-slice-manager.deployment-drafts',
-        JSON.stringify({
-          proxmox: {
-            'proxmox-cluster': {
-              state: 'active',
-              value: {
-                name: 'lab-cluster',
-                node: 'pve-node-01'
-              }
-            }
-          }
-        })
-      );
-
-      createComponentForOption('proxmox');
-
-      expect(getTextContent()).toContain('Active: lab-cluster / pve-node-01');
-    });
-
-    it('asks to deactivate an active registration and converts it back to a draft', () => {
-      localStorage.setItem(
-        'katana-slice-manager.deployment-drafts',
-        JSON.stringify({
-          proxmox: {
-            'proxmox-cluster': {
-              state: 'active',
-              value: {
-                name: 'lab-cluster',
-                node: 'pve-node-01'
-              }
-            }
-          }
-        })
-      );
-
-      createComponentForOption('proxmox');
-
-      getButtonByText('Active: lab-cluster / pve-node-01').click();
+      component['markRequirementDone']('proxmox-cluster');
       fixture.detectChanges();
 
-      expect(getTextContent()).toContain('Deactivate this active registration?');
-
-      getButtonByText('Yes').click();
-      fixture.detectChanges();
-
-      expect(getTextContent()).toContain('Saved draft: lab-cluster / pve-node-01');
-      expect(component['isRequirementComplete']('proxmox-cluster')).toBe(false);
-      expect(getStepperButton(2).disabled).toBe(true);
-    });
-
-    it('opens the Proxmox VM configuration step once step 1 is completed', () => {
-      completeStepOne(['Proxmox Cluster']);
-
-      getButtonByText('Configuration').click();
-      fixture.detectChanges();
-
+      expect(component['canAccessStepTwo']()).toBe(true);
       expect(component['currentStep']).toBe(2);
-      expect(getTextContent()).toContain('Complete the Proxmox VM deployment form here');
-      expect(fixture.debugElement.query(By.css('app-proxmox-vm-creation-form'))).not.toBeNull();
-    });
-
-    it('shows the deployment started status after deploying from the Proxmox step 2 panel', () => {
-      completeStepOne(['Proxmox Cluster']);
-
-      getStepperButton(2).click();
-      fixture.detectChanges();
-
-      const proxmoxVmForm = fixture.debugElement.query(By.css('app-proxmox-vm-creation-form'))
-        .componentInstance as ProxmoxVmCreationFormComponent;
-      proxmoxVmForm.deployed.emit({ status: 'done' });
-      fixture.detectChanges();
-
-      expect(component['deploymentStarted']).toBe(true);
-      expect(getTextContent()).toContain('pack saved to History as a completed deployment');
-    });
-
-    it('saves failed Proxmox deployments to history and shows the failure state', () => {
-      completeStepOne(['Proxmox Cluster']);
-
-      getStepperButton(2).click();
-      fixture.detectChanges();
-
-      const proxmoxVmForm = fixture.debugElement.query(By.css('app-proxmox-vm-creation-form'))
-        .componentInstance as ProxmoxVmCreationFormComponent;
-      proxmoxVmForm.deployed.emit({ status: 'failed', errorType: 'Internal Server Error' });
-      fixture.detectChanges();
-
-      expect(component['deploymentStarted']).toBe(true);
-      expect(component['lastDeploymentStatus']).toBe('failed');
-      expect(getTextContent()).toContain('pack saved to History with a failed deployment');
+      expect(fixture.debugElement.query(By.directive(ProxmoxVmCreationFormComponent))).not.toBeNull();
     });
   });
 });

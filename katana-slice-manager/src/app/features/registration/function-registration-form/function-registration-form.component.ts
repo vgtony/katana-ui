@@ -19,6 +19,7 @@ export class FunctionRegistrationFormComponent {
   private readonly functionApi = inject(FunctionApiService);
   private readonly deploymentDraftService = inject(DeploymentDraftService);
   readonly completed = output<void>();
+  readonly failed = output<void>();
   protected readonly model: FunctionRegistrationFormModel = this.deploymentDraftService.getFormValue(
     'slice',
     'function',
@@ -96,6 +97,7 @@ export class FunctionRegistrationFormComponent {
         error: (error: unknown) => {
           this.ngZone.run(() => {
             this.submitError = getApiErrorMessage(error, 'Unable to create function.');
+            this.failed.emit();
           });
         }
       });

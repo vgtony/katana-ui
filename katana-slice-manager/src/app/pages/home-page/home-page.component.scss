@@ -9,8 +9,8 @@
   justify-content: center;
   align-items: center;
   padding: 32px;
-  // color: #edf6ff;
-  color: #4fa8e8;
+  // color: var(--app-text);
+  color: var(--app-accent);
 }
 
 .home-page__hero h2,
@@ -20,7 +20,7 @@
 
 .home-page__eyebrow {
   margin-bottom: 12px;
-  color: #4fa8e8;
+  color: var(--app-accent);
   text-transform: uppercase;
   letter-spacing: 0.18em;
   font-size: 0.72rem;
@@ -33,7 +33,7 @@
 .home-page__hero p:last-child {
   margin-top: 14px;
   max-width: 60ch;
-  color: #b9cad8;
+  color: var(--app-text-muted);
   line-height: 1.7;
 }
 
@@ -46,9 +46,9 @@
 .home-page__card {
   padding: 24px;
   border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, rgba(14, 31, 46, 0.96), rgba(10, 25, 38, 0.88));
-  color: #edf6ff;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-strong);
+  color: var(--app-text);
 }
 
 .home-page__card h3,
@@ -57,7 +57,7 @@
 }
 
 .home-page__card-label {
-  color: #4fa8e8;
+  color: var(--app-accent);
   text-transform: uppercase;
   letter-spacing: 0.18em;
   font-size: 0.72rem;
@@ -69,8 +69,19 @@
 
 .home-page__card p:last-child {
   margin-top: 12px;
-  color: #b9cad8;
+  color: var(--app-text-muted);
   line-height: 1.7;
+}
+
+.home-page__card-link {
+  margin-top: 14px;
+  color: var(--app-text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.home-page__card-link:hover {
+  text-decoration: underline;
 }
 
 @media (max-width: 960px) {

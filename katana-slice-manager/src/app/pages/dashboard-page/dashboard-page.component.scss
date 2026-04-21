@@ -1,14 +1,14 @@
 .dashboard-page {
   display: grid;
   gap: 16px;
-  color: #edf6ff;
+  color: var(--app-text);
 }
 
 .dashboard-page__section,
 .dashboard-page__empty {
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
 }
 
 .dashboard-page__hero,
@@ -22,7 +22,7 @@
 .dashboard-page__section-label,
 .dashboard-page__control span {
   margin: 0;
-  color: #4fa8e8;
+  color: var(--app-accent);
   text-transform: uppercase;
   letter-spacing: 0.18em;
 }
@@ -57,7 +57,7 @@
 .dashboard-page__hero p:last-child,
 .dashboard-page__empty p {
   margin-top: 12px;
-  color: #4fa8e8;
+  color: var(--app-accent);
   line-height: 1.7;
 }
 
@@ -81,9 +81,9 @@
 .dashboard-page__pagination button {
   padding: 0.9rem 1rem;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(4, 13, 22, 0.68);
-  color: #edf6ff;
+  border: 1px solid var(--app-border-strong);
+  background: var(--app-input-bg);
+  color: var(--app-text);
 }
 
 .dashboard-page__sections {
@@ -147,8 +147,8 @@
 .dashboard-page__section-count {
   padding: 0.3rem 0.65rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #b9cad8;
+  background: var(--app-pill-bg);
+  color: var(--app-text-muted);
   font-size: 0.76rem;
   font-weight: 600;
 }
@@ -156,9 +156,9 @@
 .dashboard-page__section-toggle {
   padding: 0.55rem 0.9rem;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(4, 13, 22, 0.68);
-  color: #edf6ff;
+  border: 1px solid var(--app-border-strong);
+  background: var(--app-input-bg);
+  color: var(--app-text);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
@@ -169,8 +169,8 @@
 }
 
 .dashboard-page__section-toggle:hover {
-  border-color: rgba(79, 168, 232, 0.45);
-  background: rgba(18, 38, 57, 0.82);
+  border-color: var(--app-border-accent-strong);
+  background: var(--app-accent-hover);
 }
 
 .dashboard-page__section-toggle:active {
@@ -180,12 +180,7 @@
 .dashboard-page__skeleton {
   display: block;
   border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(159, 208, 245, 0.16) 50%,
-    rgba(255, 255, 255, 0.05) 100%
-  );
+  background: var(--app-skeleton);
   background-size: 220% 100%;
   animation: dashboard-skeleton-shimmer 1.4s ease-in-out infinite;
 }
@@ -245,20 +240,20 @@
 .dashboard-page__table th,
 .dashboard-page__table td {
   padding: 0.9rem 0.95rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--app-border);
   text-align: left;
   vertical-align: top;
 }
 
 .dashboard-page__table th {
-  color: #9fd0f5;
+  color: var(--app-accent-heading);
   font-size: 0.84rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 
 .dashboard-page__table td {
-  color: #b9cad8;
+  color: var(--app-text-muted);
 }
 
 .dashboard-page__pagination button {
@@ -275,11 +270,11 @@
 .dashboard-page__empty-row {
   padding: 14px 16px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--app-surface-2);
 }
 
 .dashboard-page__error {
-  color: #ffb8b8;
+  color: var(--app-danger);
 }
 
 @keyframes dashboard-skeleton-shimmer {

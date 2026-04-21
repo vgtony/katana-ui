@@ -1,7 +1,7 @@
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { combineLatest } from 'rxjs';
+import { combineLatest, Observable } from 'rxjs';
 import { NfvoRegistrationFormComponent } from '../../features/registration/nfvo-registration-form/nfvo-registration-form.component';
 import { FunctionRegistrationFormComponent } from '../../features/registration/function-registration-form/function-registration-form.component';
 import { VimRegistrationFormComponent } from '../../features/registration/vim-registration-form/vim-registration-form.component';
@@ -11,7 +11,6 @@ import { K8sClusterRegistrationFormComponent } from '../../features/registration
 import { K8sDeployServiceFormComponent } from '../../features/registration/k8s-deploy-service-form/k8s-deploy-service-form.component';
 import { ProxmoxClusterRegistrationFormComponent } from '../../features/registration/proxmox-cluster-registration-form/proxmox-cluster-registration-form.component';
 import { ProxmoxVmCreationFormComponent } from '../../features/registration/proxmox-vm-creation-form/proxmox-vm-creation-form.component';
-import { ProxmoxRegistrationFormComponent } from '../../features/registration/proxmox-registration-form/proxmox-registration-form.component';
 import { SliceRegistrationFormComponent } from '../../features/registration/slice-registration-form/slice-registration-form.component';
 import { DeploymentAttemptEvent } from '../../features/registration/proxmox-vm-creation-form/proxmox-vm-creation-form.component';
 import {
@@ -20,8 +19,44 @@ import {
 } from '../../models/interfaces/deployment-draft.interface';
 import { DeploymentPack, DeploymentPackStatus } from '../../models/interfaces/deployment-pack.interface';
 import { DeploymentOption } from '../../models/interfaces/deployment.interface';
+import {
+  getApiErrorMessage,
+  KubernetesApiService,
+  ProxmoxApiService,
+  SliceApiService
+} from '../../shared/services/api';
 import { DeploymentDraftService } from '../../shared/services/deployment-draft.service';
 import { DeploymentHistoryService } from '../../shared/services/deployment-history.service';
+
+type DeploymentInventoryKey = 'slice' | 'k8s' | 'proxmox';
+type DeploymentStatusTone = 'success' | 'warning' | 'error' | 'neutral';
+
+interface DeploymentInventoryColumn {
+  key: string;
+  label: string;
+  valueKeys: string[];
+}
+
+type DeploymentInventoryRow = Record<string, string>;
+
+interface DeploymentInventoryTableConfig {
+  fallbackPrimaryValue: string;
+  columns: DeploymentInventoryColumn[];
+}
+
+interface DeploymentInventorySection {
+  key: DeploymentInventoryKey;
+  title: string;
+  emptyLabel: string;
+  loading: boolean;
+  error: string | null;
+  columns: DeploymentInventoryColumn[];
+  rows: DeploymentInventoryRow[];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
 @Component({
   selector: 'app-deployment-page',
@@ -42,20 +77,33 @@ import { DeploymentHistoryService } from '../../shared/services/deployment-histo
 })
 export class DeploymentPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly deploymentHistoryService = inject(DeploymentHistoryService);
   private readonly deploymentDraftService = inject(DeploymentDraftService);
+  private readonly sliceApiService = inject(SliceApiService);
+  private readonly kubernetesApiService = inject(KubernetesApiService);
+  private readonly proxmoxApiService = inject(ProxmoxApiService);
   private restoredPackId: string | null = null;
+  private keepModalOpenAfterRouteClear = false;
 
   protected currentStep = 1;
   protected deploymentStarted = false;
+  protected expandedInventorySectionKeys = new Set<DeploymentInventoryKey>([
+    'slice',
+    'k8s',
+    'proxmox'
+  ]);
   protected expandedRequirementIds = new Set<string>();
   protected completedRequirementIds = new Set<string>();
+  protected failedRequirementIds = new Set<string>();
   protected requirementContextTags: Partial<Record<string, string>> = {};
   protected pendingRequirementDeactivationId: string | null = null;
   protected pendingConfigurationDeactivation = false;
   protected sliceConfigurationComplete = false;
   protected lastDeploymentStatus: DeploymentPackStatus = 'done';
+  protected isNewDeploymentModalOpen = false;
+  protected selectedRouteOptionId: DeploymentOption['id'] | null = null;
 
   protected readonly deploymentOptions: DeploymentOption[] = [
     {
@@ -74,6 +122,13 @@ export class DeploymentPageComponent implements OnInit {
           guidance: 'Register the orchestrator endpoint, credentials, and onboarding details that the slice deployment depends on.'
         },
         {
+          id: 'location',
+          label: 'Location',
+          route: '/deployment/slice',
+          type: 'registration',
+          guidance: 'Store the location context used to place and validate the slice deployment against the expected site.'
+        },
+        {
           id: 'function',
           label: 'Function',
           route: '/deployment/slice',
@@ -86,13 +141,6 @@ export class DeploymentPageComponent implements OnInit {
           route: '/deployment/slice',
           type: 'registration',
           guidance: 'Capture the OpenStack or virtualized infrastructure target where the slice resources will ultimately be placed.'
-        },
-        {
-          id: 'location',
-          label: 'Location',
-          route: '/deployment/slice',
-          type: 'registration',
-          guidance: 'Store the location context used to place and validate the slice deployment against the expected site.'
         }
       ],
       finalConfigurationLabel: 'Slice configuration',
@@ -145,9 +193,58 @@ export class DeploymentPageComponent implements OnInit {
     }
   ];
 
+  protected readonly inventorySections: DeploymentInventorySection[] = [
+    {
+      key: 'slice',
+      title: 'Slices',
+      emptyLabel: 'No slices have been created yet.',
+      loading: true,
+      error: null,
+      columns: [
+        { key: 'name', label: 'Name', valueKeys: ['name', 'ns_name', 'slice_name', 'id', '_id', 'uuid', 'slice_id', 'nsi_id'] },
+        { key: 'status', label: 'Status', valueKeys: ['status', 'state'] },
+        { key: 'coverage', label: 'Coverage', valueKeys: ['coverage'] },
+        { key: 'location', label: 'Location', valueKeys: ['location'] }
+      ],
+      rows: []
+    },
+    {
+      key: 'k8s',
+      title: 'K8s Clusters',
+      emptyLabel: 'No Kubernetes clusters have been registered yet.',
+      loading: true,
+      error: null,
+      columns: [
+        { key: 'name', label: 'Name', valueKeys: ['name', 'id', '_id', 'uuid'] },
+        { key: 'namespace', label: 'Namespace', valueKeys: ['namespace'] },
+        { key: 'version', label: 'Version', valueKeys: ['k8s_version', 'version'] },
+        { key: 'vimAccount', label: 'VIM Account', valueKeys: ['vim_account', 'vimAccount'] },
+        { key: 'endpoint', label: 'Endpoint', valueKeys: ['nfvo_ip', 'endpoint', 'url'] }
+      ],
+      rows: []
+    },
+    {
+      key: 'proxmox',
+      title: 'Proxmox Clusters',
+      emptyLabel: 'No Proxmox clusters have been registered yet.',
+      loading: true,
+      error: null,
+      columns: [
+        { key: 'name', label: 'Name', valueKeys: ['name', '_id', 'id'] },
+        { key: 'node', label: 'Node', valueKeys: ['node'] },
+        { key: 'status', label: 'Status', valueKeys: ['status'] },
+        { key: 'url', label: 'URL', valueKeys: ['url'] },
+        { key: 'username', label: 'Username', valueKeys: ['username'] }
+      ],
+      rows: []
+    }
+  ];
+
   protected selectedOption = this.deploymentOptions[0];
 
   ngOnInit(): void {
+    this.loadCurrentDeployments();
+
     combineLatest([this.route.paramMap, this.route.queryParamMap])
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(([params, queryParams]) => {
@@ -157,30 +254,184 @@ export class DeploymentPageComponent implements OnInit {
       });
   }
 
+  protected openNewDeploymentModal(): void {
+    this.isNewDeploymentModalOpen = true;
+  }
+
+  protected closeNewDeploymentModal(): void {
+    this.keepModalOpenAfterRouteClear = false;
+
+    if (this.selectedRouteOptionId) {
+      void this.router.navigate(['/deployment']);
+      return;
+    }
+
+    this.isNewDeploymentModalOpen = false;
+  }
+
+  protected chooseDeploymentOption(optionId: DeploymentOption['id']): void {
+    void this.router.navigate(['/deployment', optionId]);
+  }
+
+  protected returnToDeploymentChooser(): void {
+    this.keepModalOpenAfterRouteClear = true;
+    void this.router.navigate(['/deployment']);
+  }
+
+  protected hasSelectedDeploymentOption(): boolean {
+    return this.selectedRouteOptionId !== null;
+  }
+
+  protected getWizardStepNumbers(): number[] {
+    return Array.from({ length: this.selectedOption.requirements.length + 1 }, (_, index) => index + 1);
+  }
+
+  protected isStatusColumn(columnKey: string): boolean {
+    return columnKey === 'status';
+  }
+
+  protected getStatusTone(value: string): DeploymentStatusTone {
+    const normalizedValue = value.trim().toLowerCase();
+
+    if (!normalizedValue || normalizedValue === '—') {
+      return 'neutral';
+    }
+
+    if (
+      normalizedValue.includes('active') ||
+      normalizedValue.includes('running') ||
+      normalizedValue.includes('online') ||
+      normalizedValue.includes('ready') ||
+      normalizedValue.includes('healthy') ||
+      normalizedValue.includes('done') ||
+      normalizedValue.includes('success')
+    ) {
+      return 'success';
+    }
+
+    if (
+      normalizedValue.includes('provision') ||
+      normalizedValue.includes('pending') ||
+      normalizedValue.includes('starting') ||
+      normalizedValue.includes('creating') ||
+      normalizedValue.includes('deploying') ||
+      normalizedValue.includes('warning')
+    ) {
+      return 'warning';
+    }
+
+    if (
+      normalizedValue.includes('error') ||
+      normalizedValue.includes('fail') ||
+      normalizedValue.includes('offline') ||
+      normalizedValue.includes('degraded') ||
+      normalizedValue.includes('stopped') ||
+      normalizedValue.includes('inactive')
+    ) {
+      return 'error';
+    }
+
+    return 'neutral';
+  }
+
+  protected toggleInventorySection(key: DeploymentInventoryKey): void {
+    if (this.expandedInventorySectionKeys.has(key)) {
+      this.expandedInventorySectionKeys.delete(key);
+      return;
+    }
+
+    this.expandedInventorySectionKeys.add(key);
+  }
+
+  protected isInventorySectionExpanded(key: DeploymentInventoryKey): boolean {
+    return this.expandedInventorySectionKeys.has(key);
+  }
+
+  protected isDeployWizardStep(step: number): boolean {
+    return step === this.getDeployStepNumber();
+  }
+
+  protected getWizardStepLabel(step: number): string {
+    if (this.isDeployWizardStep(step)) {
+      return 'Deploy';
+    }
+
+    return this.selectedOption.requirements[step - 1]?.label ?? '';
+  }
+
+  protected isWizardStepActive(step: number): boolean {
+    return this.currentStep === step;
+  }
+
+  protected isWizardStepComplete(step: number): boolean {
+    if (this.isDeployWizardStep(step)) {
+      return this.deploymentStarted;
+    }
+
+    const requirement = this.selectedOption.requirements[step - 1];
+    return requirement ? this.isRequirementComplete(requirement.id) : false;
+  }
+
+  protected isWizardStepError(step: number): boolean {
+    if (this.isDeployWizardStep(step)) {
+      return false;
+    }
+
+    const requirement = this.selectedOption.requirements[step - 1];
+    return requirement ? this.failedRequirementIds.has(requirement.id) : false;
+  }
+
+  protected isWizardStepAccessible(step: number): boolean {
+    if (step <= 1) {
+      return true;
+    }
+
+    if (this.isDeployWizardStep(step)) {
+      return this.canAccessStepTwo();
+    }
+
+    const previousRequirement = this.selectedOption.requirements[step - 2];
+    return previousRequirement ? this.isRequirementComplete(previousRequirement.id) : false;
+  }
+
+  protected selectWizardStep(step: number): void {
+    if (!this.isWizardStepAccessible(step)) {
+      return;
+    }
+
+    this.currentStep = step;
+    this.deploymentStarted = false;
+  }
+
+  protected getCurrentRequirement() {
+    if (this.isDeployWizardStep(this.currentStep)) {
+      return null;
+    }
+
+    return this.selectedOption.requirements[this.currentStep - 1] ?? null;
+  }
+
   private setSelectedOption(optionId: string | null): void {
     const option = this.deploymentOptions.find((item) => item.id === optionId);
 
     if (!option) {
+      this.selectedRouteOptionId = null;
+      this.isNewDeploymentModalOpen = this.keepModalOpenAfterRouteClear;
+      this.keepModalOpenAfterRouteClear = false;
       this.selectedOption = this.deploymentOptions[0];
       this.resetStepState();
       return;
     }
 
+    this.keepModalOpenAfterRouteClear = false;
+    this.selectedRouteOptionId = option.id;
+    this.isNewDeploymentModalOpen = true;
     this.selectedOption = option;
     this.resetStepState();
   }
 
   protected goToStep(step: number): void {
-    if (step === 1) {
-      this.currentStep = 1;
-      this.deploymentStarted = false;
-      return;
-    }
-
-    if (step === 2 && this.selectedOption && this.isStepOneComplete()) {
-      this.currentStep = 2;
-      this.deploymentStarted = false;
-    }
+    this.selectWizardStep(step);
   }
 
   protected moveToReview(): void {
@@ -193,7 +444,9 @@ export class DeploymentPageComponent implements OnInit {
   }
 
   protected canAccessStepTwo(): boolean {
-    return this.isStepOneComplete();
+    return this.selectedOption.requirements.every((requirement) =>
+      this.isRequirementComplete(requirement.id)
+    );
   }
 
   protected toggleSliceConfigurationComplete(): void {
@@ -232,23 +485,42 @@ export class DeploymentPageComponent implements OnInit {
 
   protected markRequirementDone(requirementId: string): void {
     this.completedRequirementIds.add(requirementId);
+    this.failedRequirementIds.delete(requirementId);
     this.refreshRequirementContextTags();
+
+    if (requirementId === 'k8s-cluster' || requirementId === 'proxmox-cluster') {
+      this.loadCurrentDeployments();
+    }
+
+    this.moveToNextWizardStepIfAvailable(requirementId);
   }
 
   protected isRequirementComplete(requirementId: string): boolean {
-    return this.completedRequirementIds.has(requirementId);
+    return this.isRequirementActive(requirementId);
+  }
+
+  protected markRequirementFailed(requirementId: string): void {
+    this.failedRequirementIds.add(requirementId);
+  }
+
+  protected isRequirementError(requirementId: string): boolean {
+    return this.failedRequirementIds.has(requirementId);
+  }
+
+  protected getRequirementStatusLabel(requirementId: string): string {
+    if (this.isRequirementComplete(requirementId)) {
+      return 'Active';
+    }
+
+    if (this.isRequirementError(requirementId)) {
+      return 'Error';
+    }
+
+    return 'Pending';
   }
 
   protected getRequirementContextTag(requirementId: string): string | null {
     return this.requirementContextTags[requirementId] ?? null;
-  }
-
-  protected getRequirementStatusLabel(requirementId: string): string {
-    return this.getRequirementState(requirementId) === 'active'
-      ? 'Active'
-      : this.isRequirementComplete(requirementId)
-        ? 'Done'
-        : 'Pending';
   }
 
   protected isRequirementActive(requirementId: string): boolean {
@@ -280,6 +552,7 @@ export class DeploymentPageComponent implements OnInit {
 
     this.deploymentDraftService.deactivateForm(target.optionId, target.formKey);
     this.completedRequirementIds.delete(requirementId);
+    this.failedRequirementIds.delete(requirementId);
     this.pendingRequirementDeactivationId = null;
     this.refreshRequirementContextTags();
   }
@@ -340,7 +613,7 @@ export class DeploymentPageComponent implements OnInit {
 
   protected completedRequirementsCount(): number {
     return this.selectedOption.requirements.filter((requirement) =>
-      this.completedRequirementIds.has(requirement.id)
+      this.isRequirementComplete(requirement.id)
     ).length;
   }
 
@@ -371,6 +644,10 @@ export class DeploymentPageComponent implements OnInit {
     this.deploymentStarted = true;
   }
 
+  protected handleSliceCreated(): void {
+    this.loadCurrentDeployments();
+  }
+
   protected getDeploymentFeedbackMessage(): string {
     return this.lastDeploymentStatus === 'failed'
       ? `${this.selectedOption.label} pack saved to History with a failed deployment.`
@@ -384,6 +661,7 @@ export class DeploymentPageComponent implements OnInit {
     this.pendingConfigurationDeactivation = false;
     this.sliceConfigurationComplete = false;
     this.completedRequirementIds = new Set<string>();
+    this.failedRequirementIds = new Set<string>();
     this.expandedRequirementIds = new Set<string>(
       this.selectedOption.requirements[0] ? [this.selectedOption.requirements[0].id] : []
     );
@@ -406,11 +684,12 @@ export class DeploymentPageComponent implements OnInit {
 
     this.completedRequirementIds = new Set(pack.requirements.map((requirement) => requirement.id));
     this.expandedRequirementIds = new Set<string>();
-    this.currentStep = 2;
+    this.currentStep = this.canAccessStepTwo() ? this.getDeployStepNumber() : this.getFirstIncompleteRequirementStep();
     this.deploymentStarted = false;
     this.pendingRequirementDeactivationId = null;
     this.pendingConfigurationDeactivation = false;
     this.sliceConfigurationComplete = this.selectedOption.id === 'slice';
+    this.failedRequirementIds = new Set<string>();
     this.syncSavedState();
     this.refreshRequirementContextTags();
   }
@@ -420,13 +699,16 @@ export class DeploymentPageComponent implements OnInit {
       .filter((requirement) => this.getRequirementState(requirement.id) === 'active')
       .map((requirement) => requirement.id);
 
-    this.completedRequirementIds = new Set([
-      ...this.completedRequirementIds,
-      ...savedActiveRequirementIds
-    ]);
+    this.completedRequirementIds = new Set([...this.completedRequirementIds, ...savedActiveRequirementIds]);
 
     if (this.selectedOption.id === 'slice' && this.getFinalConfigurationState() === 'active') {
       this.sliceConfigurationComplete = true;
+    }
+
+    if (!this.isWizardStepAccessible(this.currentStep)) {
+      this.currentStep = this.canAccessStepTwo()
+        ? this.getDeployStepNumber()
+        : this.getFirstIncompleteRequirementStep();
     }
   }
 
@@ -637,5 +919,154 @@ export class DeploymentPageComponent implements OnInit {
     }
 
     return secondValue || null;
+  }
+
+  private loadCurrentDeployments(): void {
+    this.loadInventorySection('slice', this.sliceApiService.getSlices(), {
+      fallbackPrimaryValue: 'Created slice',
+      columns: this.getInventorySection('slice').columns
+    });
+    this.loadInventorySection('k8s', this.kubernetesApiService.getK8sClusters(), {
+      fallbackPrimaryValue: 'Registered K8s cluster',
+      columns: this.getInventorySection('k8s').columns
+    });
+    this.loadInventorySection('proxmox', this.proxmoxApiService.getClusters(), {
+      fallbackPrimaryValue: 'Registered Proxmox cluster',
+      columns: this.getInventorySection('proxmox').columns
+    });
+  }
+
+  private getDeployStepNumber(): number {
+    return this.selectedOption.requirements.length + 1;
+  }
+
+  private getFirstIncompleteRequirementStep(): number {
+    const index = this.selectedOption.requirements.findIndex(
+      (requirement) => !this.isRequirementComplete(requirement.id)
+    );
+
+    return index === -1 ? this.getDeployStepNumber() : index + 1;
+  }
+
+  private moveToNextWizardStepIfAvailable(requirementId: string): void {
+    const currentRequirement = this.getCurrentRequirement();
+
+    if (!currentRequirement || currentRequirement.id !== requirementId) {
+      return;
+    }
+
+    const currentRequirementIndex = this.selectedOption.requirements.findIndex(
+      (requirement) => requirement.id === requirementId
+    );
+
+    if (currentRequirementIndex === -1) {
+      return;
+    }
+
+    const nextStep = currentRequirementIndex + 2;
+
+    if (this.isWizardStepAccessible(nextStep)) {
+      this.currentStep = nextStep;
+    }
+  }
+
+  private loadInventorySection(
+    key: DeploymentInventoryKey,
+    request$: Observable<unknown[]>,
+    config: DeploymentInventoryTableConfig
+  ): void {
+    const section = this.getInventorySection(key);
+    section.loading = true;
+    section.error = null;
+
+    request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (items) => {
+        section.rows = this.mapInventoryRows(items, config);
+        section.loading = false;
+      },
+      error: (error: unknown) => {
+        section.rows = [];
+        section.loading = false;
+        section.error = getApiErrorMessage(error, `Unable to load ${section.title.toLowerCase()}.`);
+      }
+    });
+  }
+
+  private getInventorySection(key: DeploymentInventoryKey): DeploymentInventorySection {
+    const section = this.inventorySections.find((item) => item.key === key);
+
+    if (!section) {
+      throw new Error(`Inventory section ${key} not found.`);
+    }
+
+    return section;
+  }
+
+  private mapInventoryRows(
+    items: unknown[],
+    config: DeploymentInventoryTableConfig
+  ): DeploymentInventoryRow[] {
+    return items.map((item) => this.mapInventoryRow(item, config));
+  }
+
+  private mapInventoryRow(
+    item: unknown,
+    config: DeploymentInventoryTableConfig
+  ): DeploymentInventoryRow {
+    const defaultRow = Object.fromEntries(
+      config.columns.map((column) => [column.key, '—'])
+    ) as DeploymentInventoryRow;
+
+    if (!isRecord(item)) {
+      defaultRow[config.columns[0]?.key ?? 'name'] = this.toDisplayValue(item) ?? config.fallbackPrimaryValue;
+      return defaultRow;
+    }
+
+    for (const [index, column] of config.columns.entries()) {
+      const value = this.pickFirstValue(item, column.valueKeys);
+
+      if (value) {
+        defaultRow[column.key] = value;
+        continue;
+      }
+
+      if (index === 0) {
+        defaultRow[column.key] = config.fallbackPrimaryValue;
+      }
+    }
+
+    return defaultRow;
+  }
+
+  private pickFirstValue(record: Record<string, unknown>, keys: string[]): string | null {
+    for (const key of keys) {
+      const value = this.toDisplayValue(record[key]);
+
+      if (value) {
+        return value;
+      }
+    }
+
+    return null;
+  }
+  private toDisplayValue(value: unknown): string | null {
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      return trimmed || null;
+    }
+
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+
+    if (Array.isArray(value)) {
+      const items = value
+        .map((entry) => this.toDisplayValue(entry))
+        .filter((entry): entry is string => Boolean(entry));
+
+      return items.length ? items.join(', ') : null;
+    }
+
+    return null;
   }
 }

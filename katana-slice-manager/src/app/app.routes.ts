@@ -13,7 +13,7 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', component: HomePageComponent },
       { path: 'dashboard', component: DashboardPageComponent },
       { path: 'history', component: HistoryPageComponent },
-      { path: 'deployment', pathMatch: 'full', redirectTo: 'deployment/slice' },
+      { path: 'deployment', component: DeploymentPageComponent },
       { path: 'deployment/:option', component: DeploymentPageComponent }
     ]
   },

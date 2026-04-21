@@ -5,7 +5,7 @@
   --panel-border: rgba(143, 204, 216, 0.18);
   --text: #ebf6f6;
   --muted: #96afb5;
-  --accent: #4fa8e8;
+  --accent: var(--app-accent);
   --accent-strong: #7ec8ff;
   --warning: #ffbf69;
   --danger: #ff7d7d;
@@ -120,11 +120,11 @@ h4 {
 .action--primary {
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
   color: #072129;
-  box-shadow: 0 14px 40px rgba(79, 168, 232, 0.28);
+  box-shadow: 0 14px 40px var(--app-border-accent);
 }
 
 .action--secondary {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--app-surface-2);
   color: var(--text);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -134,7 +134,7 @@ h4 {
   padding: 22px;
   border-radius: 24px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), var(--app-surface)),
     rgba(3, 15, 21, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -171,7 +171,7 @@ h4 {
 
 .mission-card__grid article {
   padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--app-border);
 }
 
 .mission-card__grid p,
@@ -212,7 +212,7 @@ h4 {
 }
 
 .badge--outline {
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--app-border-strong);
   color: var(--text);
 }
 
@@ -300,8 +300,8 @@ h4 {
 .slice-card {
   padding: 18px;
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
 }
 
 .slice-card h4,
@@ -328,7 +328,7 @@ h4 {
 .slice-card__path {
   margin-top: 18px;
   padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--app-border);
 }
 
 .resource-row__bar {
@@ -338,7 +338,7 @@ h4 {
   background:
     linear-gradient(90deg, rgba(79, 168, 232, 0.95) 0%, rgba(126, 200, 255, 0.95) 100%)
       0 0 / var(--usage) 100% no-repeat,
-    rgba(255, 255, 255, 0.08);
+    var(--app-border);
   margin: 10px 0 8px;
 }
 
@@ -349,7 +349,7 @@ h4 {
 .queue-item {
   align-items: center;
   padding: 16px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--app-border);
 }
 
 .queue-list .queue-item:first-child {
@@ -384,7 +384,7 @@ h4 {
 .timeline__item {
   align-items: start;
   padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--app-border);
 }
 
 .timeline .timeline__item:first-child {

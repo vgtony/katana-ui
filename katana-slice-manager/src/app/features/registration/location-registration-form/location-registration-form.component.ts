@@ -20,6 +20,7 @@ export class LocationRegistrationFormComponent {
   private readonly locationApi = inject(LocationApiService);
   private readonly deploymentDraftService = inject(DeploymentDraftService);
   readonly completed = output<void>();
+  readonly failed = output<void>();
   protected readonly model: LocationRegistrationFormModel = this.deploymentDraftService.getFormValue(
     'slice',
     'location',
@@ -94,6 +95,7 @@ export class LocationRegistrationFormComponent {
           this.ngZone.run(() => {
             this.submitSucceeded = false;
             this.submitError = getApiErrorMessage(error, 'Unable to create location.');
+            this.failed.emit();
             this.changeDetectorRef.detectChanges();
           });
         }

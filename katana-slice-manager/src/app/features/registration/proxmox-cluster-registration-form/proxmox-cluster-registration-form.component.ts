@@ -20,6 +20,7 @@ export class ProxmoxClusterRegistrationFormComponent {
   private readonly proxmoxApi = inject(ProxmoxApiService);
   private readonly deploymentDraftService = inject(DeploymentDraftService);
   readonly completed = output<void>();
+  readonly failed = output<void>();
   protected readonly model: ProxmoxClusterRegistrationFormModel = this.deploymentDraftService.getFormValue(
     'proxmox',
     'proxmox-cluster',
@@ -100,6 +101,7 @@ export class ProxmoxClusterRegistrationFormComponent {
           this.ngZone.run(() => {
             this.submitSucceeded = false;
             this.submitError = getApiErrorMessage(error, 'Unable to register Proxmox cluster.');
+            this.failed.emit();
             this.changeDetectorRef.detectChanges();
           });
         }
