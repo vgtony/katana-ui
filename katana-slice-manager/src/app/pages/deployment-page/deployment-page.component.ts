@@ -255,7 +255,7 @@ export class DeploymentPageComponent implements OnInit {
   }
 
   protected openNewDeploymentModal(): void {
-    this.isNewDeploymentModalOpen = true;
+    this.openDeploymentChooser();
   }
 
   protected closeNewDeploymentModal(): void {
@@ -274,8 +274,7 @@ export class DeploymentPageComponent implements OnInit {
   }
 
   protected returnToDeploymentChooser(): void {
-    this.keepModalOpenAfterRouteClear = true;
-    void this.router.navigate(['/deployment']);
+    this.openDeploymentChooser();
   }
 
   protected hasSelectedDeploymentOption(): boolean {
@@ -427,6 +426,13 @@ export class DeploymentPageComponent implements OnInit {
     this.selectedRouteOptionId = option.id;
     this.isNewDeploymentModalOpen = true;
     this.selectedOption = option;
+    this.resetStepState();
+  }
+
+  private openDeploymentChooser(): void {
+    this.selectedRouteOptionId = null;
+    this.selectedOption = this.deploymentOptions[0];
+    this.isNewDeploymentModalOpen = true;
     this.resetStepState();
   }
 

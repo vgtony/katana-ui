@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { ActivatedRoute, convertToParamMap, ParamMap, provideRouter } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, ParamMap, provideRouter, Router } from '@angular/router';
 import { By } from '@angular/platform-browser';
 import { BehaviorSubject, of } from 'rxjs';
 import { K8sDeployServiceFormComponent } from '../../features/registration/k8s-deploy-service-form/k8s-deploy-service-form.component';
@@ -16,6 +16,7 @@ import { DeploymentPageComponent } from './deployment-page.component';
 describe('DeploymentPageComponent', () => {
   let fixture!: ComponentFixture<DeploymentPageComponent>;
   let component!: DeploymentPageComponent;
+  let router!: Router;
   let paramMap$!: BehaviorSubject<ParamMap>;
   let queryParamMap$!: BehaviorSubject<ParamMap>;
 
@@ -60,6 +61,8 @@ describe('DeploymentPageComponent', () => {
         }
       ]
     }).compileComponents();
+
+    router = TestBed.inject(Router);
   });
 
   function createComponentForOption(option: 'slice' | 'k8s' | 'proxmox' | null): void {
@@ -107,7 +110,7 @@ describe('DeploymentPageComponent', () => {
       getButtonByText('+ New Deployment').click();
       fixture.detectChanges();
 
-      expect(getTextContent()).toContain('Deploy New Network Slice');
+      expect(getTextContent()).toContain('Create New Network Slice');
       expect(getTextContent()).toContain('Deployment Type');
       expect(getTextContent()).toContain('Slice / OpenStack');
       expect(getTextContent()).toContain('K8s Deploy');
@@ -135,6 +138,22 @@ describe('DeploymentPageComponent', () => {
   describe('Slice/OpenStack wizard', () => {
     beforeEach(() => {
       createComponentForOption('slice');
+    });
+
+    it('returns to the deployment chooser when change type is clicked', () => {
+      const navigateSpy = spyOn(router, 'navigate').and.resolveTo(true);
+
+      getButtonByText('Change Type').click();
+      fixture.detectChanges();
+
+      expect(component['selectedRouteOptionId']).toBeNull();
+      expect(component['isNewDeploymentModalOpen']).toBe(true);
+      expect(navigateSpy).not.toHaveBeenCalled();
+      expect(getTextContent()).toContain('Create New Network Slice');
+      expect(getTextContent()).toContain('Deployment Type');
+      expect(getTextContent()).toContain('Slice / OpenStack');
+      expect(getTextContent()).toContain('K8s Deploy');
+      expect(getTextContent()).toContain('Proxmox VM');
     });
 
     it('shows five sequential wizard steps in the expected order', () => {

@@ -10,7 +10,7 @@
 .deployment-page__panel,
 .deployment-page__modal {
   display: grid;
-  gap: 24px;
+  // gap: 24px;
 }
 
 .deployment-page__hero {
@@ -306,6 +306,7 @@
   max-height: calc(100dvh - 96px);
   padding: 0;
   overflow-y: auto;
+  --deployment-modal-sticky-offset: 84px;
 }
 
 .deployment-page__modal-header,
@@ -321,6 +322,16 @@
   padding-top: 22px;
   padding-bottom: 18px;
   border-bottom: 1px solid var(--app-border);
+  background: var(--app-modal-header-bg);
+}
+
+.deployment-page__modal-section--steps {
+  position: sticky;
+  top: var(--deployment-modal-sticky-offset);
+  z-index: 1;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--app-border-muted);
   background: var(--app-modal-header-bg);
 }
 
