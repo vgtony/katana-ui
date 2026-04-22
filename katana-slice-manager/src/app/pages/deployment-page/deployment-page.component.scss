@@ -3,6 +3,7 @@
   display: grid;
   gap: 26px;
   color: var(--app-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .deployment-page__inventory-shell,
@@ -149,6 +150,7 @@
 .deployment-page__option-card strong {
   margin: 0;
   font-size: 1.2rem;
+  letter-spacing: -0.03em;
 }
 
 .deployment-page__inventory-empty {
@@ -248,7 +250,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.deployment-page__requirement-card,
+// .deployment-page__requirement-card,
 .deployment-page__option-card {
   border-radius: 20px;
   border: 1px solid var(--app-border-muted);
@@ -328,63 +330,6 @@
   border: 0;
   border-radius: 0 0 28px 28px;
   background: transparent;
-}
-
-.deployment-page__stepper {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 18px;
-}
-
-.deployment-page__step {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: auto;
-  padding: 2px 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--app-text-subtle);
-  font-size: 1rem;
-  font-weight: 700;
-  text-align: left;
-  box-shadow: none;
-  transition:
-    transform 180ms ease,
-    color 180ms ease,
-    opacity 180ms ease,
-    text-shadow 180ms ease;
-  cursor: pointer;
-}
-
-.deployment-page__step:hover {
-  transform: translateY(-1px);
-  color: var(--app-text);
-  text-shadow: 0 0 18px var(--app-border-strong);
-}
-
-.deployment-page__step--disabled,
-.deployment-page__step--disabled:hover {
-  cursor: not-allowed;
-  opacity: 0.42;
-  transform: none;
-  color: var(--app-text-subtle);
-  text-shadow: none;
-}
-
-.deployment-page__step--complete {
-  color: var(--app-success);
-  text-shadow: 0 0 16px var(--app-accent-soft);
-}
-
-.deployment-page__step--active {
-  color: var(--app-text);
-}
-
-.deployment-page__step--error {
-  color: var(--app-danger);
-  text-shadow: 0 0 16px var(--app-danger-soft);
 }
 
 .deployment-page__panel-header {

@@ -1,19 +1,15 @@
 <section class="deployment-page">
   <header class="deployment-page__hero">
     <p class="deployment-page__eyebrow">Deployment</p>
-    <h2>Review existing resources and launch a new deployment flow.</h2>
-    <p>
-      Check the slices and registered cluster targets that already exist, then open a guided
-      deployment modal when you are ready to create something new.
-    </p>
+    <h2>Deploy with the targets you already have.</h2>
+    <p>Review registered slices and clusters, then start a new deployment.</p>
   </header>
 
   <section class="deployment-page__inventory-shell">
     <div class="deployment-page__inventory-header">
       <div>
         <p class="deployment-page__kicker">Currently created</p>
-        <h3>Live slices and cluster targets</h3>
-        <p>Data comes from the current API GET endpoints for slices, Kubernetes, and Proxmox.</p>
+        <h3>Live targets</h3>
       </div>
 
       <button class="deployment-page__primary" type="button" (click)="openNewDeploymentModal()">
@@ -46,11 +42,15 @@
 
           <div
             class="deployment-page__inventory-body"
-            [class.deployment-page__inventory-body--expanded]="isInventorySectionExpanded(section.key)"
+            [class.deployment-page__inventory-body--expanded]="
+              isInventorySectionExpanded(section.key)
+            "
           >
             <div class="deployment-page__inventory-body-inner">
               @if (section.loading) {
-                <p class="deployment-page__inventory-empty">Loading {{ section.title.toLowerCase() }}…</p>
+                <p class="deployment-page__inventory-empty">
+                  Loading {{ section.title.toLowerCase() }}…
+                </p>
               } @else if (section.error) {
                 <p class="deployment-page__error" role="alert">{{ section.error }}</p>
               } @else if (section.rows.length) {
@@ -125,9 +125,6 @@
                 Deploy New Network Slice
               }
             </h3>
-            @if (hasSelectedDeploymentOption()) {
-              <p>{{ selectedOption.description }}</p>
-            }
           </div>
 
           <div class="deployment-page__modal-actions">
@@ -188,7 +185,8 @@
                   [attr.aria-disabled]="!isWizardStepAccessible(step)"
                   (click)="selectWizardStep(step)"
                 >
-                  {{ getWizardStepLabel(step) }}
+                  <span class="deployment-page__step-marker" aria-hidden="true"></span>
+                  <span class="deployment-page__step-label">{{ getWizardStepLabel(step) }}</span>
                 </button>
               }
             </section>
@@ -196,16 +194,20 @@
 
           <section class="deployment-page__panel deployment-page__panel--modal">
             @if (getCurrentRequirement(); as currentRequirement) {
-              <div class="deployment-page__panel-header">
+              <!-- <div class="deployment-page__panel-header">
                 <p class="deployment-page__kicker">Step {{ currentStep }}</p>
                 <h3>{{ currentRequirement.label }}</h3>
                 <p>{{ currentRequirement.guidance }}</p>
-              </div>
+              </div> -->
 
-              <article class="deployment-page__requirement-card deployment-page__requirement-card--expanded">
+              <article
+                class="deployment-page__requirement-card deployment-page__requirement-card--expanded"
+              >
                 <div class="deployment-page__requirement-heading">
                   <div class="deployment-page__requirement-meta">
-                    <span class="deployment-page__requirement-type">{{ currentRequirement.type }}</span>
+                    <span class="deployment-page__requirement-type">{{
+                      currentRequirement.type
+                    }}</span>
                     <span
                       class="deployment-page__requirement-status"
                       [class.deployment-page__requirement-status--complete]="
@@ -230,7 +232,9 @@
                           {{ currentContextTag }}
                         </button>
                       } @else {
-                        <span class="deployment-page__requirement-context-tag">{{ currentContextTag }}</span>
+                        <span class="deployment-page__requirement-context-tag">{{
+                          currentContextTag
+                        }}</span>
                       }
                     }
                   </div>
@@ -242,7 +246,9 @@
                     role="alertdialog"
                     aria-modal="false"
                   >
-                    <p>Deactivate this active registration? Its values will stay saved as a draft.</p>
+                    <p>
+                      Deactivate this active registration? Its values will stay saved as a draft.
+                    </p>
                     <div class="deployment-page__deactivation-actions">
                       <button
                         class="deployment-page__secondary"
@@ -262,7 +268,9 @@
                   </div>
                 }
 
-                <div class="deployment-page__requirement-body deployment-page__requirement-body--visible">
+                <div
+                  class="deployment-page__requirement-body deployment-page__requirement-body--visible"
+                >
                   <div class="deployment-page__embedded-form">
                     @switch (currentRequirement.id) {
                       @case ('nfvo') {
@@ -323,10 +331,7 @@
               <div class="deployment-page__panel-header">
                 <p class="deployment-page__kicker">Step {{ currentStep }}</p>
                 <h3>Deploy Configuration</h3>
-                <p>
-                  Complete the slice registration form here and trigger the deployment from this
-                  same step.
-                </p>
+                <p>Complete the slice form and deploy.</p>
                 @if (getFinalConfigurationNotice(); as configurationNotice) {
                   <div class="deployment-page__notice" role="status">
                     {{ configurationNotice }}
@@ -347,7 +352,9 @@
                     role="alertdialog"
                     aria-modal="false"
                   >
-                    <p>Deactivate this active configuration? Its values will stay saved as a draft.</p>
+                    <p>
+                      Deactivate this active configuration? Its values will stay saved as a draft.
+                    </p>
                     <div class="deployment-page__deactivation-actions">
                       <button
                         class="deployment-page__secondary"
@@ -369,7 +376,9 @@
               </div>
 
               <div class="deployment-page__embedded-form">
-                <app-slice-registration-form (created)="handleSliceCreated()"></app-slice-registration-form>
+                <app-slice-registration-form
+                  (created)="handleSliceCreated()"
+                ></app-slice-registration-form>
               </div>
 
               @if (!isSliceConfigurationComplete()) {
@@ -415,7 +424,7 @@
               <div class="deployment-page__panel-header">
                 <p class="deployment-page__kicker">Step {{ currentStep }}</p>
                 <h3>Deploy Configuration</h3>
-                <p>Complete the K8s deployment form here and trigger the deployment from this same step.</p>
+                <p>Complete the K8s form and deploy.</p>
                 @if (getFinalConfigurationNotice(); as configurationNotice) {
                   <div class="deployment-page__notice" role="status">
                     {{ configurationNotice }}
@@ -436,7 +445,9 @@
                     role="alertdialog"
                     aria-modal="false"
                   >
-                    <p>Deactivate this active configuration? Its values will stay saved as a draft.</p>
+                    <p>
+                      Deactivate this active configuration? Its values will stay saved as a draft.
+                    </p>
                     <div class="deployment-page__deactivation-actions">
                       <button
                         class="deployment-page__secondary"
@@ -458,7 +469,9 @@
               </div>
 
               <div class="deployment-page__embedded-form">
-                <app-k8s-deploy-service-form (deployed)="deploy($event)"></app-k8s-deploy-service-form>
+                <app-k8s-deploy-service-form
+                  (deployed)="deploy($event)"
+                ></app-k8s-deploy-service-form>
               </div>
 
               <div class="deployment-page__actions">
@@ -482,10 +495,7 @@
               <div class="deployment-page__panel-header">
                 <p class="deployment-page__kicker">Step {{ currentStep }}</p>
                 <h3>Deploy Configuration</h3>
-                <p>
-                  Complete the Proxmox VM deployment form here and trigger the deployment from this
-                  same step.
-                </p>
+                <p>Complete the Proxmox form and deploy.</p>
                 @if (getFinalConfigurationNotice(); as configurationNotice) {
                   <div class="deployment-page__notice" role="status">
                     {{ configurationNotice }}
@@ -506,7 +516,9 @@
                     role="alertdialog"
                     aria-modal="false"
                   >
-                    <p>Deactivate this active configuration? Its values will stay saved as a draft.</p>
+                    <p>
+                      Deactivate this active configuration? Its values will stay saved as a draft.
+                    </p>
                     <div class="deployment-page__deactivation-actions">
                       <button
                         class="deployment-page__secondary"
@@ -528,7 +540,9 @@
               </div>
 
               <div class="deployment-page__embedded-form">
-                <app-proxmox-vm-creation-form (deployed)="deploy($event)"></app-proxmox-vm-creation-form>
+                <app-proxmox-vm-creation-form
+                  (deployed)="deploy($event)"
+                ></app-proxmox-vm-creation-form>
               </div>
 
               <div class="deployment-page__actions">

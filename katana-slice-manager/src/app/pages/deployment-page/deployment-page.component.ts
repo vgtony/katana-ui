@@ -110,37 +110,37 @@ export class DeploymentPageComponent implements OnInit {
       id: 'slice',
       label: 'Slice / OpenStack',
       shortLabel: 'Slice',
-      description: 'Prepare an OpenStack-backed slice deployment using the core slice registration flow.',
+      description: 'OpenStack-backed slice deployment.',
       requirementsTitle: 'Slice registrations',
-      requirementsDescription: 'Complete the required registrations before moving into the final slice configuration step.',
+      requirementsDescription: 'Finish the registrations, then deploy.',
       requirements: [
         {
           id: 'nfvo',
           label: 'NFVO',
           route: '/deployment/slice',
           type: 'registration',
-          guidance: 'Register the orchestrator endpoint, credentials, and onboarding details that the slice deployment depends on.'
+          guidance: 'Register the orchestrator.'
         },
         {
           id: 'location',
           label: 'Location',
           route: '/deployment/slice',
           type: 'registration',
-          guidance: 'Store the location context used to place and validate the slice deployment against the expected site.'
+          guidance: 'Set the target location.'
         },
         {
           id: 'function',
           label: 'Function',
           route: '/deployment/slice',
           type: 'registration',
-          guidance: 'Keep the function package and its metadata ready here so the deployment request can reference the right service building blocks.'
+          guidance: 'Register the function package.'
         },
         {
           id: 'vim',
           label: 'VIM',
           route: '/deployment/slice',
           type: 'registration',
-          guidance: 'Capture the OpenStack or virtualized infrastructure target where the slice resources will ultimately be placed.'
+          guidance: 'Register the infrastructure target.'
         }
       ],
       finalConfigurationLabel: 'Slice configuration',
@@ -150,23 +150,23 @@ export class DeploymentPageComponent implements OnInit {
       id: 'k8s',
       label: 'K8s Deploy',
       shortLabel: 'K8s',
-      description: 'Guide a Kubernetes deployment by preparing credentials, cluster access, and deployment settings.',
+      description: 'Kubernetes deployment flow.',
       requirementsTitle: 'K8s registrations',
-      requirementsDescription: 'Complete the required registrations before moving into the K8s deployment configuration step.',
+      requirementsDescription: 'Finish the registrations, then deploy.',
       requirements: [
         {
           id: 'k8s-credentials',
           label: 'K8s Credentials',
           route: '/deployment/k8s',
           type: 'registration',
-          guidance: 'Keep the cluster access credentials documented here so the future deploy request can reuse them directly.'
+          guidance: 'Upload cluster access credentials.'
         },
         {
           id: 'k8s-cluster',
           label: 'K8s Cluster',
           route: '/deployment/k8s',
           type: 'registration',
-          guidance: 'Register the Kubernetes cluster target and its connectivity details for the deployment flow.'
+          guidance: 'Register the cluster target.'
         }
       ],
       finalConfigurationLabel: 'K8s deployment configuration',
@@ -176,16 +176,16 @@ export class DeploymentPageComponent implements OnInit {
       id: 'proxmox',
       label: 'Proxmox VM',
       shortLabel: 'Proxmox',
-      description: 'Prepare a Proxmox-based virtual machine deployment with cluster and VM setup details.',
+      description: 'Proxmox virtual machine deployment.',
       requirementsTitle: 'Proxmox registrations',
-      requirementsDescription: 'Complete the required Proxmox registration before moving into the VM deployment configuration step.',
+      requirementsDescription: 'Finish the registration, then deploy.',
       requirements: [
         {
           id: 'proxmox-cluster',
           label: 'Proxmox Cluster',
           route: '/deployment/proxmox',
           type: 'registration',
-          guidance: 'Register the Proxmox cluster and connectivity details that the VM deployment will target.'
+          guidance: 'Register the cluster target.'
         }
       ],
       finalConfigurationLabel: 'Proxmox VM configuration',

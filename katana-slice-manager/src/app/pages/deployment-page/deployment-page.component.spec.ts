@@ -99,7 +99,7 @@ describe('DeploymentPageComponent', () => {
     });
 
     it('renders current resources and opens the deployment modal chooser', () => {
-      expect(getTextContent()).toContain('Live slices and cluster targets');
+      expect(getTextContent()).toContain('Live targets');
       expect(getTextContent()).toContain('slice-1');
       expect(getTextContent()).toContain('k8s-lab');
       expect(getTextContent()).toContain('pve-cluster');
@@ -148,7 +148,7 @@ describe('DeploymentPageComponent', () => {
       expect(wizardLabels[2]).toContain('Function');
       expect(wizardLabels[3]).toContain('VIM');
       expect(wizardLabels[4]).toContain('Deploy');
-      expect(getTextContent()).toContain('Register the orchestrator endpoint');
+      expect(getTextContent()).toContain('Register the orchestrator');
     });
 
     it('advances one form at a time and unlocks deploy after all registrations are active', () => {
@@ -156,7 +156,7 @@ describe('DeploymentPageComponent', () => {
       fixture.detectChanges();
 
       expect(component['currentStep']).toBe(2);
-      expect(getTextContent()).toContain('Store the location context');
+      expect(getTextContent()).toContain('Set the target location');
 
       component['markRequirementDone']('location');
       fixture.detectChanges();
@@ -167,7 +167,7 @@ describe('DeploymentPageComponent', () => {
 
       expect(component['canAccessStepTwo']()).toBe(true);
       expect(component['currentStep']).toBe(5);
-      expect(getTextContent()).toContain('Complete the slice registration form here');
+      expect(getTextContent()).toContain('Complete the slice form and deploy');
       expect(getButtonByText('Deploy Slice').disabled).toBe(true);
     });
   });
@@ -179,13 +179,13 @@ describe('DeploymentPageComponent', () => {
 
     it('uses a sequential two-registration flow before deploy', () => {
       expect(getWizardButtons()).toHaveLength(3);
-      expect(getTextContent()).toContain('Keep the cluster access credentials documented here');
+      expect(getTextContent()).toContain('Upload cluster access credentials');
 
       component['markRequirementDone']('k8s-credentials');
       fixture.detectChanges();
 
       expect(component['currentStep']).toBe(2);
-      expect(getTextContent()).toContain('Register the Kubernetes cluster target');
+      expect(getTextContent()).toContain('Register the cluster target');
 
       component['markRequirementDone']('k8s-cluster');
       fixture.detectChanges();
