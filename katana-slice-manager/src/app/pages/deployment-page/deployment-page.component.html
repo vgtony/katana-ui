@@ -111,6 +111,7 @@
     >
       <section
         class="deployment-page__modal"
+        [class.deployment-page__modal--chooser]="!hasSelectedDeploymentOption()"
         role="dialog"
         aria-modal="true"
         aria-labelledby="new-deployment-title"
@@ -149,11 +150,7 @@
         </header>
 
         @if (!hasSelectedDeploymentOption()) {
-          <div class="deployment-page__modal-section">
-            <div class="deployment-page__modal-section-header">
-              <h4>Deployment Type</h4>
-            </div>
-
+          <div class="deployment-page__modal-section deployment-page__modal-section--chooser">
             <div class="deployment-page__option-grid">
               @for (option of deploymentOptions; track option.id) {
                 <button

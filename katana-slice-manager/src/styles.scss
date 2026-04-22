@@ -297,6 +297,42 @@ textarea {
   background: color-mix(in srgb, var(--app-danger) 14%, var(--app-bg));
 }
 
+.deployment-page__modal--chooser {
+  border: 1px solid var(--app-border-muted);
+  background: var(--app-surface-elevated);
+}
+
+.deployment-page__modal--chooser .deployment-page__modal-header {
+  border-bottom-color: var(--app-border-muted);
+}
+
+.deployment-page__modal-section--chooser {
+  padding-top: 24px;
+  padding-bottom: 28px;
+}
+
+.deployment-page__option-card {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 72px;
+  padding: 0 20px;
+  text-align: center;
+  background: color-mix(in srgb, var(--app-surface) 92%, transparent);
+  box-shadow: none;
+}
+
+.deployment-page__option-card:hover {
+  background: color-mix(in srgb, var(--app-surface-2) 92%, var(--app-accent-soft-2) 8%);
+}
+
+@media (max-width: 760px) {
+  .deployment-page__option-card {
+    width: 100%;
+    min-height: 64px;
+  }
+}
+
 *,
 *::before,
 *::after {
