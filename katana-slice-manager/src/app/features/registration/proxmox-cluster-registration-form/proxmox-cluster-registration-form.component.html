@@ -21,7 +21,9 @@
       {{
         submitting
           ? 'Registering cluster...'
-          : submitSucceeded
+          : isUsingLoadedActiveCluster()
+            ? 'Use Active Proxmox Cluster'
+            : submitSucceeded
             ? 'Registered'
             : 'Register Proxmox Cluster'
       }}

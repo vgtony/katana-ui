@@ -1,4 +1,4 @@
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { combineLatest, Observable } from 'rxjs';
@@ -79,6 +79,7 @@ export class DeploymentPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly deploymentHistoryService = inject(DeploymentHistoryService);
   private readonly deploymentDraftService = inject(DeploymentDraftService);
   private readonly sliceApiService = inject(SliceApiService);
@@ -193,7 +194,7 @@ export class DeploymentPageComponent implements OnInit {
     }
   ];
 
-  protected readonly inventorySections: DeploymentInventorySection[] = [
+  protected inventorySections: DeploymentInventorySection[] = [
     {
       key: 'slice',
       title: 'Slices',
@@ -501,8 +502,22 @@ export class DeploymentPageComponent implements OnInit {
     this.moveToNextWizardStepIfAvailable(requirementId);
   }
 
+  protected markEverythingDone(): void {
+    this.completedRequirementIds = new Set(
+      this.selectedOption.requirements.map((requirement) => requirement.id)
+    );
+    this.failedRequirementIds = new Set<string>();
+    this.expandedRequirementIds = new Set<string>();
+    this.pendingRequirementDeactivationId = null;
+    this.pendingConfigurationDeactivation = false;
+    this.deploymentStarted = false;
+    this.sliceConfigurationComplete = this.selectedOption.id === 'slice';
+    this.refreshRequirementContextTags();
+    this.currentStep = this.getDeployStepNumber();
+  }
+
   protected isRequirementComplete(requirementId: string): boolean {
-    return this.isRequirementActive(requirementId);
+    return this.completedRequirementIds.has(requirementId) || this.isRequirementActive(requirementId);
   }
 
   protected markRequirementFailed(requirementId: string): void {
@@ -709,6 +724,11 @@ export class DeploymentPageComponent implements OnInit {
 
     if (this.selectedOption.id === 'slice' && this.getFinalConfigurationState() === 'active') {
       this.sliceConfigurationComplete = true;
+    }
+
+    if (this.currentStep === 1 && this.canAccessStepTwo()) {
+      this.currentStep = this.getDeployStepNumber();
+      return;
     }
 
     if (!this.isWizardStepAccessible(this.currentStep)) {
@@ -982,20 +1002,40 @@ export class DeploymentPageComponent implements OnInit {
     config: DeploymentInventoryTableConfig
   ): void {
     const section = this.getInventorySection(key);
-    section.loading = true;
-    section.error = null;
+    this.patchInventorySection(key, {
+      ...section,
+      loading: true,
+      error: null
+    });
 
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (items) => {
-        section.rows = this.mapInventoryRows(items, config);
-        section.loading = false;
+        this.patchInventorySection(key, {
+          ...this.getInventorySection(key),
+          rows: this.mapInventoryRows(items, config),
+          loading: false,
+          error: null
+        });
       },
       error: (error: unknown) => {
-        section.rows = [];
-        section.loading = false;
-        section.error = getApiErrorMessage(error, `Unable to load ${section.title.toLowerCase()}.`);
+        this.patchInventorySection(key, {
+          ...this.getInventorySection(key),
+          rows: [],
+          loading: false,
+          error: getApiErrorMessage(error, `Unable to load ${section.title.toLowerCase()}.`)
+        });
       }
     });
+  }
+
+  private patchInventorySection(
+    key: DeploymentInventoryKey,
+    patch: DeploymentInventorySection
+  ): void {
+    this.inventorySections = this.inventorySections.map((section) =>
+      section.key === key ? patch : section
+    );
+    this.changeDetectorRef.markForCheck();
   }
 
   private getInventorySection(key: DeploymentInventoryKey): DeploymentInventorySection {

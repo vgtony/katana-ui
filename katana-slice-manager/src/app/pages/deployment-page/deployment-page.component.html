@@ -133,6 +133,13 @@
               <button
                 class="deployment-page__link deployment-page__link--subtle"
                 type="button"
+                (click)="markEverythingDone()"
+              >
+                Mark Everything as Done
+              </button>
+              <button
+                class="deployment-page__link deployment-page__link--subtle"
+                type="button"
                 (click)="returnToDeploymentChooser()"
               >
                 Change Type

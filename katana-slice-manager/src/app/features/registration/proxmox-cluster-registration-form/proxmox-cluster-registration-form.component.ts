@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectorRef, Component, NgZone, inject, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -70,6 +71,20 @@ export class ProxmoxClusterRegistrationFormComponent {
       return;
     }
 
+    if (this.isUsingLoadedActiveCluster()) {
+      this.deploymentDraftService.saveFormValue(
+        'proxmox',
+        'proxmox-cluster',
+        this.form.getRawValue() as ProxmoxClusterRegistrationFormModel,
+        'active'
+      );
+      this.submitSucceeded = true;
+      this.submitMessage = 'Using the existing active Proxmox cluster registration.';
+      this.completed.emit();
+      this.changeDetectorRef.detectChanges();
+      return;
+    }
+
     this.submitting = true;
 
     this.proxmoxApi
@@ -99,6 +114,22 @@ export class ProxmoxClusterRegistrationFormComponent {
         },
         error: (error: unknown) => {
           this.ngZone.run(() => {
+            if (error instanceof HttpErrorResponse && error.status === 409) {
+              this.deploymentDraftService.saveFormValue(
+                'proxmox',
+                'proxmox-cluster',
+                this.form.getRawValue() as ProxmoxClusterRegistrationFormModel,
+                'active'
+              );
+              this.submitSucceeded = true;
+              this.submitError = '';
+              this.submitMessage =
+                'A Proxmox cluster with these details is already active. Using the existing registration.';
+              this.completed.emit();
+              this.changeDetectorRef.detectChanges();
+              return;
+            }
+
             this.submitSucceeded = false;
             this.submitError = getApiErrorMessage(error, 'Unable to register Proxmox cluster.');
             this.failed.emit();
@@ -106,5 +137,12 @@ export class ProxmoxClusterRegistrationFormComponent {
           });
         }
       });
+  }
+
+  protected isUsingLoadedActiveCluster(): boolean {
+    return (
+      this.savedState === 'active' &&
+      JSON.stringify(this.form.getRawValue()) === JSON.stringify(this.model)
+    );
   }
 }

@@ -4,6 +4,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRoute, convertToParamMap, ParamMap, provideRouter, Router } from '@angular/router';
 import { By } from '@angular/platform-browser';
 import { BehaviorSubject, of } from 'rxjs';
+import { vi } from 'vitest';
 import { K8sDeployServiceFormComponent } from '../../features/registration/k8s-deploy-service-form/k8s-deploy-service-form.component';
 import { ProxmoxVmCreationFormComponent } from '../../features/registration/proxmox-vm-creation-form/proxmox-vm-creation-form.component';
 import {
@@ -141,7 +142,7 @@ describe('DeploymentPageComponent', () => {
     });
 
     it('returns to the deployment chooser when change type is clicked', () => {
-      const navigateSpy = spyOn(router, 'navigate').and.resolveTo(true);
+      const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
       getButtonByText('Change Type').click();
       fixture.detectChanges();

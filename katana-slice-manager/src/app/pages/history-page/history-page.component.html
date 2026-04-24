@@ -16,32 +16,18 @@
       <div class="history-page__grid">
         @for (pack of packs; track pack.id) {
           <article class="history-page__card">
-            <div class="history-page__card-top">
-              <div>
-                <p class="history-page__label">Pack</p>
-                <h3>{{ pack.name }}</h3>
-              </div>
+            <div class="history-page__card-head">
               <span
                 class="history-page__status"
                 [class.history-page__status--failed]="pack.status === 'failed'"
               >
                 {{ getPackStatusLabel(pack) }}
               </span>
+              <p class="history-page__date">{{ pack.completedAt | date: 'MMM d, y' }}</p>
             </div>
 
-            <div class="history-page__meta">
-              <div>
-                <p class="history-page__label">Deployment</p>
-                <strong>{{ pack.optionLabel }}</strong>
-              </div>
-              <div>
-                <p class="history-page__label">Completed</p>
-                <strong>{{ pack.completedAt | date: 'medium' }}</strong>
-              </div>
-              <div>
-                <p class="history-page__label">Final step</p>
-                <strong>{{ pack.finalConfigurationLabel }}</strong>
-              </div>
+            <div class="history-page__card-copy">
+              <p class="history-page__deployment">{{ pack.optionLabel }}</p>
             </div>
 
             <div class="history-page__requirements">
@@ -54,7 +40,7 @@
             </div>
 
             <button class="history-page__link" type="button" (click)="openPack(pack)">
-              Open In Deployment
+              Open in Deployment
             </button>
           </article>
         }
