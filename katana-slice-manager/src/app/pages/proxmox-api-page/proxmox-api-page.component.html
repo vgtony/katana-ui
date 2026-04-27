@@ -1,0 +1,133 @@
+<section class="proxmox-api-page">
+  <header class="proxmox-api-page__hero">
+    <p class="proxmox-api-page__eyebrow">Standalone API</p>
+    <h2>Proxmox Node Discovery</h2>
+    <p class="proxmox-api-page__summary">
+      Enter Proxmox authentication details, connect through the standalone API, and generate one
+      form per existing node with the remaining CPU, RAM, and disk values returned by the backend.
+    </p>
+  </header>
+
+  <section class="proxmox-api-page__layout">
+    <article class="proxmox-api-page__panel">
+      <p class="proxmox-api-page__label">Authentication</p>
+      <h3>Connect to the standalone Proxmox API</h3>
+      <p class="proxmox-api-page__panel-copy">
+        The form submits to <code>{{ baseUrl }}</code>. Use either username and password or an API
+        token, then load the current Proxmox nodes from the backend.
+      </p>
+
+      <form class="proxmox-api-page__form" [formGroup]="form" (ngSubmit)="submit()">
+        <label>
+          <span>Name</span>
+          <input type="text" formControlName="name" placeholder="my-proxmox" />
+        </label>
+
+        <label>
+          <span>URL</span>
+          <input type="text" formControlName="url" placeholder="https://10.160.100.11:8006" />
+        </label>
+
+        <label>
+          <span>Authentication method</span>
+          <select formControlName="authMethod">
+            <option value="password">Username and password</option>
+            <option value="token">API token</option>
+          </select>
+        </label>
+
+        <label class="proxmox-api-page__checkbox">
+          <input type="checkbox" formControlName="verifySsl" />
+          <span>Verify SSL certificate</span>
+        </label>
+
+        @if (authMethod === 'password') {
+          <label>
+            <span>Username</span>
+            <input type="text" formControlName="username" placeholder="root@pam" />
+          </label>
+
+          <label>
+            <span>Password</span>
+            <input type="password" formControlName="password" placeholder="Enter Proxmox password" />
+          </label>
+        } @else {
+          <label>
+            <span>API token id</span>
+            <input type="text" formControlName="apiTokenId" placeholder="root@pam!mytoken" />
+          </label>
+
+          <label>
+            <span>API token secret</span>
+            <input
+              type="password"
+              formControlName="apiTokenSecret"
+              placeholder="Enter API token secret"
+            />
+          </label>
+        }
+
+        <button type="submit" [disabled]="submitting">
+          {{ submitting ? 'Loading Proxmox nodes...' : 'Load nodes and remaining capacity' }}
+        </button>
+
+        @if (submitMessage) {
+          <p class="proxmox-api-page__status proxmox-api-page__status--success" role="status">
+            {{ submitMessage }}
+          </p>
+        }
+
+        @if (submitError) {
+          <p class="proxmox-api-page__status proxmox-api-page__status--error" role="alert">
+            {{ submitError }}
+          </p>
+        }
+      </form>
+    </article>
+
+    <article class="proxmox-api-page__panel">
+      <p class="proxmox-api-page__label">Generated forms</p>
+      <h3>Existing nodes and remaining capacity</h3>
+      <p class="proxmox-api-page__panel-copy">
+        After a successful connection, this section renders one Proxmox form per node using the
+        data returned by <code>/api/proxmox/connect</code> and <code>/api/proxmox/overview</code>.
+      </p>
+
+      @if (hasLoadedNodes) {
+        <div class="proxmox-api-page__node-grid">
+          @for (nodeForm of nodeForms.controls; track trackNodeForm($index)) {
+            <form class="proxmox-api-page__node-form" [formGroup]="nodeForm">
+              <label>
+                <span>Node</span>
+                <input type="text" formControlName="node" readonly />
+              </label>
+
+              <label>
+                <span>CPU remaining</span>
+                <input type="text" formControlName="cpuRemaining" readonly />
+              </label>
+
+              <label>
+                <span>RAM remaining</span>
+                <input type="text" formControlName="ramRemaining" readonly />
+              </label>
+
+              <label>
+                <span>Disk remaining</span>
+                <input type="text" formControlName="diskRemaining" readonly />
+              </label>
+            </form>
+          }
+        </div>
+      } @else {
+        <div class="proxmox-api-page__empty">
+          <p class="proxmox-api-page__empty-count">{{ lastLoadedNodeCount }} loaded nodes</p>
+          <p>
+            Submit valid Proxmox credentials to generate the node forms. Each node will appear with
+            its remaining CPU, RAM, and disk values.
+          </p>
+        </div>
+      }
+    </article>
+  </section>
+</section>

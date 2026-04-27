@@ -1,0 +1,177 @@
+.proxmox-api-page {
+  display: grid;
+  gap: 18px;
+  color: var(--app-text);
+}
+
+.proxmox-api-page__hero,
+.proxmox-api-page__panel {
+  padding: 28px;
+  border-radius: 24px;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-strong);
+}
+
+.proxmox-api-page__eyebrow,
+.proxmox-api-page__label {
+  margin: 0;
+  color: var(--app-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.72rem;
+}
+
+.proxmox-api-page__hero h2,
+.proxmox-api-page__hero p,
+.proxmox-api-page__panel h3,
+.proxmox-api-page__panel h4,
+.proxmox-api-page__panel p,
+.proxmox-api-page__panel ul,
+.proxmox-api-page__panel ol,
+.proxmox-api-page__panel dl {
+  margin: 0;
+}
+
+.proxmox-api-page__hero h2 {
+  margin-top: 10px;
+  font-size: 2.25rem;
+}
+
+.proxmox-api-page__summary {
+  margin-top: 14px;
+  max-width: 72ch;
+  color: var(--app-text-muted);
+  line-height: 1.7;
+}
+
+.proxmox-api-page__layout,
+.proxmox-api-page__form,
+.proxmox-api-page__node-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.proxmox-api-page__layout {
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.85fr);
+}
+
+.proxmox-api-page__panel-copy,
+.proxmox-api-page__empty p {
+  color: var(--app-text-muted);
+  line-height: 1.7;
+}
+
+.proxmox-api-page__form {
+  margin-top: 18px;
+}
+
+.proxmox-api-page__form label,
+.proxmox-api-page__node-form label,
+.proxmox-api-page__empty {
+  display: grid;
+  gap: 8px;
+}
+
+.proxmox-api-page__form span,
+.proxmox-api-page__node-form span {
+  color: var(--app-text-muted);
+  font-size: 0.92rem;
+}
+
+.proxmox-api-page__form input,
+.proxmox-api-page__form select,
+.proxmox-api-page__node-form input {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--app-border-strong);
+  background: var(--app-input-bg-strong);
+  color: var(--app-text);
+}
+
+.proxmox-api-page__form button {
+  padding: 0.95rem 1.2rem;
+  border: 0;
+  border-radius: 14px;
+  background: var(--app-primary-gradient);
+  color: var(--app-accent-contrast);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.proxmox-api-page__form button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.proxmox-api-page__form button:disabled {
+  opacity: 0.72;
+  cursor: progress;
+}
+
+.proxmox-api-page__checkbox {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.proxmox-api-page__checkbox input {
+  width: auto;
+  margin: 0;
+}
+
+.proxmox-api-page__node-grid {
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  margin-top: 18px;
+}
+
+.proxmox-api-page__node-form,
+.proxmox-api-page__empty {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.proxmox-api-page__status {
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid transparent;
+}
+
+.proxmox-api-page__status--success {
+  background: var(--app-accent-soft);
+  border-color: var(--app-border-accent);
+  color: var(--app-text);
+}
+
+.proxmox-api-page__status--error {
+  background: var(--app-danger-soft);
+  border-color: rgba(255, 125, 125, 0.2);
+  color: var(--app-danger-strong);
+}
+
+.proxmox-api-page__empty {
+  margin-top: 18px;
+}
+
+.proxmox-api-page__empty-count {
+  color: var(--app-accent);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+@media (max-width: 980px) {
+  .proxmox-api-page__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .proxmox-api-page__hero,
+  .proxmox-api-page__panel {
+    padding: 22px;
+  }
+}

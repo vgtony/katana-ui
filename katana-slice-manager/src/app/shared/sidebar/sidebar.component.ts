@@ -13,6 +13,7 @@ export class SidebarComponent {
     { label: 'Overview', route: '/' },
     { label: 'Dashboard', route: '/dashboard' },
     { label: 'History', route: '/history' },
+    { label: 'Proxmox API', route: '/proxmox-api' },
     { label: 'Deployments', route: '/deployment' }
   ];
 }

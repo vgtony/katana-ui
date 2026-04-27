@@ -2,8 +2,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { DashboardPageComponent } from './dashboard-page/dashboard-page.component';
 import { HistoryPageComponent } from './history-page/history-page.component';
+import { ProxmoxApiPageComponent } from './proxmox-api-page/proxmox-api-page.component';
 import { DashboardDataService } from '../shared/services/dashboard-data.service';
 import { DeploymentHistoryService } from '../shared/services/deployment-history.service';
+import { ProxmoxStandaloneApiService } from '../shared/services/api';
 
 describe('Workspace pages', () => {
   describe('DashboardPageComponent', () => {
@@ -96,10 +98,73 @@ describe('Workspace pages', () => {
 
     it('renders completed and failed deployment packs', () => {
       expect(fixture.nativeElement.textContent).toContain('Deployment Packs');
-      expect(fixture.nativeElement.textContent).toContain('Slice / OpenStack Pack');
-      expect(fixture.nativeElement.textContent).toContain('Proxmox VM Pack');
+      expect(fixture.nativeElement.textContent).toContain('Slice / OpenStack');
+      expect(fixture.nativeElement.textContent).toContain('Proxmox VM');
       expect(fixture.nativeElement.textContent).toContain('Internal Server Error');
       expect(fixture.nativeElement.textContent).toContain('NFVO');
+    });
+  });
+
+  describe('ProxmoxApiPageComponent', () => {
+    let fixture: ComponentFixture<ProxmoxApiPageComponent>;
+    const proxmoxStandaloneApiService = {
+      connect: () => of({ nodes: ['cls01srv06', 'cls01srv07'] }),
+      getOverview: () =>
+        of({
+          remaining_resources: {
+            cls01srv06: { cpu_remaining: 16, ram_remaining: 64, disk_remaining: 300 },
+            cls01srv07: { cpu_remaining: 24, ram_remaining: 96, disk_remaining: 520 }
+          }
+        })
+    };
+
+    beforeEach(async () => {
+      await TestBed.configureTestingModule({
+        imports: [ProxmoxApiPageComponent],
+        providers: [
+          {
+            provide: ProxmoxStandaloneApiService,
+            useValue: proxmoxStandaloneApiService
+          }
+        ]
+      }).compileComponents();
+
+      fixture = TestBed.createComponent(ProxmoxApiPageComponent);
+      fixture.detectChanges();
+    });
+
+    it('loads node forms with remaining capacity after authentication', () => {
+      const component = fixture.componentInstance as unknown as {
+        form: {
+          patchValue: (value: Record<string, string | boolean>) => void;
+        };
+        submit: () => void;
+      };
+
+      component.form.patchValue({
+        name: 'my-proxmox',
+        url: 'https://10.160.100.11:8006',
+        authMethod: 'password',
+        username: 'root@pam',
+        password: 'secret',
+        verifySsl: false
+      });
+
+      component.submit();
+      fixture.detectChanges();
+
+      const element = fixture.nativeElement as HTMLElement;
+      const text = element.textContent ?? '';
+      const inputValues = Array.from(element.querySelectorAll('input'))
+        .map((input) => (input as HTMLInputElement).value)
+        .join(' ');
+
+      expect(text).toContain('Proxmox Node Discovery');
+      expect(text).toContain('Loaded 2 Proxmox node forms from the standalone API.');
+      expect(inputValues).toContain('cls01srv06');
+      expect(inputValues).toContain('cls01srv07');
+      expect(inputValues).toContain('16');
+      expect(inputValues).toContain('520');
     });
   });
 });

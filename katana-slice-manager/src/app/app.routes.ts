@@ -4,6 +4,7 @@ import { HomePageComponent } from './pages/home-page/home-page.component';
 import { DashboardPageComponent } from './pages/dashboard-page/dashboard-page.component';
 import { DeploymentPageComponent } from './pages/deployment-page/deployment-page.component';
 import { HistoryPageComponent } from './pages/history-page/history-page.component';
+import { ProxmoxApiPageComponent } from './pages/proxmox-api-page/proxmox-api-page.component';
 
 export const routes: Routes = [
   {
@@ -13,6 +14,7 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', component: HomePageComponent },
       { path: 'dashboard', component: DashboardPageComponent },
       { path: 'history', component: HistoryPageComponent },
+      { path: 'proxmox-api', component: ProxmoxApiPageComponent },
       { path: 'deployment', component: DeploymentPageComponent },
       { path: 'deployment/:option', component: DeploymentPageComponent }
     ]
