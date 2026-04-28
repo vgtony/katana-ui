@@ -15,9 +15,11 @@ describe('DeploymentPageComponent active registration', () => {
   let fixture: ComponentFixture<DeploymentPageComponent>;
   let component: DeploymentPageComponent;
   let draftService: DeploymentDraftService;
+  let paramMap$: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
 
   beforeEach(async () => {
     localStorage.clear();
+    paramMap$ = new BehaviorSubject(convertToParamMap({ option: 'proxmox' }));
 
     await TestBed.configureTestingModule({
       imports: [DeploymentPageComponent],
@@ -29,7 +31,9 @@ describe('DeploymentPageComponent active registration', () => {
         {
           provide: ActivatedRoute,
           useValue: {
-            paramMap: new BehaviorSubject(convertToParamMap({ option: 'proxmox' })).asObservable(),
+            get paramMap() {
+              return paramMap$.asObservable();
+            },
             queryParamMap: new BehaviorSubject(convertToParamMap({})).asObservable()
           }
         },
@@ -55,6 +59,15 @@ describe('DeploymentPageComponent active registration', () => {
     }).compileComponents();
 
     draftService = TestBed.inject(DeploymentDraftService);
+  });
+
+  function createComponent(): void {
+    fixture = TestBed.createComponent(DeploymentPageComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  }
+
+  it('unlocks the Proxmox VM deployment step when an active VM cluster registration already exists', () => {
     draftService.saveFormValue(
       'proxmox',
       'proxmox-cluster',
@@ -68,14 +81,40 @@ describe('DeploymentPageComponent active registration', () => {
       'active'
     );
 
-    fixture = TestBed.createComponent(DeploymentPageComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+    createComponent();
 
-  it('unlocks the deploy step when an active Proxmox cluster already exists', () => {
     expect(component['canAccessStepTwo']()).toBe(true);
     expect(component['currentStep']).toBe(2);
     expect(fixture.nativeElement.textContent).toContain('Deploy Configuration');
+  });
+
+  it('unlocks the standalone overview when an active standalone Proxmox registration already exists', () => {
+    draftService.saveFormValue(
+      'proxmox-standalone',
+      'proxmox-standalone',
+      {
+        name: 'lab-cluster',
+        url: 'https://proxmox.example:8006',
+        verifySsl: false,
+        authMethod: 'password',
+        username: 'root@pam',
+        password: 'secret',
+        apiTokenId: '',
+        apiTokenSecret: '',
+        connectedNodes: ['pve-01'],
+        clusters: [],
+        servers: [],
+        remainingResources: null,
+        loadedAt: '2026-04-27T08:00:00.000Z'
+      },
+      'active'
+    );
+
+    paramMap$.next(convertToParamMap({ option: 'proxmox-standalone' }));
+    createComponent();
+
+    expect(component['canAccessStepTwo']()).toBe(true);
+    expect(component['currentStep']).toBe(2);
+    expect(fixture.nativeElement.textContent).toContain('Compact Overview');
   });
 });

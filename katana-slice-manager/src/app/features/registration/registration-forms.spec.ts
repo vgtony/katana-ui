@@ -14,6 +14,7 @@ import { NfvoRegistrationFormComponent } from './nfvo-registration-form/nfvo-reg
 import { PqcSliceDeploymentFormComponent } from './pqc-slice-deployment-form/pqc-slice-deployment-form.component';
 import { ProxmoxClusterRegistrationFormComponent } from './proxmox-cluster-registration-form/proxmox-cluster-registration-form.component';
 import { ProxmoxRegistrationFormComponent } from './proxmox-registration-form/proxmox-registration-form.component';
+import { ProxmoxStandaloneRegistrationFormComponent } from './proxmox-standalone-registration-form/proxmox-standalone-registration-form.component';
 import { ProxmoxVmCreationFormComponent } from './proxmox-vm-creation-form/proxmox-vm-creation-form.component';
 import { SliceRegistrationFormComponent } from './slice-registration-form/slice-registration-form.component';
 import { VimRegistrationFormComponent } from './vim-registration-form/vim-registration-form.component';
@@ -112,6 +113,19 @@ const formDefinitions: FormDefinition[] = [
     name: 'ProxmoxClusterRegistrationFormComponent',
     requiredControls: ['name', 'url', 'username', 'password', 'node'],
     optionalControls: []
+  },
+  {
+    component: ProxmoxStandaloneRegistrationFormComponent,
+    name: 'ProxmoxStandaloneRegistrationFormComponent',
+    requiredControls: ['name', 'url'],
+    optionalControls: [
+      'verifySsl',
+      'authMethod',
+      'username',
+      'password',
+      'apiTokenId',
+      'apiTokenSecret'
+    ]
   },
   {
     component: ProxmoxRegistrationFormComponent,
@@ -316,7 +330,7 @@ describe('Registration form components', () => {
 
       fixture.detectChanges();
 
-      const submitButton = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+      const submitButton = fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement;
       submitButton.click();
       fixture.detectChanges();
 

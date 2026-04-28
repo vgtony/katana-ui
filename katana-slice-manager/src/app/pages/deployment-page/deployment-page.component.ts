@@ -10,9 +10,12 @@ import { K8sCredentialsUploadFormComponent } from '../../features/registration/k
 import { K8sClusterRegistrationFormComponent } from '../../features/registration/k8s-cluster-registration-form/k8s-cluster-registration-form.component';
 import { K8sDeployServiceFormComponent } from '../../features/registration/k8s-deploy-service-form/k8s-deploy-service-form.component';
 import { ProxmoxClusterRegistrationFormComponent } from '../../features/registration/proxmox-cluster-registration-form/proxmox-cluster-registration-form.component';
-import { ProxmoxVmCreationFormComponent } from '../../features/registration/proxmox-vm-creation-form/proxmox-vm-creation-form.component';
+import { ProxmoxStandaloneRegistrationFormComponent } from '../../features/registration/proxmox-standalone-registration-form/proxmox-standalone-registration-form.component';
+import {
+  DeploymentAttemptEvent,
+  ProxmoxVmCreationFormComponent
+} from '../../features/registration/proxmox-vm-creation-form/proxmox-vm-creation-form.component';
 import { SliceRegistrationFormComponent } from '../../features/registration/slice-registration-form/slice-registration-form.component';
-import { DeploymentAttemptEvent } from '../../features/registration/proxmox-vm-creation-form/proxmox-vm-creation-form.component';
 import {
   DeploymentFormKey,
   DeploymentFormState
@@ -69,6 +72,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     K8sClusterRegistrationFormComponent,
     K8sDeployServiceFormComponent,
     ProxmoxClusterRegistrationFormComponent,
+    ProxmoxStandaloneRegistrationFormComponent,
     ProxmoxVmCreationFormComponent,
     SliceRegistrationFormComponent
 ],
@@ -191,6 +195,26 @@ export class DeploymentPageComponent implements OnInit {
       ],
       finalConfigurationLabel: 'Proxmox VM configuration',
       deployActionLabel: 'Deploy VM'
+    },
+    {
+      id: 'proxmox-standalone',
+      label: 'Proxmox',
+      shortLabel: 'Proxmox',
+      description: 'Standalone Proxmox discovery and capacity overview.',
+      requirementsTitle: 'Proxmox standalone registration',
+      requirementsDescription:
+        'Authenticate once, then review clusters, servers, and remaining resources.',
+      requirements: [
+        {
+          id: 'proxmox-standalone',
+          label: 'Standalone API',
+          route: '/deployment/proxmox-standalone',
+          type: 'registration',
+          guidance: 'Authenticate against the standalone API and load the compact overview.'
+        }
+      ],
+      finalConfigurationLabel: 'Proxmox compact overview',
+      deployActionLabel: 'Review Proxmox'
     }
   ];
 
@@ -491,15 +515,17 @@ export class DeploymentPageComponent implements OnInit {
   }
 
   protected markRequirementDone(requirementId: string): void {
-    this.completedRequirementIds.add(requirementId);
-    this.failedRequirementIds.delete(requirementId);
-    this.refreshRequirementContextTags();
+    this.deferRequirementStateUpdate(() => {
+      this.completedRequirementIds.add(requirementId);
+      this.failedRequirementIds.delete(requirementId);
+      this.refreshRequirementContextTags();
 
-    if (requirementId === 'k8s-cluster' || requirementId === 'proxmox-cluster') {
-      this.loadCurrentDeployments();
-    }
+      if (requirementId === 'k8s-cluster' || requirementId === 'proxmox-cluster') {
+        this.loadCurrentDeployments();
+      }
 
-    this.moveToNextWizardStepIfAvailable(requirementId);
+      this.moveToNextWizardStepIfAvailable(requirementId);
+    });
   }
 
   protected markEverythingDone(): void {
@@ -521,7 +547,9 @@ export class DeploymentPageComponent implements OnInit {
   }
 
   protected markRequirementFailed(requirementId: string): void {
-    this.failedRequirementIds.add(requirementId);
+    this.deferRequirementStateUpdate(() => {
+      this.failedRequirementIds.add(requirementId);
+    });
   }
 
   protected isRequirementError(requirementId: string): boolean {
@@ -747,9 +775,16 @@ export class DeploymentPageComponent implements OnInit {
     );
   }
 
+  private deferRequirementStateUpdate(callback: () => void): void {
+    queueMicrotask(() => {
+      callback();
+      this.changeDetectorRef.markForCheck();
+    });
+  }
+
   private getRequirementDraftTarget(
     requirementId: string
-  ): { optionId: 'slice' | 'k8s' | 'proxmox'; formKey: DeploymentFormKey } | null {
+  ): { optionId: 'slice' | 'k8s' | 'proxmox' | 'proxmox-standalone'; formKey: DeploymentFormKey } | null {
     switch (requirementId) {
       case 'nfvo':
       case 'function':
@@ -768,6 +803,11 @@ export class DeploymentPageComponent implements OnInit {
       case 'proxmox-cluster':
         return {
           optionId: 'proxmox',
+          formKey: requirementId
+        };
+      case 'proxmox-standalone':
+        return {
+          optionId: 'proxmox-standalone',
           formKey: requirementId
         };
       default:
@@ -791,6 +831,11 @@ export class DeploymentPageComponent implements OnInit {
         return this.deploymentDraftService.getFormState('k8s', 'k8s-cluster');
       case 'proxmox-cluster':
         return this.deploymentDraftService.getFormState('proxmox', 'proxmox-cluster');
+      case 'proxmox-standalone':
+        return this.deploymentDraftService.getFormState(
+          'proxmox-standalone',
+          'proxmox-standalone'
+        );
       default:
         return 'missing';
     }
@@ -856,6 +901,14 @@ export class DeploymentPageComponent implements OnInit {
         const detail = this.combineContextValues(snapshot?.['name'], snapshot?.['node']);
         return this.formatContextTag(this.getRequirementState(requirementId), detail);
       }
+      case 'proxmox-standalone': {
+        const snapshot = this.deploymentDraftService.getSavedFormSnapshot<Record<string, string>>(
+          'proxmox-standalone',
+          'proxmox-standalone'
+        );
+        const detail = this.combineContextValues(snapshot?.['name'], snapshot?.['url']);
+        return this.formatContextTag(this.getRequirementState(requirementId), detail);
+      }
       default:
         return null;
     }
@@ -869,11 +922,16 @@ export class DeploymentPageComponent implements OnInit {
         return this.deploymentDraftService.getFormState('k8s', 'k8s-deploy');
       case 'proxmox':
         return this.deploymentDraftService.getFormState('proxmox', 'proxmox-vm');
+      case 'proxmox-standalone':
+        return 'missing';
     }
   }
 
   private getFinalConfigurationDraftTarget():
-    | { optionId: 'slice' | 'k8s' | 'proxmox'; formKey: 'slice' | 'k8s-deploy' | 'proxmox-vm' }
+    | {
+        optionId: 'slice' | 'k8s' | 'proxmox' | 'proxmox-standalone';
+        formKey: 'slice' | 'k8s-deploy' | 'proxmox-vm' | 'proxmox-standalone';
+      }
     | null {
     switch (this.selectedOption.id) {
       case 'slice':
@@ -882,6 +940,8 @@ export class DeploymentPageComponent implements OnInit {
         return { optionId: 'k8s', formKey: 'k8s-deploy' };
       case 'proxmox':
         return { optionId: 'proxmox', formKey: 'proxmox-vm' };
+      case 'proxmox-standalone':
+        return { optionId: 'proxmox-standalone', formKey: 'proxmox-standalone' };
       default:
         return null;
     }
@@ -919,6 +979,8 @@ export class DeploymentPageComponent implements OnInit {
         );
         return this.formatContextTag(this.getFinalConfigurationState(), detail);
       }
+      case 'proxmox-standalone':
+        return null;
     }
   }
 

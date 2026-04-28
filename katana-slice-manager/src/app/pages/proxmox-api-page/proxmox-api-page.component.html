@@ -1,10 +1,10 @@
 <section class="proxmox-api-page">
   <header class="proxmox-api-page__hero">
     <p class="proxmox-api-page__eyebrow">Standalone API</p>
-    <h2>Proxmox Node Discovery</h2>
+    <h2>Proxmox Capacity Dashboard</h2>
     <p class="proxmox-api-page__summary">
-      Enter Proxmox authentication details, connect through the standalone API, and generate one
-      form per existing node with the remaining CPU, RAM, and disk values returned by the backend.
+      Authenticate against the standalone API, then turn the returned cluster, node, and storage
+      capacity data into a browsable dashboard with lightweight inline charts.
     </p>
   </header>
 
@@ -14,7 +14,7 @@
       <h3>Connect to the standalone Proxmox API</h3>
       <p class="proxmox-api-page__panel-copy">
         The form submits to <code>{{ baseUrl }}</code>. Use either username and password or an API
-        token, then load the current Proxmox nodes from the backend.
+        token, then load cluster capacity and per-node storage information.
       </p>
 
       <form class="proxmox-api-page__form" [formGroup]="form" (ngSubmit)="submit()">
@@ -68,7 +68,7 @@
         }
 
         <button type="submit" [disabled]="submitting">
-          {{ submitting ? 'Loading Proxmox nodes...' : 'Load nodes and remaining capacity' }}
+          {{ submitting ? 'Loading capacity dashboard...' : 'Load capacity dashboard' }}
         </button>
 
         @if (submitMessage) {
@@ -86,48 +86,277 @@
     </article>
 
     <article class="proxmox-api-page__panel">
-      <p class="proxmox-api-page__label">Generated forms</p>
-      <h3>Existing nodes and remaining capacity</h3>
+      <p class="proxmox-api-page__label">Cluster overview</p>
+      <h3>Headroom at a glance</h3>
       <p class="proxmox-api-page__panel-copy">
-        After a successful connection, this section renders one Proxmox form per node using the
-        data returned by <code>/api/proxmox/connect</code> and <code>/api/proxmox/overview</code>.
+        This summary is built from the `remaining_resources.cluster` object and the shared storage
+        options returned by the standalone API.
       </p>
 
-      @if (hasLoadedNodes) {
-        <div class="proxmox-api-page__node-grid">
-          @for (nodeForm of nodeForms.controls; track trackNodeForm($index)) {
-            <form class="proxmox-api-page__node-form" [formGroup]="nodeForm">
-              <label>
-                <span>Node</span>
-                <input type="text" formControlName="node" readonly />
-              </label>
-
-              <label>
-                <span>CPU remaining</span>
-                <input type="text" formControlName="cpuRemaining" readonly />
-              </label>
-
-              <label>
-                <span>RAM remaining</span>
-                <input type="text" formControlName="ramRemaining" readonly />
-              </label>
-
-              <label>
-                <span>Disk remaining</span>
-                <input type="text" formControlName="diskRemaining" readonly />
-              </label>
-            </form>
+      @if (clusterSummary) {
+        <div class="proxmox-api-page__summary-grid">
+          @if (clusterSummary.cpu; as metric) {
+            <article class="proxmox-api-page__metric-card">
+              <p class="proxmox-api-page__metric-label">{{ metric.label }}</p>
+              <h4>{{ metric.primaryValue }}</h4>
+              <p class="proxmox-api-page__metric-copy">{{ metric.secondaryValue }}</p>
+              <div class="proxmox-api-page__bar">
+                <span class="proxmox-api-page__bar-fill proxmox-api-page__bar-fill--cpu" [style.width.%]="metric.freePercent"></span>
+              </div>
+            </article>
           }
+
+          @if (clusterSummary.memory; as metric) {
+            <article class="proxmox-api-page__metric-card">
+              <p class="proxmox-api-page__metric-label">{{ metric.label }}</p>
+              <h4>{{ metric.primaryValue }}</h4>
+              <p class="proxmox-api-page__metric-copy">{{ metric.secondaryValue }}</p>
+              <div class="proxmox-api-page__bar">
+                <span
+                  class="proxmox-api-page__bar-fill proxmox-api-page__bar-fill--memory"
+                  [style.width.%]="metric.freePercent"
+                ></span>
+              </div>
+            </article>
+          }
+
+          @if (clusterSummary.disk; as metric) {
+            <article class="proxmox-api-page__metric-card">
+              <p class="proxmox-api-page__metric-label">{{ metric.label }}</p>
+              <h4>{{ metric.primaryValue }}</h4>
+              <p class="proxmox-api-page__metric-copy">{{ metric.secondaryValue }}</p>
+              <div class="proxmox-api-page__bar">
+                <span class="proxmox-api-page__bar-fill proxmox-api-page__bar-fill--disk" [style.width.%]="metric.freePercent"></span>
+              </div>
+            </article>
+          }
+
+          <article class="proxmox-api-page__metric-card proxmox-api-page__metric-card--compact">
+            <p class="proxmox-api-page__metric-label">Storage footprint</p>
+            <div class="proxmox-api-page__stats-row">
+              <div>
+                <span>Total options</span>
+                <strong>{{ clusterSummary.storageSummary.total }}</strong>
+              </div>
+              <div>
+                <span>Available</span>
+                <strong>{{ clusterSummary.storageSummary.available }}</strong>
+              </div>
+              <div>
+                <span>Shared</span>
+                <strong>{{ clusterSummary.storageSummary.shared }}</strong>
+              </div>
+              <div>
+                <span>Warnings</span>
+                <strong>{{ clusterSummary.storageSummary.warning }}</strong>
+              </div>
+            </div>
+          </article>
         </div>
+
+        @if (clusterSummary.topStorageOptions.length) {
+          <div class="proxmox-api-page__storage-list">
+            @for (storage of clusterSummary.topStorageOptions; track trackStorageOption($index, storage)) {
+              <article class="proxmox-api-page__storage-card">
+                <div class="proxmox-api-page__storage-top">
+                  <div>
+                    <h4>{{ storage.node }} / {{ storage.name }}</h4>
+                    <p>{{ storage.type }} · {{ storage.content }}</p>
+                  </div>
+                  <span class="proxmox-api-page__storage-status">{{ storage.status }}</span>
+                </div>
+
+                <p class="proxmox-api-page__storage-copy">
+                  {{ storage.remainingLabel }} free · {{ storage.remainingPercent.toFixed(2) }}% free
+                  · {{ storage.usedLabel }} used · {{ storage.totalLabel }} total
+                </p>
+
+                <div class="proxmox-api-page__bar proxmox-api-page__bar--storage">
+                  <span class="proxmox-api-page__bar-fill proxmox-api-page__bar-fill--storage" [style.width.%]="storage.remainingPercent"></span>
+                </div>
+              </article>
+            }
+          </div>
+        }
+
+        @if (clusterSummary.storageCatalog.length) {
+          <div class="proxmox-api-page__catalog">
+            <div class="proxmox-api-page__catalog-head">
+              <div>
+                <p class="proxmox-api-page__label">Storage catalog</p>
+                <h4>Capacity by storage name</h4>
+              </div>
+              <p class="proxmox-api-page__panel-copy">
+                Find entries like <code>fast</code>, see their disk type, and check remaining versus
+                total capacity without opening each node card.
+              </p>
+            </div>
+
+            <div class="proxmox-api-page__catalog-grid">
+              @for (storage of clusterSummary.storageCatalog; track storage.name + '-' + storage.type) {
+                <article class="proxmox-api-page__catalog-card">
+                  <div class="proxmox-api-page__storage-top">
+                    <div>
+                      <h4>{{ storage.name }}</h4>
+                      <p>{{ storage.type }} · {{ storage.shared ? 'shared storage' : 'node-local storage' }}</p>
+                    </div>
+                    <span class="proxmox-api-page__storage-status">{{ storage.nodeCount }} nodes</span>
+                  </div>
+
+                  <p class="proxmox-api-page__storage-copy">
+                    {{ storage.remainingLabel }} left of {{ storage.totalLabel }} total
+                  </p>
+
+                  <dl class="proxmox-api-page__storage-details">
+                    <div>
+                      <dt>Storage name</dt>
+                      <dd>{{ storage.name }}</dd>
+                    </div>
+                    <div>
+                      <dt>Disk type</dt>
+                      <dd>{{ storage.type }}</dd>
+                    </div>
+                    <div>
+                      <dt>Free capacity</dt>
+                      <dd>{{ storage.remainingLabel }}</dd>
+                    </div>
+                    <div>
+                      <dt>Used capacity</dt>
+                      <dd>{{ storage.usedLabel }}</dd>
+                    </div>
+                    <div>
+                      <dt>Total capacity</dt>
+                      <dd>{{ storage.totalLabel }}</dd>
+                    </div>
+                    <div>
+                      <dt>Nodes</dt>
+                      <dd>{{ storage.nodesLabel }}</dd>
+                    </div>
+                  </dl>
+
+                  <p class="proxmox-api-page__storage-copy">{{ storage.remainingPercent.toFixed(2) }}% free</p>
+
+                  <div class="proxmox-api-page__bar proxmox-api-page__bar--storage">
+                    <span
+                      class="proxmox-api-page__bar-fill proxmox-api-page__bar-fill--storage"
+                      [style.width.%]="storage.remainingPercent"
+                    ></span>
+                  </div>
+                </article>
+              }
+            </div>
+          </div>
+        }
       } @else {
         <div class="proxmox-api-page__empty">
-          <p class="proxmox-api-page__empty-count">{{ lastLoadedNodeCount }} loaded nodes</p>
-          <p>
-            Submit valid Proxmox credentials to generate the node forms. Each node will appear with
-            its remaining CPU, RAM, and disk values.
-          </p>
+          <p class="proxmox-api-page__empty-count">No cluster data loaded yet</p>
+          <p>Submit valid credentials to render the cluster overview cards and storage charts.</p>
         </div>
       }
     </article>
+  </section>
+
+  <section class="proxmox-api-page__panel">
+    <div class="proxmox-api-page__section-head">
+      <div>
+        <p class="proxmox-api-page__label">Node cards</p>
+        <h3>Server capacity and storage charts</h3>
+      </div>
+      <p class="proxmox-api-page__panel-copy">{{ lastLoadedNodeCount }} discovered nodes</p>
+    </div>
+
+    @if (hasLoadedNodes) {
+      <div class="proxmox-api-page__node-grid">
+        @for (node of nodeCards; track trackNodeCard($index, node)) {
+          <article class="proxmox-api-page__node-card">
+            <div class="proxmox-api-page__node-head">
+              <div>
+                <h4>{{ node.name }}</h4>
+                <p>{{ node.storageOptions.length }} storage options</p>
+              </div>
+              <span
+                class="proxmox-api-page__health"
+                [class.proxmox-api-page__health--good]="node.healthTone === 'good'"
+                [class.proxmox-api-page__health--warn]="node.healthTone === 'warn'"
+                [class.proxmox-api-page__health--muted]="node.healthTone === 'muted'"
+              >
+                {{ node.healthLabel }}
+              </span>
+            </div>
+
+            <div class="proxmox-api-page__node-metrics">
+              @if (node.cpu; as metric) {
+                <article class="proxmox-api-page__mini-metric">
+                  <p class="proxmox-api-page__metric-label">{{ metric.label }}</p>
+                  <strong>{{ metric.primaryValue }}</strong>
+                  <span>{{ metric.secondaryValue }}</span>
+                  <div class="proxmox-api-page__bar">
+                    <span class="proxmox-api-page__bar-fill proxmox-api-page__bar-fill--cpu" [style.width.%]="metric.freePercent"></span>
+                  </div>
+                </article>
+              }
+
+              @if (node.memory; as metric) {
+                <article class="proxmox-api-page__mini-metric">
+                  <p class="proxmox-api-page__metric-label">{{ metric.label }}</p>
+                  <strong>{{ metric.primaryValue }}</strong>
+                  <span>{{ metric.secondaryValue }}</span>
+                  <div class="proxmox-api-page__bar">
+                    <span
+                      class="proxmox-api-page__bar-fill proxmox-api-page__bar-fill--memory"
+                      [style.width.%]="metric.freePercent"
+                    ></span>
+                  </div>
+                </article>
+              }
+
+              @if (node.disk; as metric) {
+                <article class="proxmox-api-page__mini-metric">
+                  <p class="proxmox-api-page__metric-label">{{ metric.label }}</p>
+                  <strong>{{ metric.primaryValue }}</strong>
+                  <span>{{ metric.secondaryValue }}</span>
+                  <div class="proxmox-api-page__bar">
+                    <span class="proxmox-api-page__bar-fill proxmox-api-page__bar-fill--disk" [style.width.%]="metric.freePercent"></span>
+                  </div>
+                </article>
+              }
+            </div>
+
+            @if (node.storageOptions.length) {
+              <div class="proxmox-api-page__node-storage">
+                @for (storage of node.storageOptions; track trackStorageOption($index, storage)) {
+                  <article class="proxmox-api-page__storage-card proxmox-api-page__storage-card--node">
+                    <div class="proxmox-api-page__storage-top">
+                      <div>
+                        <h5>{{ storage.name }}</h5>
+                        <p>{{ storage.type }} · {{ storage.content }}</p>
+                      </div>
+                      <span class="proxmox-api-page__storage-status">{{ storage.status }}</span>
+                    </div>
+
+                    <p class="proxmox-api-page__storage-copy">
+                      {{ storage.remainingLabel }} free · {{ storage.remainingPercent.toFixed(2) }}%
+                      free · {{ storage.usedLabel }} used · {{ storage.totalLabel }} total
+                    </p>
+
+                    <div class="proxmox-api-page__bar proxmox-api-page__bar--storage">
+                      <span
+                        class="proxmox-api-page__bar-fill proxmox-api-page__bar-fill--storage"
+                        [style.width.%]="storage.remainingPercent"
+                      ></span>
+                    </div>
+                  </article>
+                }
+              </div>
+            }
+          </article>
+        }
+      </div>
+    } @else {
+      <div class="proxmox-api-page__empty">
+        <p class="proxmox-api-page__empty-count">{{ lastLoadedNodeCount }} loaded nodes</p>
+        <p>Once the API returns capacity data, the server cards and mini charts will appear here.</p>
+      </div>
+    }
   </section>
 </section>

@@ -109,11 +109,66 @@ describe('Workspace pages', () => {
     let fixture: ComponentFixture<ProxmoxApiPageComponent>;
     const proxmoxStandaloneApiService = {
       connect: () => of({ nodes: ['cls01srv06', 'cls01srv07'] }),
-      getOverview: () =>
+      getRemainingResources: () =>
         of({
           remaining_resources: {
-            cls01srv06: { cpu_remaining: 16, ram_remaining: 64, disk_remaining: 300 },
-            cls01srv07: { cpu_remaining: 24, ram_remaining: 96, disk_remaining: 520 }
+            cluster: {
+              cpu: { free_cores_estimate: 327.44, free_percent: 93.02, total_cores: 352 },
+              disk: {
+                free: 698925314048,
+                total: 890423820288,
+                free_human: '650.92 GB',
+                total_human: '829.27 GB'
+              },
+              memory: {
+                free: 526805704704,
+                total: 1280904474624,
+                free_human: '490.63 GB',
+                total_human: '1.16 TB'
+              }
+            },
+            servers: [
+              {
+                name: 'cls01srv06',
+                cpu: { free_cores_estimate: 14.15, free_percent: 88.41, total_cores: 16 },
+                disk: { free: 89955205120, total: 100861726720, free_human: '83.78 GB', total_human: '93.93 GB' },
+                memory: { free: 25962684416, total: 67515006976, free_human: '24.18 GB', total_human: '62.88 GB' }
+              },
+              {
+                name: 'cls01srv07',
+                cpu: { free_cores_estimate: 15.86, free_percent: 99.12, total_cores: 16 },
+                disk: { free: 91579314176, total: 100861726720, free_human: '85.29 GB', total_human: '93.93 GB' },
+                memory: { free: 50409828352, total: 67514990592, free_human: '46.95 GB', total_human: '62.88 GB' }
+              }
+            ],
+            storage_options: [
+              {
+                node: 'cls01srv06',
+                storage: 'backup',
+                type: 'nfs',
+                content: 'images,rootdir,backup',
+                shared: true,
+                status: 'available',
+                remaining_human: '9.99 TB',
+                used_human: '7.46 TB',
+                maximum_load_human: '17.44 TB',
+                remaining_percent: 57.26,
+                used_percent: 42.74
+              },
+              {
+                node: 'cls01srv07',
+                storage: 'datastorage',
+                type: 'nfs',
+                content: 'rootdir,backup,images,iso,vztmpl',
+                shared: true,
+                status: 'available',
+                remaining_human: '9.99 TB',
+                used_human: '7.46 TB',
+                maximum_load_human: '17.44 TB',
+                remaining_percent: 57.26,
+                used_percent: 42.74
+              }
+            ]
           }
         })
     };
@@ -133,7 +188,7 @@ describe('Workspace pages', () => {
       fixture.detectChanges();
     });
 
-    it('loads node forms with remaining capacity after authentication', () => {
+    it('renders a capacity dashboard after authentication', () => {
       const component = fixture.componentInstance as unknown as {
         form: {
           patchValue: (value: Record<string, string | boolean>) => void;
@@ -155,16 +210,21 @@ describe('Workspace pages', () => {
 
       const element = fixture.nativeElement as HTMLElement;
       const text = element.textContent ?? '';
-      const inputValues = Array.from(element.querySelectorAll('input'))
-        .map((input) => (input as HTMLInputElement).value)
-        .join(' ');
 
-      expect(text).toContain('Proxmox Node Discovery');
-      expect(text).toContain('Loaded 2 Proxmox node forms from the standalone API.');
-      expect(inputValues).toContain('cls01srv06');
-      expect(inputValues).toContain('cls01srv07');
-      expect(inputValues).toContain('16');
-      expect(inputValues).toContain('520');
+      expect(text).toContain('Proxmox Capacity Dashboard');
+      expect(text).toContain('Loaded 2 Proxmox node cards from the standalone API.');
+      expect(text).toContain('Cluster CPU headroom');
+      expect(text).toContain('327.44 free cores');
+      expect(text).toContain('cls01srv06');
+      expect(text).toContain('14.15 free cores');
+      expect(text).toContain('24.18 GB free');
+      expect(text).toContain('backup');
+      expect(text).toContain('57.26% free');
+      expect(text).toContain('Storage name');
+      expect(text).toContain('Disk type');
+      expect(text).toContain('Total capacity');
+      expect(text).toContain('17.44 TB total');
+      expect(text).toContain('Capacity by storage name');
     });
   });
 });

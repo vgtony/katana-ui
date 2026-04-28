@@ -319,6 +319,12 @@
                           (failed)="markRequirementFailed('proxmox-cluster')"
                         ></app-proxmox-cluster-registration-form>
                       }
+                      @case ('proxmox-standalone') {
+                        <app-proxmox-standalone-registration-form
+                          (completed)="markRequirementDone('proxmox-standalone')"
+                          (failed)="markRequirementFailed('proxmox-standalone')"
+                        ></app-proxmox-standalone-registration-form>
+                      }
                     }
                   </div>
                 </div>
@@ -547,6 +553,36 @@
                 <app-proxmox-vm-creation-form
                   (deployed)="deploy($event)"
                 ></app-proxmox-vm-creation-form>
+              </div>
+
+              <div class="deployment-page__actions">
+                <button
+                  class="deployment-page__secondary"
+                  type="button"
+                  (click)="selectWizardStep(selectedOption.requirements.length)"
+                >
+                  Back
+                </button>
+              </div>
+
+              @if (deploymentStarted) {
+                <div class="deployment-page__success" role="status">
+                  {{ getDeploymentFeedbackMessage() }}
+                </div>
+              }
+            }
+
+            @if (isDeployWizardStep(currentStep) && selectedOption.id === 'proxmox-standalone') {
+              <div class="deployment-page__panel-header">
+                <p class="deployment-page__kicker">Step {{ currentStep }}</p>
+                <h3>Compact Overview</h3>
+                <p>Clusters, servers, and remaining resources from the standalone Proxmox API.</p>
+              </div>
+
+              <div class="deployment-page__embedded-form">
+                <app-proxmox-standalone-registration-form
+                  [compactOnly]="true"
+                ></app-proxmox-standalone-registration-form>
               </div>
 
               <div class="deployment-page__actions">

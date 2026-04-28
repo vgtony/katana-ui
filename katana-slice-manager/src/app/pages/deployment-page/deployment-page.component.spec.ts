@@ -6,6 +6,7 @@ import { By } from '@angular/platform-browser';
 import { BehaviorSubject, of } from 'rxjs';
 import { vi } from 'vitest';
 import { K8sDeployServiceFormComponent } from '../../features/registration/k8s-deploy-service-form/k8s-deploy-service-form.component';
+import { ProxmoxStandaloneRegistrationFormComponent } from '../../features/registration/proxmox-standalone-registration-form/proxmox-standalone-registration-form.component';
 import { ProxmoxVmCreationFormComponent } from '../../features/registration/proxmox-vm-creation-form/proxmox-vm-creation-form.component';
 import {
   KubernetesApiService,
@@ -66,7 +67,9 @@ describe('DeploymentPageComponent', () => {
     router = TestBed.inject(Router);
   });
 
-  function createComponentForOption(option: 'slice' | 'k8s' | 'proxmox' | null): void {
+  function createComponentForOption(
+    option: 'slice' | 'k8s' | 'proxmox' | 'proxmox-standalone' | null
+  ): void {
     paramMap$ = new BehaviorSubject(convertToParamMap(option ? { option } : {}));
     queryParamMap$ = new BehaviorSubject(convertToParamMap({}));
     fixture = TestBed.createComponent(DeploymentPageComponent);
@@ -112,10 +115,10 @@ describe('DeploymentPageComponent', () => {
       fixture.detectChanges();
 
       expect(getTextContent()).toContain('Create New Network Slice');
-      expect(getTextContent()).toContain('Deployment Type');
       expect(getTextContent()).toContain('Slice / OpenStack');
       expect(getTextContent()).toContain('K8s Deploy');
       expect(getTextContent()).toContain('Proxmox VM');
+      expect(getTextContent()).toContain('Proxmox');
     });
 
     it('collapses and expands an inventory table independently', () => {
@@ -151,10 +154,10 @@ describe('DeploymentPageComponent', () => {
       expect(component['isNewDeploymentModalOpen']).toBe(true);
       expect(navigateSpy).not.toHaveBeenCalled();
       expect(getTextContent()).toContain('Create New Network Slice');
-      expect(getTextContent()).toContain('Deployment Type');
       expect(getTextContent()).toContain('Slice / OpenStack');
       expect(getTextContent()).toContain('K8s Deploy');
       expect(getTextContent()).toContain('Proxmox VM');
+      expect(getTextContent()).toContain('Proxmox');
     });
 
     it('shows five sequential wizard steps in the expected order', () => {
@@ -168,26 +171,32 @@ describe('DeploymentPageComponent', () => {
       expect(wizardLabels[2]).toContain('Function');
       expect(wizardLabels[3]).toContain('VIM');
       expect(wizardLabels[4]).toContain('Deploy');
-      expect(getTextContent()).toContain('Register the orchestrator');
+      expect(getTextContent()).toContain('Register NFVO');
+      expect(getTextContent()).toContain('NFVO IP');
     });
 
-    it('advances one form at a time and unlocks deploy after all registrations are active', () => {
+    it('advances one form at a time and unlocks deploy after all registrations are active', async () => {
       component['markRequirementDone']('nfvo');
+      await fixture.whenStable();
       fixture.detectChanges();
 
       expect(component['currentStep']).toBe(2);
-      expect(getTextContent()).toContain('Set the target location');
+      expect(getTextContent()).toContain('Create Location');
+      expect(getTextContent()).toContain('Description');
 
       component['markRequirementDone']('location');
+      await fixture.whenStable();
       fixture.detectChanges();
       component['markRequirementDone']('function');
+      await fixture.whenStable();
       fixture.detectChanges();
       component['markRequirementDone']('vim');
+      await fixture.whenStable();
       fixture.detectChanges();
 
       expect(component['canAccessStepTwo']()).toBe(true);
       expect(component['currentStep']).toBe(5);
-      expect(getTextContent()).toContain('Complete the slice form and deploy');
+      expect(getTextContent()).toContain('Deploy Configuration');
       expect(getButtonByText('Deploy Slice').disabled).toBe(true);
     });
   });
@@ -197,26 +206,31 @@ describe('DeploymentPageComponent', () => {
       createComponentForOption('k8s');
     });
 
-    it('uses a sequential two-registration flow before deploy', () => {
+    it('uses a sequential two-registration flow before deploy', async () => {
       expect(getWizardButtons()).toHaveLength(3);
-      expect(getTextContent()).toContain('Upload cluster access credentials');
+      expect(getTextContent()).toContain('Upload Credentials');
+      expect(getTextContent()).toContain('Credentials file');
 
       component['markRequirementDone']('k8s-credentials');
+      await fixture.whenStable();
       fixture.detectChanges();
 
       expect(component['currentStep']).toBe(2);
-      expect(getTextContent()).toContain('Register the cluster target');
+      expect(getTextContent()).toContain('Register K8s Cluster');
 
       component['markRequirementDone']('k8s-cluster');
+      await fixture.whenStable();
       fixture.detectChanges();
 
       expect(component['currentStep']).toBe(3);
       expect(fixture.debugElement.query(By.directive(K8sDeployServiceFormComponent))).not.toBeNull();
     });
 
-    it('shows deployment feedback after the K8s deploy form emits success', () => {
+    it('shows deployment feedback after the K8s deploy form emits success', async () => {
       component['markRequirementDone']('k8s-credentials');
+      await fixture.whenStable();
       component['markRequirementDone']('k8s-cluster');
+      await fixture.whenStable();
       fixture.detectChanges();
 
       const k8sForm = fixture.debugElement.query(By.directive(K8sDeployServiceFormComponent));
@@ -228,21 +242,47 @@ describe('DeploymentPageComponent', () => {
     });
   });
 
-  describe('Proxmox wizard', () => {
+  describe('Proxmox VM wizard', () => {
     beforeEach(() => {
       createComponentForOption('proxmox');
     });
 
-    it('unlocks the deploy step only after the cluster registration is active', () => {
+    it('unlocks the VM deployment step after the cluster registration is active', async () => {
       expect(getWizardButtons()).toHaveLength(2);
       expect(component['canAccessStepTwo']()).toBe(false);
 
       component['markRequirementDone']('proxmox-cluster');
+      await fixture.whenStable();
       fixture.detectChanges();
 
       expect(component['canAccessStepTwo']()).toBe(true);
       expect(component['currentStep']).toBe(2);
-      expect(fixture.debugElement.query(By.directive(ProxmoxVmCreationFormComponent))).not.toBeNull();
+      expect(getTextContent()).toContain('Deploy Configuration');
+      expect(
+        fixture.debugElement.query(By.directive(ProxmoxVmCreationFormComponent))
+      ).not.toBeNull();
+    });
+  });
+
+  describe('Standalone Proxmox wizard', () => {
+    beforeEach(() => {
+      createComponentForOption('proxmox-standalone');
+    });
+
+    it('unlocks the compact overview after the standalone registration is active', async () => {
+      expect(getWizardButtons()).toHaveLength(2);
+      expect(component['canAccessStepTwo']()).toBe(false);
+
+      component['markRequirementDone']('proxmox-standalone');
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(component['canAccessStepTwo']()).toBe(true);
+      expect(component['currentStep']).toBe(2);
+      expect(getTextContent()).toContain('Compact Overview');
+      expect(
+        fixture.debugElement.query(By.directive(ProxmoxStandaloneRegistrationFormComponent))
+      ).not.toBeNull();
     });
   });
 });

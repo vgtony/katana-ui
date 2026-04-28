@@ -23,8 +23,16 @@ export class ProxmoxStandaloneApiService {
     return this.http.post(this.buildUrl('/api/proxmox/connect'), payload);
   }
 
-  getOverview(payload: ProxmoxStandaloneAuthPayload): Observable<unknown> {
-    return this.http.post(this.buildUrl('/api/proxmox/overview'), payload);
+  getClusters(payload: ProxmoxStandaloneAuthPayload): Observable<unknown> {
+    return this.http.post(this.buildUrl('/api/proxmox/clusters'), payload);
+  }
+
+  getServers(payload: ProxmoxStandaloneAuthPayload): Observable<unknown> {
+    return this.http.post(this.buildUrl('/api/proxmox/servers'), payload);
+  }
+
+  getRemainingResources(payload: ProxmoxStandaloneAuthPayload): Observable<unknown> {
+    return this.http.post(this.buildUrl('/api/proxmox/remaining-resources'), payload);
   }
 
   private buildUrl(path: string): string {

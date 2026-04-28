@@ -1,0 +1,284 @@
+<section class="registration-form registration-form--standalone">
+  @if (!compactOnly()) {
+    <form class="registration-form__grid" [formGroup]="form" (ngSubmit)="submit()">
+      @if (restoreMessage) {
+        <p class="registration-form__status" role="status">{{ restoreMessage }}</p>
+      }
+
+      <label>
+        <span>Name</span>
+        <input type="text" formControlName="name" placeholder="my-proxmox" />
+      </label>
+
+      <label>
+        <span>URL</span>
+        <input type="text" formControlName="url" placeholder="https://10.160.100.11:8006" />
+      </label>
+
+      <label>
+        <span>Authentication method</span>
+        <select formControlName="authMethod">
+          <option value="password">Username and password</option>
+          <option value="token">API token</option>
+        </select>
+      </label>
+
+      <label class="registration-form__checkbox">
+        <input type="checkbox" formControlName="verifySsl" />
+        <span>Verify SSL certificate</span>
+      </label>
+
+      @if (authMethod === 'password') {
+        <label>
+          <span>Username</span>
+          <input type="text" formControlName="username" placeholder="root@pam" />
+        </label>
+
+        <label>
+          <span>Password</span>
+          <input type="password" formControlName="password" placeholder="Enter Proxmox password" />
+        </label>
+      } @else {
+        <label>
+          <span>API token id</span>
+          <input type="text" formControlName="apiTokenId" placeholder="root@pam!mytoken" />
+        </label>
+
+        <label>
+          <span>API token secret</span>
+          <input
+            type="password"
+            formControlName="apiTokenSecret"
+            placeholder="Enter API token secret"
+          />
+        </label>
+      }
+
+      <button class="registration-form__submit" type="submit" [disabled]="submitting">
+        {{ submitting ? 'Loading Proxmox data...' : 'Register Proxmox' }}
+      </button>
+
+      @if (submitting) {
+        <div class="registration-form__loader" role="status" aria-live="polite">
+          <span class="registration-form__spinner" aria-hidden="true"></span>
+          <span>Authenticating and loading clusters, servers, and remaining resources…</span>
+        </div>
+      }
+
+      @if (submitMessage) {
+        <p class="registration-form__status registration-form__status--success" role="status">
+          {{ submitMessage }}
+        </p>
+      }
+
+      @if (submitError) {
+        <p class="registration-form__status registration-form__status--error" role="alert">
+          {{ submitError }}
+        </p>
+      }
+    </form>
+  }
+
+  @if (hasResults && resultsView; as results) {
+    <section class="registration-form__results">
+      <div class="registration-form__results-head">
+        <div>
+          <p class="registration-form__eyebrow">Standalone overview</p>
+          <h4>Compact Proxmox data</h4>
+          <p class="registration-form__results-copy">
+            Cluster headroom, server availability, and storage capacity in one dense view.
+          </p>
+        </div>
+        <div class="registration-form__results-rail">
+          <span class="registration-form__count">{{ results.connectedNodes.length }} nodes</span>
+          <div class="registration-form__chip-group">
+            @for (node of results.connectedNodes; track node) {
+              <span class="registration-form__chip">{{ node }}</span>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="registration-form__board">
+        <article class="registration-form__hero-card">
+          <div class="registration-form__hero-top">
+            <div>
+              <p class="registration-form__eyebrow">Capacity board</p>
+              <h5>Cluster headroom</h5>
+            </div>
+            <div class="registration-form__hero-stats">
+              <div>
+                <span>Clusters</span>
+                <strong>{{ results.clusters.length }}</strong>
+              </div>
+              <div>
+                <span>Servers</span>
+                <strong>{{ results.servers.length }}</strong>
+              </div>
+              <div>
+                <span>Storage</span>
+                <strong>{{ results.storage.length }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="registration-form__resource-grid">
+            <article class="registration-form__resource-panel registration-form__resource-panel--cpu">
+              <span>CPU</span>
+              <strong>{{ results.clusterCpu }}</strong>
+            </article>
+            <article class="registration-form__resource-panel registration-form__resource-panel--memory">
+              <span>Memory</span>
+              <strong>{{ results.clusterMemory }}</strong>
+            </article>
+            <article class="registration-form__resource-panel registration-form__resource-panel--disk">
+              <span>Disk</span>
+              <strong>{{ results.clusterDisk }}</strong>
+            </article>
+          </div>
+
+          <div class="registration-form__cluster-strip">
+            @if (results.clusters.length) {
+              @for (cluster of results.clusters; track trackCluster($index, cluster)) {
+                <article class="registration-form__cluster-pill">
+                  <strong>{{ cluster.name }}</strong>
+                  <span>{{ cluster.status }}</span>
+                  <p>{{ cluster.nodeCount }} nodes</p>
+                </article>
+              }
+            } @else {
+              <p class="registration-form__empty">No clusters returned.</p>
+            }
+          </div>
+        </article>
+
+        <article class="registration-form__compact-section registration-form__compact-section--servers">
+          <div class="registration-form__section-head">
+            <div>
+              <h5>Servers</h5>
+              <p>Free CPU, RAM, and disk per node.</p>
+            </div>
+            <span>{{ results.servers.length }}</span>
+          </div>
+
+          @if (results.servers.length) {
+            <div class="registration-form__server-grid">
+              @for (server of results.servers; track trackServer($index, server)) {
+                <article class="registration-form__server-card">
+                  <div class="registration-form__server-head">
+                    <strong>{{ server.name }}</strong>
+                    <span>Node</span>
+                  </div>
+                  <div class="registration-form__metric-stack">
+                    <div class="registration-form__metric-line">
+                      <span>CPU</span>
+                      <strong>{{ server.cpu }}</strong>
+                    </div>
+                    <div class="registration-form__metric-line">
+                      <span>RAM</span>
+                      <strong>{{ server.memory }}</strong>
+                    </div>
+                    <div class="registration-form__metric-line">
+                      <span>Disk</span>
+                      <strong>{{ server.disk }}</strong>
+                    </div>
+                  </div>
+
+                  <div class="registration-form__server-storage-block">
+                    <div class="registration-form__server-storage-head">
+                      <span>Storage on {{ server.name }}</span>
+                      <strong>{{ server.storage.length }}</strong>
+                    </div>
+
+                    @if (server.storage.length) {
+                      <div class="registration-form__server-storage-grid">
+                        @for (storage of server.storage; track trackStorage($index, storage)) {
+                          <article class="registration-form__server-storage-card">
+                            <div class="registration-form__storage-head">
+                              <div>
+                                <strong>{{ storage.name }}</strong>
+                                <p>{{ storage.type }}</p>
+                              </div>
+                              <span>{{ storage.total }}</span>
+                            </div>
+
+                            <div class="registration-form__storage-stats">
+                              <div>
+                                <span>Free</span>
+                                <strong>{{ storage.remaining }}</strong>
+                              </div>
+                              <div>
+                                <span>Used</span>
+                                <strong>{{ storage.used }}</strong>
+                              </div>
+                              <div>
+                                <span>Total</span>
+                                <strong>{{ storage.total }}</strong>
+                              </div>
+                            </div>
+                          </article>
+                        }
+                      </div>
+                    } @else {
+                      <p class="registration-form__empty">No storage entries returned for this node.</p>
+                    }
+                  </div>
+                </article>
+              }
+            </div>
+          } @else {
+            <p class="registration-form__empty">No servers returned.</p>
+          }
+        </article>
+
+        <article class="registration-form__compact-section registration-form__compact-section--storage">
+          <div class="registration-form__section-head">
+            <div>
+              <h5>Storage capacity</h5>
+              <p>Availability by storage name and type.</p>
+            </div>
+            <span>{{ results.storage.length }}</span>
+          </div>
+
+          @if (results.storage.length) {
+            <div class="registration-form__storage-grid">
+              @for (storage of results.storage; track trackStorage($index, storage)) {
+                <article class="registration-form__storage-card">
+                  <div class="registration-form__storage-head">
+                    <div>
+                      <strong>{{ storage.name }}</strong>
+                      <p>{{ storage.type }} · {{ storage.node }}</p>
+                    </div>
+                    <span>{{ storage.total }}</span>
+                  </div>
+
+                  <div class="registration-form__storage-stats">
+                    <div>
+                      <span>Free</span>
+                      <strong>{{ storage.remaining }}</strong>
+                    </div>
+                    <div>
+                      <span>Used</span>
+                      <strong>{{ storage.used }}</strong>
+                    </div>
+                    <div>
+                      <span>Total</span>
+                      <strong>{{ storage.total }}</strong>
+                    </div>
+                  </div>
+                </article>
+              }
+            </div>
+          } @else {
+            <p class="registration-form__empty">No remaining resource entries returned.</p>
+          }
+        </article>
+      </div>
+    </section>
+  } @else if (compactOnly()) {
+    <div class="registration-form__empty registration-form__empty--panel">
+      <p class="registration-form__eyebrow">Standalone overview</p>
+      <p>Complete the standalone Proxmox registration to show clusters, servers, and remaining resources.</p>
+    </div>
+  }
+</section>
