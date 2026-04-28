@@ -186,8 +186,8 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
         'proxmox-standalone'
       )?.name
     ).toBe('lab-cluster');
-    expect(fixture.nativeElement.textContent).toContain('Compact Proxmox data');
-    expect(fixture.nativeElement.textContent).toContain('cluster-a');
+    expect(fixture.nativeElement.textContent).toContain('Capacity board');
+    expect(fixture.nativeElement.textContent).toContain('Clusters');
     expect(fixture.nativeElement.textContent).toContain('pve-01');
     expect(fixture.nativeElement.textContent).toContain('backup');
     expect(fixture.nativeElement.textContent).toContain('datastorage');

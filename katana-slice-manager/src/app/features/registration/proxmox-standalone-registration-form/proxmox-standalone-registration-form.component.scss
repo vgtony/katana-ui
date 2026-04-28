@@ -369,6 +369,18 @@
   line-height: 1.45;
 }
 
+.registration-form__server-table-row--storage
+  .registration-form__server-storage-cell:nth-child(2)
+  strong {
+  color: #5ef0d2;
+}
+
+.registration-form__server-table-row--storage
+  .registration-form__server-storage-cell:nth-child(3)
+  strong {
+  color: #ffb08d;
+}
+
 .registration-form__server-table-row--summary .registration-form__server-cell strong:first-of-type {
   color: #fff7f1;
 }

@@ -352,9 +352,9 @@ export class ProxmoxStandaloneRegistrationFormComponent {
       connectedNodes: snapshot.connectedNodes,
       clusters,
       servers,
-      clusterCpu: this.formatClusterMetric(this.pickRecord(clusterResource, ['cpu']), 'CPU') ?? '—',
-      clusterMemory: this.formatCapacityMetric(this.pickRecord(clusterResource, ['memory']), 'Memory') ?? '—',
-      clusterDisk: this.formatCapacityMetric(this.pickRecord(clusterResource, ['disk']), 'Disk') ?? '—',
+      clusterCpu: this.formatClusterMetric(this.pickRecord(clusterResource, ['cpu'])) ?? '—',
+      clusterMemory: this.formatCapacityMetric(this.pickRecord(clusterResource, ['memory'])) ?? '—',
+      clusterDisk: this.formatCapacityMetric(this.pickRecord(clusterResource, ['disk'])) ?? '—',
       storage
     };
   }
@@ -393,9 +393,9 @@ export class ProxmoxStandaloneRegistrationFormComponent {
 
     return {
       name,
-      cpu: this.formatClusterMetric(this.pickRecord(server, ['cpu']), 'CPU') ?? '—',
-      memory: this.formatCapacityMetric(this.pickRecord(server, ['memory']), 'Memory') ?? '—',
-      disk: this.formatCapacityMetric(this.pickRecord(server, ['disk']), 'Disk') ?? '—',
+      cpu: this.formatClusterMetric(this.pickRecord(server, ['cpu'])) ?? '—',
+      memory: this.formatCapacityMetric(this.pickRecord(server, ['memory'])) ?? '—',
+      disk: this.formatCapacityMetric(this.pickRecord(server, ['disk'])) ?? '—',
       storage: storageByNode.get(name) ?? []
     };
   }
@@ -419,7 +419,7 @@ export class ProxmoxStandaloneRegistrationFormComponent {
     };
   }
 
-  private formatClusterMetric(metric: UnknownRecord | null, label: string): string | null {
+  private formatClusterMetric(metric: UnknownRecord | null): string | null {
     if (!metric) {
       return null;
     }
@@ -432,17 +432,17 @@ export class ProxmoxStandaloneRegistrationFormComponent {
     }
 
     if (free !== null && percent !== null) {
-      return `${label}: ${free.toFixed(2)} free (${percent.toFixed(2)}%)`;
+      return `${free.toFixed(2)} free (${percent.toFixed(2)}%)`;
     }
 
     if (free !== null) {
-      return `${label}: ${free.toFixed(2)} free`;
+      return `${free.toFixed(2)} free`;
     }
 
-    return `${label}: ${percent?.toFixed(2)}% free`;
+    return `${percent?.toFixed(2)}% free`;
   }
 
-  private formatCapacityMetric(metric: UnknownRecord | null, label: string): string | null {
+  private formatCapacityMetric(metric: UnknownRecord | null): string | null {
     if (!metric) {
       return null;
     }
@@ -460,7 +460,7 @@ export class ProxmoxStandaloneRegistrationFormComponent {
     const value = freeHuman ?? '—';
     const totalValue = totalHuman ?? '—';
     const percentLabel = percent === null ? '' : ` (${percent.toFixed(2)}% free)`;
-    return `${label}: ${value} of ${totalValue}${percentLabel}`;
+    return `${value} of ${totalValue}${percentLabel}`;
   }
 
   private extractConnectedNodes(response: unknown): string[] {
