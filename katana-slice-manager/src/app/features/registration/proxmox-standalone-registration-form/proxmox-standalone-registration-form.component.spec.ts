@@ -193,6 +193,12 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
     expect(fixture.nativeElement.textContent).toContain('datastorage');
     expect(fixture.nativeElement.textContent).toContain('fast');
     expect(fixture.nativeElement.textContent).toContain('800.00 GB');
+    expect(
+      fixture.nativeElement.querySelectorAll('.registration-form__server-table-row--summary').length
+    ).toBe(1);
+    expect(
+      fixture.nativeElement.querySelectorAll('.registration-form__server-table-row--storage').length
+    ).toBe(3);
     expect(completedSpy).toHaveBeenCalled();
   });
 
