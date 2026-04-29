@@ -5,7 +5,6 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { BehaviorSubject, of } from 'rxjs';
 import {
   KubernetesApiService,
-  ProxmoxApiService,
   SliceApiService
 } from '../../shared/services/api';
 import { DeploymentDraftService } from '../../shared/services/deployment-draft.service';
@@ -19,7 +18,7 @@ describe('DeploymentPageComponent active registration', () => {
 
   beforeEach(async () => {
     localStorage.clear();
-    paramMap$ = new BehaviorSubject(convertToParamMap({ option: 'proxmox' }));
+    paramMap$ = new BehaviorSubject(convertToParamMap({ option: 'proxmox-standalone' }));
 
     await TestBed.configureTestingModule({
       imports: [DeploymentPageComponent],
@@ -48,12 +47,6 @@ describe('DeploymentPageComponent active registration', () => {
           useValue: {
             getK8sClusters: () => of([])
           }
-        },
-        {
-          provide: ProxmoxApiService,
-          useValue: {
-            getClusters: () => of([])
-          }
         }
       ]
     }).compileComponents();
@@ -66,27 +59,6 @@ describe('DeploymentPageComponent active registration', () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
   }
-
-  it('unlocks the Proxmox VM deployment step when an active VM cluster registration already exists', () => {
-    draftService.saveFormValue(
-      'proxmox',
-      'proxmox-cluster',
-      {
-        name: 'lab-cluster',
-        url: 'https://proxmox.example:8006',
-        username: 'root@pam',
-        password: 'secret',
-        node: 'pve-01'
-      },
-      'active'
-    );
-
-    createComponent();
-
-    expect(component['canAccessStepTwo']()).toBe(true);
-    expect(component['currentStep']).toBe(2);
-    expect(fixture.nativeElement.textContent).toContain('Deploy Configuration');
-  });
 
   it('unlocks the standalone overview when an active standalone Proxmox registration already exists', () => {
     draftService.saveFormValue(
@@ -115,6 +87,6 @@ describe('DeploymentPageComponent active registration', () => {
 
     expect(component['canAccessStepTwo']()).toBe(true);
     expect(component['currentStep']).toBe(2);
-    expect(fixture.nativeElement.textContent).toContain('Compact Overview');
+    expect(fixture.nativeElement.textContent).toContain('Servers');
   });
 });

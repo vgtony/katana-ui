@@ -19,6 +19,10 @@
   color: var(--app-text-muted);
 }
 
+.registration-form__support-copy {
+  color: var(--app-text-muted);
+}
+
 .registration-form__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -36,13 +40,52 @@
   font-size: 0.92rem;
 }
 
-.registration-form__grid input {
+.registration-form__grid input,
+.registration-form__grid select {
   width: 100%;
   padding: 0.9rem 1rem;
   border-radius: 14px;
   border: 1px solid var(--app-border-strong);
   background: var(--app-input-bg-strong);
   color: var(--app-text);
+}
+
+.registration-form__grid input.ng-invalid.ng-touched,
+.registration-form__grid select.ng-invalid.ng-touched {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.28);
+}
+
+.registration-form__vm-targets {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 14px;
+}
+
+.registration-form__vm-target-card {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.registration-form__vm-target-head {
+  grid-column: 1 / -1;
+}
+
+.registration-form__vm-target-head span,
+.registration-form__vm-target-head strong {
+  margin: 0;
+}
+
+.registration-form__vm-target-head strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 1rem;
+  color: #fff7f1;
 }
 
 .registration-form__grid button {
@@ -56,8 +99,17 @@
   cursor: pointer;
 }
 
+.registration-form__grid button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
 @media (max-width: 760px) {
   .registration-form__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .registration-form__vm-target-card {
     grid-template-columns: 1fr;
   }
 }

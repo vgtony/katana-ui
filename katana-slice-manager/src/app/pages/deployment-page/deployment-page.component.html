@@ -313,12 +313,6 @@
                           (failed)="markRequirementFailed('k8s-cluster')"
                         ></app-k8s-cluster-registration-form>
                       }
-                      @case ('proxmox-cluster') {
-                        <app-proxmox-cluster-registration-form
-                          (completed)="markRequirementDone('proxmox-cluster')"
-                          (failed)="markRequirementFailed('proxmox-cluster')"
-                        ></app-proxmox-cluster-registration-form>
-                      }
                       @case ('proxmox-standalone') {
                         <app-proxmox-standalone-registration-form
                           (completed)="markRequirementDone('proxmox-standalone')"
@@ -501,77 +495,6 @@
               }
             }
 
-            @if (isDeployWizardStep(currentStep) && selectedOption.id === 'proxmox') {
-              <div class="deployment-page__panel-header">
-                <p class="deployment-page__kicker">Step {{ currentStep }}</p>
-                <h3>Deploy Configuration</h3>
-                <p>Complete the Proxmox form and deploy.</p>
-                @if (getFinalConfigurationNotice(); as configurationNotice) {
-                  <div class="deployment-page__notice" role="status">
-                    {{ configurationNotice }}
-                    @if (isFinalConfigurationActive()) {
-                      <button
-                        class="deployment-page__notice-action"
-                        type="button"
-                        (click)="requestConfigurationDeactivation()"
-                      >
-                        Deactivate
-                      </button>
-                    }
-                  </div>
-                }
-                @if (pendingConfigurationDeactivation) {
-                  <div
-                    class="deployment-page__deactivation-notice"
-                    role="alertdialog"
-                    aria-modal="false"
-                  >
-                    <p>
-                      Deactivate this active configuration? Its values will stay saved as a draft.
-                    </p>
-                    <div class="deployment-page__deactivation-actions">
-                      <button
-                        class="deployment-page__secondary"
-                        type="button"
-                        (click)="confirmConfigurationDeactivation()"
-                      >
-                        Yes
-                      </button>
-                      <button
-                        class="deployment-page__secondary"
-                        type="button"
-                        (click)="cancelConfigurationDeactivation()"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                }
-              </div>
-
-              <div class="deployment-page__embedded-form">
-                <app-proxmox-vm-creation-form
-                  (deployed)="deploy($event)"
-                ></app-proxmox-vm-creation-form>
-              </div>
-
-              <div class="deployment-page__actions">
-                <button
-                  class="deployment-page__secondary"
-                  type="button"
-                  (click)="selectWizardStep(selectedOption.requirements.length)"
-                >
-                  Back
-                </button>
-              </div>
-
-              @if (deploymentStarted) {
-                <div class="deployment-page__success" role="status">
-                  {{ getDeploymentFeedbackMessage() }}
-                </div>
-              }
-            }
-
             @if (isDeployWizardStep(currentStep) && selectedOption.id === 'proxmox-standalone') {
               <div class="deployment-page__panel-header">
                 <p class="deployment-page__kicker">Step {{ currentStep }}</p>
@@ -582,6 +505,7 @@
               <div class="deployment-page__embedded-form">
                 <app-proxmox-standalone-registration-form
                   [compactOnly]="true"
+                  (deployed)="deploy($event)"
                 ></app-proxmox-standalone-registration-form>
               </div>
 

@@ -7,10 +7,8 @@ import { BehaviorSubject, of } from 'rxjs';
 import { vi } from 'vitest';
 import { K8sDeployServiceFormComponent } from '../../features/registration/k8s-deploy-service-form/k8s-deploy-service-form.component';
 import { ProxmoxStandaloneRegistrationFormComponent } from '../../features/registration/proxmox-standalone-registration-form/proxmox-standalone-registration-form.component';
-import { ProxmoxVmCreationFormComponent } from '../../features/registration/proxmox-vm-creation-form/proxmox-vm-creation-form.component';
 import {
   KubernetesApiService,
-  ProxmoxApiService,
   SliceApiService
 } from '../../shared/services/api';
 import { DeploymentPageComponent } from './deployment-page.component';
@@ -54,12 +52,6 @@ describe('DeploymentPageComponent', () => {
             getK8sClusters: () =>
               of([{ name: 'k8s-lab', namespace: 'default', k8s_version: '1.30' }])
           }
-        },
-        {
-          provide: ProxmoxApiService,
-          useValue: {
-            getClusters: () => of([{ name: 'pve-cluster', node: 'pve-01', status: 'online' }])
-          }
         }
       ]
     }).compileComponents();
@@ -68,7 +60,7 @@ describe('DeploymentPageComponent', () => {
   });
 
   function createComponentForOption(
-    option: 'slice' | 'k8s' | 'proxmox' | 'proxmox-standalone' | null
+    option: 'slice' | 'k8s' | 'proxmox-standalone' | null
   ): void {
     paramMap$ = new BehaviorSubject(convertToParamMap(option ? { option } : {}));
     queryParamMap$ = new BehaviorSubject(convertToParamMap({}));
@@ -109,7 +101,6 @@ describe('DeploymentPageComponent', () => {
       expect(getTextContent()).toContain('Live targets');
       expect(getTextContent()).toContain('slice-1');
       expect(getTextContent()).toContain('k8s-lab');
-      expect(getTextContent()).toContain('pve-cluster');
 
       getButtonByText('+ New Deployment').click();
       fixture.detectChanges();
@@ -117,14 +108,13 @@ describe('DeploymentPageComponent', () => {
       expect(getTextContent()).toContain('Create New Network Slice');
       expect(getTextContent()).toContain('Slice / OpenStack');
       expect(getTextContent()).toContain('K8s Deploy');
-      expect(getTextContent()).toContain('Proxmox VM');
       expect(getTextContent()).toContain('Proxmox');
     });
 
     it('collapses and expands an inventory table independently', () => {
       const firstToggle = getButtonByText('Collapse');
 
-      expect(fixture.nativeElement.querySelectorAll('.deployment-page__table').length).toBe(3);
+      expect(fixture.nativeElement.querySelectorAll('.deployment-page__table').length).toBe(2);
 
       firstToggle.click();
       fixture.detectChanges();
@@ -156,7 +146,6 @@ describe('DeploymentPageComponent', () => {
       expect(getTextContent()).toContain('Create New Network Slice');
       expect(getTextContent()).toContain('Slice / OpenStack');
       expect(getTextContent()).toContain('K8s Deploy');
-      expect(getTextContent()).toContain('Proxmox VM');
       expect(getTextContent()).toContain('Proxmox');
     });
 
@@ -242,28 +231,6 @@ describe('DeploymentPageComponent', () => {
     });
   });
 
-  describe('Proxmox VM wizard', () => {
-    beforeEach(() => {
-      createComponentForOption('proxmox');
-    });
-
-    it('unlocks the VM deployment step after the cluster registration is active', async () => {
-      expect(getWizardButtons()).toHaveLength(2);
-      expect(component['canAccessStepTwo']()).toBe(false);
-
-      component['markRequirementDone']('proxmox-cluster');
-      await fixture.whenStable();
-      fixture.detectChanges();
-
-      expect(component['canAccessStepTwo']()).toBe(true);
-      expect(component['currentStep']).toBe(2);
-      expect(getTextContent()).toContain('Deploy Configuration');
-      expect(
-        fixture.debugElement.query(By.directive(ProxmoxVmCreationFormComponent))
-      ).not.toBeNull();
-    });
-  });
-
   describe('Standalone Proxmox wizard', () => {
     beforeEach(() => {
       createComponentForOption('proxmox-standalone');
@@ -279,7 +246,7 @@ describe('DeploymentPageComponent', () => {
 
       expect(component['canAccessStepTwo']()).toBe(true);
       expect(component['currentStep']).toBe(2);
-      expect(getTextContent()).toContain('Compact Overview');
+      expect(getTextContent()).toContain('Step 2');
       expect(
         fixture.debugElement.query(By.directive(ProxmoxStandaloneRegistrationFormComponent))
       ).not.toBeNull();

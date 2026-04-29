@@ -5,7 +5,6 @@ import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/route
 import { BehaviorSubject } from 'rxjs';
 import {
   KubernetesApiService,
-  ProxmoxApiService,
   SliceApiService
 } from '../../shared/services/api';
 import { DeploymentPageComponent } from './deployment-page.component';
@@ -42,12 +41,6 @@ describe('DeploymentPageComponent inventory refresh', () => {
           provide: KubernetesApiService,
           useValue: {
             getK8sClusters: () => new BehaviorSubject<unknown[]>([]).asObservable()
-          }
-        },
-        {
-          provide: ProxmoxApiService,
-          useValue: {
-            getClusters: () => new BehaviorSubject<unknown[]>([]).asObservable()
           }
         }
       ]

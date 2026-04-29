@@ -9,12 +9,8 @@ import { LocationRegistrationFormComponent } from '../../features/registration/l
 import { K8sCredentialsUploadFormComponent } from '../../features/registration/k8s-credentials-upload-form/k8s-credentials-upload-form.component';
 import { K8sClusterRegistrationFormComponent } from '../../features/registration/k8s-cluster-registration-form/k8s-cluster-registration-form.component';
 import { K8sDeployServiceFormComponent } from '../../features/registration/k8s-deploy-service-form/k8s-deploy-service-form.component';
-import { ProxmoxClusterRegistrationFormComponent } from '../../features/registration/proxmox-cluster-registration-form/proxmox-cluster-registration-form.component';
 import { ProxmoxStandaloneRegistrationFormComponent } from '../../features/registration/proxmox-standalone-registration-form/proxmox-standalone-registration-form.component';
-import {
-  DeploymentAttemptEvent,
-  ProxmoxVmCreationFormComponent
-} from '../../features/registration/proxmox-vm-creation-form/proxmox-vm-creation-form.component';
+import { DeploymentAttemptEvent } from '../../features/registration/proxmox-vm-creation-form/proxmox-vm-creation-form.component';
 import { SliceRegistrationFormComponent } from '../../features/registration/slice-registration-form/slice-registration-form.component';
 import {
   DeploymentFormKey,
@@ -25,13 +21,12 @@ import { DeploymentOption } from '../../models/interfaces/deployment.interface';
 import {
   getApiErrorMessage,
   KubernetesApiService,
-  ProxmoxApiService,
   SliceApiService
 } from '../../shared/services/api';
 import { DeploymentDraftService } from '../../shared/services/deployment-draft.service';
 import { DeploymentHistoryService } from '../../shared/services/deployment-history.service';
 
-type DeploymentInventoryKey = 'slice' | 'k8s' | 'proxmox';
+type DeploymentInventoryKey = 'slice' | 'k8s';
 type DeploymentStatusTone = 'success' | 'warning' | 'error' | 'neutral';
 
 interface DeploymentInventoryColumn {
@@ -71,9 +66,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     K8sCredentialsUploadFormComponent,
     K8sClusterRegistrationFormComponent,
     K8sDeployServiceFormComponent,
-    ProxmoxClusterRegistrationFormComponent,
     ProxmoxStandaloneRegistrationFormComponent,
-    ProxmoxVmCreationFormComponent,
     SliceRegistrationFormComponent
 ],
   templateUrl: './deployment-page.component.html',
@@ -88,7 +81,6 @@ export class DeploymentPageComponent implements OnInit {
   private readonly deploymentDraftService = inject(DeploymentDraftService);
   private readonly sliceApiService = inject(SliceApiService);
   private readonly kubernetesApiService = inject(KubernetesApiService);
-  private readonly proxmoxApiService = inject(ProxmoxApiService);
   private restoredPackId: string | null = null;
   private keepModalOpenAfterRouteClear = false;
 
@@ -96,8 +88,7 @@ export class DeploymentPageComponent implements OnInit {
   protected deploymentStarted = false;
   protected expandedInventorySectionKeys = new Set<DeploymentInventoryKey>([
     'slice',
-    'k8s',
-    'proxmox'
+    'k8s'
   ]);
   protected expandedRequirementIds = new Set<string>();
   protected completedRequirementIds = new Set<string>();
@@ -178,32 +169,13 @@ export class DeploymentPageComponent implements OnInit {
       deployActionLabel: 'Deploy To K8s'
     },
     {
-      id: 'proxmox',
-      label: 'Proxmox VM',
-      shortLabel: 'Proxmox',
-      description: 'Proxmox virtual machine deployment.',
-      requirementsTitle: 'Proxmox registrations',
-      requirementsDescription: 'Finish the registration, then deploy.',
-      requirements: [
-        {
-          id: 'proxmox-cluster',
-          label: 'Proxmox Cluster',
-          route: '/deployment/proxmox',
-          type: 'registration',
-          guidance: 'Register the cluster target.'
-        }
-      ],
-      finalConfigurationLabel: 'Proxmox VM configuration',
-      deployActionLabel: 'Deploy VM'
-    },
-    {
       id: 'proxmox-standalone',
       label: 'Proxmox',
       shortLabel: 'Proxmox',
-      description: 'Standalone Proxmox discovery and capacity overview.',
+      description: 'Standalone Proxmox discovery and VM deployment.',
       requirementsTitle: 'Proxmox standalone registration',
       requirementsDescription:
-        'Authenticate once, then review clusters, servers, and remaining resources.',
+        'Authenticate once, choose a server, and deploy VMs through the standalone API.',
       requirements: [
         {
           id: 'proxmox-standalone',
@@ -213,8 +185,8 @@ export class DeploymentPageComponent implements OnInit {
           guidance: 'Authenticate against the standalone API and load the compact overview.'
         }
       ],
-      finalConfigurationLabel: 'Proxmox compact overview',
-      deployActionLabel: 'Review Proxmox'
+      finalConfigurationLabel: 'Proxmox VM deployment',
+      deployActionLabel: 'Deploy VMs'
     }
   ];
 
@@ -248,21 +220,6 @@ export class DeploymentPageComponent implements OnInit {
       ],
       rows: []
     },
-    {
-      key: 'proxmox',
-      title: 'Proxmox Clusters',
-      emptyLabel: 'No Proxmox clusters have been registered yet.',
-      loading: true,
-      error: null,
-      columns: [
-        { key: 'name', label: 'Name', valueKeys: ['name', '_id', 'id'] },
-        { key: 'node', label: 'Node', valueKeys: ['node'] },
-        { key: 'status', label: 'Status', valueKeys: ['status'] },
-        { key: 'url', label: 'URL', valueKeys: ['url'] },
-        { key: 'username', label: 'Username', valueKeys: ['username'] }
-      ],
-      rows: []
-    }
   ];
 
   protected selectedOption = this.deploymentOptions[0];
@@ -520,7 +477,7 @@ export class DeploymentPageComponent implements OnInit {
       this.failedRequirementIds.delete(requirementId);
       this.refreshRequirementContextTags();
 
-      if (requirementId === 'k8s-cluster' || requirementId === 'proxmox-cluster') {
+      if (requirementId === 'k8s-cluster') {
         this.loadCurrentDeployments();
       }
 
@@ -920,9 +877,9 @@ export class DeploymentPageComponent implements OnInit {
         return this.deploymentDraftService.getFormState('slice', 'slice');
       case 'k8s':
         return this.deploymentDraftService.getFormState('k8s', 'k8s-deploy');
-      case 'proxmox':
-        return this.deploymentDraftService.getFormState('proxmox', 'proxmox-vm');
       case 'proxmox-standalone':
+        return this.deploymentDraftService.getFormState('proxmox-standalone', 'proxmox-vm');
+      default:
         return 'missing';
     }
   }
@@ -938,10 +895,8 @@ export class DeploymentPageComponent implements OnInit {
         return { optionId: 'slice', formKey: 'slice' };
       case 'k8s':
         return { optionId: 'k8s', formKey: 'k8s-deploy' };
-      case 'proxmox':
-        return { optionId: 'proxmox', formKey: 'proxmox-vm' };
       case 'proxmox-standalone':
-        return { optionId: 'proxmox-standalone', formKey: 'proxmox-standalone' };
+        return { optionId: 'proxmox-standalone', formKey: 'proxmox-vm' };
       default:
         return null;
     }
@@ -968,18 +923,15 @@ export class DeploymentPageComponent implements OnInit {
         );
         return this.formatContextTag(this.getFinalConfigurationState(), detail);
       }
-      case 'proxmox': {
+      case 'proxmox-standalone': {
         const snapshot = this.deploymentDraftService.getSavedFormSnapshot<Record<string, string>>(
-          'proxmox',
+          'proxmox-standalone',
           'proxmox-vm'
         );
-        const detail = this.combineContextValues(
-          snapshot?.['vmName'],
-          snapshot?.['clusterName']
-        );
+        const detail = this.combineContextValues(snapshot?.['vmName'], snapshot?.['clusterName']);
         return this.formatContextTag(this.getFinalConfigurationState(), detail);
       }
-      case 'proxmox-standalone':
+      default:
         return null;
     }
   }
@@ -1017,10 +969,6 @@ export class DeploymentPageComponent implements OnInit {
     this.loadInventorySection('k8s', this.kubernetesApiService.getK8sClusters(), {
       fallbackPrimaryValue: 'Registered K8s cluster',
       columns: this.getInventorySection('k8s').columns
-    });
-    this.loadInventorySection('proxmox', this.proxmoxApiService.getClusters(), {
-      fallbackPrimaryValue: 'Registered Proxmox cluster',
-      columns: this.getInventorySection('proxmox').columns
     });
   }
 

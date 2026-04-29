@@ -1,4 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Subject, throwError } from 'rxjs';
 import { vi } from 'vitest';
@@ -83,6 +85,8 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
     await TestBed.configureTestingModule({
       imports: [ProxmoxStandaloneRegistrationFormComponent],
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
         DeploymentDraftService,
         {
           provide: ProxmoxStandaloneApiService,
@@ -200,6 +204,37 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
       fixture.nativeElement.querySelectorAll('.registration-form__server-table-row--storage').length
     ).toBe(3);
     expect(completedSpy).toHaveBeenCalled();
+  });
+
+  it('allows selecting a discovered server in compact mode to start VM configuration', () => {
+    draftService.saveFormValue(
+      'proxmox-standalone',
+      'proxmox-standalone',
+      activeSnapshot,
+      'active'
+    );
+    createComponent();
+    fixture.componentRef.setInput('compactOnly', true);
+    fixture.detectChanges();
+
+    const serverCard = fixture.nativeElement.querySelector(
+      '.registration-form__server-table--interactive'
+    ) as HTMLElement;
+    serverCard.click();
+    fixture.detectChanges();
+
+    expect(component['selectedVmTargets']).toEqual([
+      {
+        node: 'pve-01',
+        storageOptions: ['backup', 'datastorage', 'fast']
+      }
+    ]);
+    expect(
+      fixture.nativeElement.querySelector('.registration-form__server-table--interactive')
+    ).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Selected server');
+    expect(fixture.nativeElement.textContent).toContain('Change server');
+    expect(fixture.nativeElement.textContent).toContain('Deploy Selected VMs');
   });
 
   it('shows the backend error when authentication fails', () => {

@@ -139,7 +139,6 @@ const formDefinitions: FormDefinition[] = [
     requiredControls: [
       'clusterName',
       'vmName',
-      'template',
       'cpu',
       'ram',
       'storageType',
@@ -148,6 +147,8 @@ const formDefinitions: FormDefinition[] = [
       'managementBridgeType'
     ],
     optionalControls: [
+      'template',
+      'vmTargets',
       'customBridgeName',
       'customBridgeType',
       'customIp',
@@ -352,6 +353,8 @@ describe('Registration form components', () => {
     let httpTestingController: HttpTestingController;
 
     beforeEach(async () => {
+      localStorage.clear();
+
       await TestBed.configureTestingModule({
         imports: [ProxmoxVmCreationFormComponent],
         providers: [provideHttpClient(), provideHttpClientTesting()]
@@ -359,11 +362,19 @@ describe('Registration form components', () => {
 
       fixture = TestBed.createComponent(ProxmoxVmCreationFormComponent);
       httpTestingController = TestBed.inject(HttpTestingController);
+      fixture.componentRef.setInput('standaloneAuthPayload', {
+        name: 'lab-proxmox',
+        url: 'https://proxmox.example:8006',
+        verify_ssl: false,
+        username: 'root@pam',
+        password: 'secret'
+      });
       fixture.detectChanges();
     });
 
     afterEach(() => {
       httpTestingController.verify();
+      localStorage.clear();
     });
 
     it('shows Deployment Started after a successful Proxmox VM response', () => {
@@ -376,6 +387,7 @@ describe('Registration form components', () => {
         ram: 4096,
         storageType: 'local-lvm',
         diskSize: 50,
+        vmTargets: [],
         managementBridgeName: 'vmbr0',
         managementBridgeType: 'management',
         customBridgeName: 'vmbr1',
@@ -391,7 +403,7 @@ describe('Registration form components', () => {
       submitButton.click();
       fixture.detectChanges();
 
-      const request = httpTestingController.expectOne((req) => req.url.includes('/proxmox/vm'));
+      const request = httpTestingController.expectOne((req) => req.url.includes('/proxmox/vms'));
       expect(request.request.method).toBe('POST');
       expect(request.request.body.cluster_name).toBe('prod-cluster-01');
       expect(request.request.body.vms[0].bridges).toHaveLength(2);
@@ -417,6 +429,7 @@ describe('Registration form components', () => {
         ram: 4096,
         storageType: 'local-lvm',
         diskSize: 50,
+        vmTargets: [],
         managementBridgeName: 'vmbr0',
         managementBridgeType: 'management',
         customBridgeName: '',
@@ -432,13 +445,85 @@ describe('Registration form components', () => {
       submitButton.click();
       fixture.detectChanges();
 
-      const request = httpTestingController.expectOne((req) => req.url.includes('/proxmox/vm'));
+      const request = httpTestingController.expectOne((req) => req.url.includes('/proxmox/vms'));
       expect(request.request.method).toBe('POST');
       expect(request.request.body.vms[0].bridges).toHaveLength(1);
       expect(request.request.body.vms[0].bridges[0]).toEqual({
         name: 'vmbr0',
         type: 'management'
       });
+      request.flush({
+        message: 'Proxmox VM deployment initiated successfully',
+        deployment_status: 'in_progress',
+        estimated_time: '2-3 minutes',
+        vms: []
+      });
+      fixture.detectChanges();
+
+      expect(submitButton.textContent?.trim()).toBe('Deployment Started');
+    });
+
+    it('shows an invalid-form error and marks missing required fields as invalid', () => {
+      const component = fixture.componentInstance as any;
+      component.form.patchValue({
+        clusterName: '',
+        vmName: '',
+        managementBridgeName: '',
+        managementBridgeType: ''
+      });
+
+      fixture.detectChanges();
+
+      const submitButton = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+      expect(submitButton.disabled).toBe(false);
+
+      submitButton.click();
+      fixture.detectChanges();
+
+      httpTestingController.expectNone((req) => req.url.includes('/proxmox/vms'));
+      expect(component.form.get('clusterName')?.touched).toBe(true);
+      expect(component.form.get('vmName')?.touched).toBe(true);
+      expect(component.form.get('managementBridgeName')?.touched).toBe(true);
+      expect(component.form.get('managementBridgeType')?.touched).toBe(true);
+      expect(fixture.nativeElement.textContent).toContain(
+        'Complete all required fields before deploying.'
+      );
+      expect(
+        fixture.nativeElement
+          .querySelector('input[formControlName="clusterName"]')
+          ?.classList.contains('ng-invalid')
+      ).toBe(true);
+    });
+
+    it('allows deploying without a template and omits it from the payload', () => {
+      const component = fixture.componentInstance as any;
+      component.form.setValue({
+        clusterName: 'prod-cluster-01',
+        vmName: 'web-server-01',
+        template: '',
+        cpu: 4,
+        ram: 4096,
+        storageType: 'local-lvm',
+        diskSize: 50,
+        vmTargets: [],
+        managementBridgeName: 'vmbr0',
+        managementBridgeType: 'management',
+        customBridgeName: '',
+        customBridgeType: '',
+        customIp: '',
+        customNetmask: '',
+        customGateway: ''
+      });
+
+      fixture.detectChanges();
+
+      const submitButton = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+      submitButton.click();
+      fixture.detectChanges();
+
+      const request = httpTestingController.expectOne((req) => req.url.includes('/proxmox/vms'));
+      expect(request.request.method).toBe('POST');
+      expect(request.request.body.vms[0].template).toBeUndefined();
       request.flush({
         message: 'Proxmox VM deployment initiated successfully',
         deployment_status: 'in_progress',
@@ -465,6 +550,7 @@ describe('Registration form components', () => {
         ram: 4096,
         storageType: 'local-lvm',
         diskSize: 50,
+        vmTargets: [],
         managementBridgeName: 'vmbr0',
         managementBridgeType: 'management',
         customBridgeName: '',
@@ -480,7 +566,7 @@ describe('Registration form components', () => {
       submitButton.click();
       fixture.detectChanges();
 
-      const request = httpTestingController.expectOne((req) => req.url.includes('/proxmox/vm'));
+      const request = httpTestingController.expectOne((req) => req.url.includes('/proxmox/vms'));
       request.flush(
         {
           type: 'Template Missing',
@@ -502,6 +588,221 @@ describe('Registration form components', () => {
       expect(fixture.nativeElement.textContent).toContain(
         'Template ubuntu-2204-cloudinit could not be found.'
       );
+    });
+
+    it('builds one VM per selected standalone server and includes the target node', () => {
+      fixture.componentRef.setInput('standaloneClusterName', 'standalone-lab');
+      fixture.componentRef.setInput('serverTargets', [
+        { node: 'cls01srv01', storageOptions: ['datastorage', 'fast'] },
+        { node: 'cls01srv02', storageOptions: ['backup'] }
+      ]);
+      fixture.detectChanges();
+
+      const component = fixture.componentInstance as any;
+      component.form.patchValue({
+        managementBridgeName: 'vmbr0',
+        managementBridgeType: 'management',
+        customBridgeName: '',
+        customBridgeType: '',
+        customIp: '',
+        customNetmask: '',
+        customGateway: ''
+      });
+      component.form.controls.vmTargets.at(0).patchValue({
+        vmName: 'edge-01',
+        template: 'ubuntu-2204-cloudinit',
+        cpu: 8,
+        ram: 8192,
+        storageType: 'fast',
+        diskSize: 120
+      });
+      component.form.controls.vmTargets.at(1).patchValue({
+        vmName: 'edge-02',
+        template: 'ubuntu-2204-cloudinit',
+        cpu: 4,
+        ram: 4096,
+        storageType: 'backup',
+        diskSize: 80
+      });
+      fixture.detectChanges();
+
+      const submitButton = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+      submitButton.click();
+      fixture.detectChanges();
+
+      const request = httpTestingController.expectOne((req) => req.url.includes('/proxmox/vms'));
+      expect(request.request.body.cluster_name).toBe('standalone-lab');
+      expect(request.request.body.vms).toEqual([
+        {
+          node: 'cls01srv01',
+          name: 'edge-01',
+          template: 'ubuntu-2204-cloudinit',
+          cpu: 8,
+          ram: 8192,
+          storage_type: 'fast',
+          disk_size: 120,
+          bridges: [{ name: 'vmbr0', type: 'management' }]
+        },
+        {
+          node: 'cls01srv02',
+          name: 'edge-02',
+          template: 'ubuntu-2204-cloudinit',
+          cpu: 4,
+          ram: 4096,
+          storage_type: 'backup',
+          disk_size: 80,
+          bridges: [{ name: 'vmbr0', type: 'management' }]
+        }
+      ]);
+      request.flush({
+        message: 'Proxmox VM deployment initiated successfully',
+        deployment_status: 'in_progress',
+        estimated_time: '2-3 minutes',
+        vms: []
+      });
+    });
+
+    it('submits selected-server deployments even when hidden single-vm draft fields are invalid', () => {
+      fixture.destroy();
+      localStorage.setItem(
+        'katana-slice-manager.deployment-drafts',
+        JSON.stringify({
+          'proxmox-standalone': {
+            'proxmox-vm': {
+              state: 'draft',
+              value: {
+                clusterName: '',
+                vmName: '',
+                template: '',
+                cpu: null,
+                ram: null,
+                storageType: '',
+                diskSize: null,
+                vmTargets: [],
+                managementBridgeName: 'vmbr0',
+                managementBridgeType: 'management',
+                customBridgeName: '',
+                customBridgeType: '',
+                customIp: '',
+                customNetmask: '',
+                customGateway: ''
+              }
+            }
+          }
+        })
+      );
+
+      fixture = TestBed.createComponent(ProxmoxVmCreationFormComponent);
+      httpTestingController = TestBed.inject(HttpTestingController);
+      fixture.componentRef.setInput('standaloneAuthPayload', {
+        name: 'lab-proxmox',
+        url: 'https://proxmox.example:8006',
+        verify_ssl: false,
+        username: 'root@pam',
+        password: 'secret'
+      });
+      fixture.componentRef.setInput('standaloneClusterName', 'standalone-lab');
+      fixture.componentRef.setInput('serverTargets', [
+        { node: 'cls01srv01', storageOptions: ['fast'] }
+      ]);
+      fixture.detectChanges();
+
+      const component = fixture.componentInstance as any;
+      component.form.controls.vmTargets.at(0).patchValue({
+        vmName: 'edge-01',
+        cpu: 4,
+        ram: 4096,
+        storageType: 'fast',
+        diskSize: 80
+      });
+      fixture.detectChanges();
+
+      const submitButton = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+      submitButton.click();
+      fixture.detectChanges();
+
+      const request = httpTestingController.expectOne((req) => req.url.includes('/proxmox/vms'));
+      expect(request.request.body.cluster_name).toBe('standalone-lab');
+      expect(request.request.body.vms).toEqual([
+        {
+          node: 'cls01srv01',
+          name: 'edge-01',
+          cpu: 4,
+          ram: 4096,
+          storage_type: 'fast',
+          disk_size: 80,
+          bridges: [{ name: 'vmbr0', type: 'management' }]
+        }
+      ]);
+      request.flush({
+        message: 'Proxmox VM deployment initiated successfully',
+        deployment_status: 'in_progress',
+        estimated_time: '2-3 minutes',
+        vms: []
+      });
+    });
+
+    it('does not prefill optional values when restoring a saved standalone VM draft', () => {
+      fixture.destroy();
+      localStorage.setItem(
+        'katana-slice-manager.deployment-drafts',
+        JSON.stringify({
+          'proxmox-standalone': {
+            'proxmox-vm': {
+              state: 'draft',
+              value: {
+                clusterName: 'prod-cluster-01',
+                vmName: 'web-server-01',
+                template: 'ubuntu-2204-cloudinit',
+                cpu: 4,
+                ram: 4096,
+                storageType: 'local-lvm',
+                diskSize: 50,
+                vmTargets: [
+                  {
+                    node: 'cls01srv01',
+                    vmName: 'edge-01',
+                    template: 'ubuntu-2204-cloudinit',
+                    cpu: 8,
+                    ram: 8192,
+                    storageType: 'fast',
+                    diskSize: 120
+                  }
+                ],
+                managementBridgeName: 'vmbr0',
+                managementBridgeType: 'management',
+                customBridgeName: 'vmbr1',
+                customBridgeType: 'service',
+                customIp: '192.168.1.100',
+                customNetmask: '255.255.255.0',
+                customGateway: '192.168.1.1'
+              }
+            }
+          }
+        })
+      );
+
+      fixture = TestBed.createComponent(ProxmoxVmCreationFormComponent);
+      fixture.componentRef.setInput('standaloneClusterName', 'standalone-lab');
+      fixture.componentRef.setInput('serverTargets', [
+        { node: 'cls01srv01', storageOptions: ['fast', 'backup'] }
+      ]);
+      fixture.detectChanges();
+
+      const component = fixture.componentInstance as any;
+      const target = component.form.controls.vmTargets.at(0);
+
+      expect(component.form.get('vmName')?.value).toBe('web-server-01');
+      expect(component.form.get('template')?.value).toBe('');
+      expect(component.form.get('customBridgeName')?.value).toBe('');
+      expect(component.form.get('customBridgeType')?.value).toBe('');
+      expect(component.form.get('customIp')?.value).toBe('');
+      expect(component.form.get('customNetmask')?.value).toBe('');
+      expect(component.form.get('customGateway')?.value).toBe('');
+      expect(target.get('vmName')?.value).toBe('edge-01');
+      expect(target.get('template')?.value).toBe('');
+      expect(target.get('cpu')?.value).toBe(8);
+      expect(target.get('storageType')?.value).toBe('fast');
     });
   });
 });

@@ -27,8 +27,9 @@ export interface ProxmoxBridgeConfig {
 }
 
 export interface ProxmoxVmConfig {
+  node?: string;
   name: string;
-  template: string;
+  template?: string;
   cpu: number;
   ram: number;
   storage_type: string;

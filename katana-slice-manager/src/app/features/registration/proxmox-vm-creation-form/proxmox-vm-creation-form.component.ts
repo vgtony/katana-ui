@@ -1,16 +1,25 @@
-import { ChangeDetectorRef, Component, NgZone, inject, output } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, effect, inject, input, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { initialProxmoxVmCreationFormModel } from '../../../models/proxmox-vm-creation-form.model';
-import { ProxmoxVmCreationFormModel } from '../../../models/interfaces/proxmox-vm-creation-form.interface';
+import {
+  ProxmoxVmCreationFormModel,
+  ProxmoxVmTargetFormModel
+} from '../../../models/interfaces/proxmox-vm-creation-form.interface';
 import { DeploymentPackStatus } from '../../../models/interfaces/deployment-pack.interface';
+import { ProxmoxStandaloneVmTarget } from '../../../models/interfaces/proxmox-standalone-vm-target.interface';
 import {
   ProxmoxBridgeConfig,
-  ProxmoxVmConfig,
-  ProxmoxVmDeploymentRequest
+  ProxmoxVmConfig
 } from '../../../models/interfaces/proxmox.interface';
-import { ProxmoxApiService, getApiErrorMessage, getApiErrorType } from '../../../shared/services/api';
+import {
+  ProxmoxStandaloneVmDeploymentRequest,
+  ProxmoxStandaloneApiService,
+  ProxmoxStandaloneAuthPayload,
+  getApiErrorMessage,
+  getApiErrorType
+} from '../../../shared/services/api';
 import { DeploymentDraftService } from '../../../shared/services/deployment-draft.service';
 
 export interface DeploymentAttemptEvent {
@@ -28,15 +37,24 @@ export class ProxmoxVmCreationFormComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly ngZone = inject(NgZone);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
-  private readonly proxmoxApi = inject(ProxmoxApiService);
+  private readonly proxmoxStandaloneApi = inject(ProxmoxStandaloneApiService);
   private readonly deploymentDraftService = inject(DeploymentDraftService);
+  private readonly standaloneStorageOptions = new Map<string, string[]>();
+  readonly standaloneClusterName = input('');
+  readonly serverTargets = input<ProxmoxStandaloneVmTarget[]>([]);
+  readonly standaloneAuthPayload = input<ProxmoxStandaloneAuthPayload | null>(null);
   readonly deployed = output<DeploymentAttemptEvent>();
-  protected readonly model: ProxmoxVmCreationFormModel = this.deploymentDraftService.getFormValue(
-    'proxmox',
-    'proxmox-vm',
-    initialProxmoxVmCreationFormModel
+  protected readonly model: ProxmoxVmCreationFormModel = this.clearOptionalPrefill(
+    this.deploymentDraftService.getFormValue(
+      'proxmox-standalone',
+      'proxmox-vm',
+      initialProxmoxVmCreationFormModel
+    )
   );
-  protected readonly savedState = this.deploymentDraftService.getFormState('proxmox', 'proxmox-vm');
+  protected readonly savedState = this.deploymentDraftService.getFormState(
+    'proxmox-standalone',
+    'proxmox-vm'
+  );
   protected readonly restoreMessage =
     this.savedState === 'active'
       ? 'Active Proxmox VM configuration loaded. Update it only if you want to deploy a different VM.'
@@ -51,11 +69,12 @@ export class ProxmoxVmCreationFormComponent {
   protected readonly form = this.formBuilder.group({
     clusterName: [this.model.clusterName, Validators.required],
     vmName: [this.model.vmName, Validators.required],
-    template: [this.model.template, Validators.required],
+    template: [this.model.template],
     cpu: [this.model.cpu, Validators.required],
     ram: [this.model.ram, Validators.required],
     storageType: [this.model.storageType, Validators.required],
     diskSize: [this.model.diskSize, Validators.required],
+    vmTargets: this.formBuilder.array([]),
     managementBridgeName: [this.model.managementBridgeName, Validators.required],
     managementBridgeType: [this.model.managementBridgeType, Validators.required],
     customBridgeName: [this.model.customBridgeName],
@@ -66,14 +85,33 @@ export class ProxmoxVmCreationFormComponent {
   });
 
   constructor() {
+    effect(() => {
+      const serverTargets = this.serverTargets();
+      this.syncStandaloneTargets(serverTargets, this.standaloneClusterName());
+      this.syncStandaloneFormMode(serverTargets.length > 0);
+    });
+
     this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
       this.deploymentDraftService.saveFormValue(
-        'proxmox',
+        'proxmox-standalone',
         'proxmox-vm',
         this.form.getRawValue() as ProxmoxVmCreationFormModel,
         'draft'
       );
     });
+  }
+
+  protected get hasStandaloneTargets(): boolean {
+    return this.serverTargets().length > 0;
+  }
+
+  protected get vmTargetControls(): FormGroup[] {
+    return this.vmTargetsArray.controls as FormGroup[];
+  }
+
+  protected getStorageOptions(index: number): string[] {
+    const node = this.vmTargetControls[index]?.get('node')?.value;
+    return typeof node === 'string' ? this.standaloneStorageOptions.get(node) ?? [] : [];
   }
 
   protected submit(): void {
@@ -83,6 +121,7 @@ export class ProxmoxVmCreationFormComponent {
 
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.submitError = 'Complete all required fields before deploying.';
       return;
     }
 
@@ -94,7 +133,7 @@ export class ProxmoxVmCreationFormComponent {
 
     this.submitting = true;
 
-    this.proxmoxApi
+    this.proxmoxStandaloneApi
       .deployVms(payload)
       .pipe(
         finalize(() =>
@@ -108,7 +147,7 @@ export class ProxmoxVmCreationFormComponent {
         next: (response) => {
           this.ngZone.run(() => {
             this.deploymentDraftService.saveFormValue(
-              'proxmox',
+              'proxmox-standalone',
               'proxmox-vm',
               this.form.getRawValue() as ProxmoxVmCreationFormModel,
               'active'
@@ -133,8 +172,15 @@ export class ProxmoxVmCreationFormComponent {
       });
   }
 
-  private buildDeploymentRequest(): ProxmoxVmDeploymentRequest | null {
+  private buildDeploymentRequest(): ProxmoxStandaloneVmDeploymentRequest | null {
     const formValue = this.form.getRawValue() as ProxmoxVmCreationFormModel;
+    const authPayload = this.resolveStandaloneAuthPayload();
+
+    if (!authPayload) {
+      this.submitError = 'Standalone Proxmox authentication is required before deploying VMs.';
+      return null;
+    }
+
     const managementBridge = this.buildRequiredBridgeConfig(
       formValue.managementBridgeName,
       formValue.managementBridgeType
@@ -158,19 +204,206 @@ export class ProxmoxVmCreationFormComponent {
       return null;
     }
 
-    const vm: ProxmoxVmConfig = {
-      name: formValue.vmName,
-      template: formValue.template,
-      cpu: formValue.cpu,
-      ram: formValue.ram,
-      storage_type: formValue.storageType,
-      disk_size: formValue.diskSize,
-      bridges: customBridge ? [managementBridge, customBridge] : [managementBridge]
-    };
+    const bridges = customBridge ? [managementBridge, customBridge] : [managementBridge];
+    const standaloneVmTargets =
+      this.hasStandaloneTargets && formValue.vmTargets.length
+        ? formValue.vmTargets
+        : [];
+    const vms = standaloneVmTargets.length
+      ? standaloneVmTargets.map((vmTarget) => this.buildVmConfig(vmTarget, bridges))
+      : [
+          this.buildVmConfig(
+            {
+              node: '',
+              vmName: formValue.vmName,
+              template: formValue.template,
+              cpu: formValue.cpu,
+              ram: formValue.ram,
+              storageType: formValue.storageType,
+              diskSize: formValue.diskSize
+            },
+            bridges
+          )
+        ];
 
     return {
+      ...authPayload,
       cluster_name: formValue.clusterName,
-      vms: [vm]
+      vms
+    };
+  }
+
+  private resolveStandaloneAuthPayload(): ProxmoxStandaloneAuthPayload | null {
+    const inputPayload = this.standaloneAuthPayload();
+
+    if (inputPayload) {
+      return inputPayload;
+    }
+
+    const snapshot = this.deploymentDraftService.getSavedFormSnapshot<Record<string, unknown>>(
+      'proxmox-standalone',
+      'proxmox-standalone'
+    );
+
+    if (!snapshot) {
+      return null;
+    }
+
+    const name = this.readString(snapshot['name']);
+    const url = this.readString(snapshot['url']);
+
+    if (!name || !url) {
+      return null;
+    }
+
+    const payload: ProxmoxStandaloneAuthPayload = {
+      name,
+      url,
+      verify_ssl: snapshot['verifySsl'] === true
+    };
+    const username = this.readString(snapshot['username']);
+    const password = this.readString(snapshot['password'], false);
+    const apiTokenId = this.readString(snapshot['apiTokenId']);
+    const apiTokenSecret = this.readString(snapshot['apiTokenSecret'], false);
+
+    if (username && password) {
+      return {
+        ...payload,
+        username,
+        password
+      };
+    }
+
+    if (apiTokenId && apiTokenSecret) {
+      return {
+        ...payload,
+        api_token_id: apiTokenId,
+        api_token_secret: apiTokenSecret
+      };
+    }
+
+    return null;
+  }
+
+  private get vmTargetsArray(): FormArray {
+    return this.form.controls.vmTargets as FormArray;
+  }
+
+  private syncStandaloneTargets(targets: ProxmoxStandaloneVmTarget[], clusterName: string): void {
+    if (clusterName.trim()) {
+      this.form.controls.clusterName.patchValue(clusterName, { emitEvent: false });
+    }
+
+    if (!targets.length) {
+      this.standaloneStorageOptions.clear();
+      while (this.vmTargetsArray.length) {
+        this.vmTargetsArray.removeAt(0, { emitEvent: false });
+      }
+      return;
+    }
+
+    const existingTargets = new Map(
+      (this.vmTargetsArray.getRawValue() as ProxmoxVmTargetFormModel[]).map((target) => [
+        target.node,
+        target
+      ])
+    );
+
+    this.standaloneStorageOptions.clear();
+    while (this.vmTargetsArray.length) {
+      this.vmTargetsArray.removeAt(0, { emitEvent: false });
+    }
+
+    for (const target of targets) {
+      this.standaloneStorageOptions.set(target.node, target.storageOptions);
+      const savedTarget =
+        existingTargets.get(target.node) ?? this.findSavedVmTarget(target.node) ?? null;
+      this.vmTargetsArray.push(
+        this.createVmTargetGroup(savedTarget ?? this.createDefaultVmTarget(target)),
+        { emitEvent: false }
+      );
+    }
+  }
+
+  private syncStandaloneFormMode(hasTargets: boolean): void {
+    const singleVmControlNames: Array<
+      'vmName' | 'template' | 'cpu' | 'ram' | 'storageType' | 'diskSize'
+    > = ['vmName', 'template', 'cpu', 'ram', 'storageType', 'diskSize'];
+
+    for (const controlName of singleVmControlNames) {
+      const control = this.form.controls[controlName];
+
+      if (hasTargets) {
+        control.disable({ emitEvent: false });
+        continue;
+      }
+
+      control.enable({ emitEvent: false });
+    }
+  }
+
+  private findSavedVmTarget(node: string): ProxmoxVmTargetFormModel | null {
+    return this.model.vmTargets.find((target) => target.node === node) ?? null;
+  }
+
+  private clearOptionalPrefill(
+    model: ProxmoxVmCreationFormModel
+  ): ProxmoxVmCreationFormModel {
+    return {
+      ...model,
+      template: '',
+      customBridgeName: '',
+      customBridgeType: '',
+      customIp: '',
+      customNetmask: '',
+      customGateway: '',
+      vmTargets: model.vmTargets.map((target) => ({
+        ...target,
+        template: ''
+      }))
+    };
+  }
+
+  private createDefaultVmTarget(target: ProxmoxStandaloneVmTarget): ProxmoxVmTargetFormModel {
+    return {
+      node: target.node,
+      vmName: `${this.model.vmName}-${target.node}`,
+      template: this.model.template,
+      cpu: this.model.cpu,
+      ram: this.model.ram,
+      storageType: target.storageOptions[0] ?? this.model.storageType,
+      diskSize: this.model.diskSize
+    };
+  }
+
+  private createVmTargetGroup(value: ProxmoxVmTargetFormModel): FormGroup {
+    return this.formBuilder.group({
+      node: [value.node, Validators.required],
+      vmName: [value.vmName, Validators.required],
+      template: [value.template],
+      cpu: [value.cpu, [Validators.required, Validators.min(1)]],
+      ram: [value.ram, [Validators.required, Validators.min(1)]],
+      storageType: [value.storageType, Validators.required],
+      diskSize: [value.diskSize, [Validators.required, Validators.min(1)]]
+    });
+  }
+
+  private buildVmConfig(
+    vmValue: ProxmoxVmTargetFormModel,
+    bridges: ProxmoxBridgeConfig[]
+  ): ProxmoxVmConfig {
+    const node = vmValue.node.trim();
+    const template = vmValue.template.trim();
+
+    return {
+      ...(node ? { node } : {}),
+      name: vmValue.vmName,
+      ...(template ? { template } : {}),
+      cpu: vmValue.cpu,
+      ram: vmValue.ram,
+      storage_type: vmValue.storageType,
+      disk_size: vmValue.diskSize,
+      bridges
     };
   }
 
@@ -232,5 +465,14 @@ export class ProxmoxVmCreationFormComponent {
       netmask: normalizedNetmask,
       gateway: normalizedGateway
     };
+  }
+
+  private readString(value: unknown, trim = true): string | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const normalized = trim ? value.trim() : value;
+    return normalized ? normalized : null;
   }
 }

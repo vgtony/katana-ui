@@ -60,13 +60,13 @@ describe('DeploymentDraftService', () => {
       service.getFormValue('proxmox', 'proxmox-vm', {
         clusterName: '',
         vmName: 'katana-vm-1',
-        template: '101',
+        template: '',
         cpu: 4
       })
     ).toEqual({
       clusterName: '',
       vmName: 'katana-vm-1',
-      template: '101',
+      template: '',
       cpu: 4
     });
   });

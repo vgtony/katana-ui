@@ -1,23 +1,73 @@
 <section class="registration-form">
   <div class="registration-form__header">
-    <!-- <h3>Create VM definitions from YAML</h3>
-    <p>Models `katana proxmox vm-add -f proxmox_vms.yaml` and the `--prox` slice flow.</p> -->
+    @if (hasStandaloneTargets) {
+      <p class="registration-form__eyebrow">VM deployment</p>
+      <p class="registration-form__support-copy">
+        Configure one VM per selected server. CPU, RAM, storage, and disk size can be customized
+        per node before deployment.
+      </p>
+    }
   </div>
 
   <form class="registration-form__grid" [formGroup]="form" (ngSubmit)="submit()">
     @if (restoreMessage) {
       <p class="registration-form__status" role="status">{{ restoreMessage }}</p>
     }
-    <label
-      ><span>Cluster name</span
-      ><input type="text" formControlName="clusterName" placeholder="MyCluster"
-    /></label>
-    <label><span>VM name</span><input type="text" formControlName="vmName" /></label>
-    <label><span>Template</span><input type="text" formControlName="template" /></label>
-    <label><span>CPU</span><input type="number" formControlName="cpu" /></label>
-    <label><span>RAM (MB)</span><input type="number" formControlName="ram" /></label>
-    <label><span>Storage type</span><input type="text" formControlName="storageType" /></label>
-    <label><span>Disk size (GB)</span><input type="number" formControlName="diskSize" /></label>
+
+    <label>
+      <span>Cluster name</span>
+      <input
+        type="text"
+        formControlName="clusterName"
+        placeholder="MyCluster"
+        [readOnly]="hasStandaloneTargets"
+      />
+    </label>
+
+    @if (hasStandaloneTargets) {
+      <div class="registration-form__vm-targets" formArrayName="vmTargets">
+        @for (target of vmTargetControls; track target.get('node')?.value; let index = $index) {
+          <article class="registration-form__vm-target-card" [formGroupName]="index">
+            <div class="registration-form__vm-target-head">
+              <div>
+                <span>Target server</span>
+                <strong>{{ target.get('node')?.value }}</strong>
+              </div>
+            </div>
+
+            <label><span>VM name</span><input type="text" formControlName="vmName" /></label>
+            <label
+              ><span>Template (optional)</span><input type="text" formControlName="template"
+            /></label>
+            <label><span>CPU</span><input type="number" formControlName="cpu" /></label>
+            <label><span>RAM (MB)</span><input type="number" formControlName="ram" /></label>
+            <label>
+              <span>Storage type</span>
+              @if (getStorageOptions(index).length) {
+                <select formControlName="storageType">
+                  @for (storageOption of getStorageOptions(index); track storageOption) {
+                    <option [value]="storageOption">{{ storageOption }}</option>
+                  }
+                </select>
+              } @else {
+                <input type="text" formControlName="storageType" />
+              }
+            </label>
+            <label><span>Disk size (GB)</span><input type="number" formControlName="diskSize" /></label>
+          </article>
+        }
+      </div>
+    } @else {
+      <label><span>VM name</span><input type="text" formControlName="vmName" /></label>
+      <label
+        ><span>Template (optional)</span><input type="text" formControlName="template"
+      /></label>
+      <label><span>CPU</span><input type="number" formControlName="cpu" /></label>
+      <label><span>RAM (MB)</span><input type="number" formControlName="ram" /></label>
+      <label><span>Storage type</span><input type="text" formControlName="storageType" /></label>
+      <label><span>Disk size (GB)</span><input type="number" formControlName="diskSize" /></label>
+    }
+
     <label
       ><span>Management bridge</span><input type="text" formControlName="managementBridgeName"
     /></label>
@@ -31,13 +81,15 @@
     <label><span>Custom IP</span><input type="text" formControlName="customIp" /></label>
     <label><span>Custom netmask</span><input type="text" formControlName="customNetmask" /></label>
     <label><span>Custom gateway</span><input type="text" formControlName="customGateway" /></label>
-    <button type="submit" [disabled]="form.invalid || submitting">
+    <button type="submit" [disabled]="submitting">
       {{
         submitting
           ? 'Deploying VMs...'
           : submitSucceeded
             ? 'Deployment Started'
-            : 'Deploy Proxmox VM'
+            : hasStandaloneTargets
+              ? 'Deploy Selected VMs'
+              : 'Deploy Proxmox VM'
       }}
     </button>
     @if (submitMessage) {

@@ -170,70 +170,115 @@
           </div>
 
           @if (results.servers.length) {
-            <div class="registration-form__server-list">
-              @for (server of results.servers; track trackServer($index, server)) {
-                <article class="registration-form__server-table">
-                  <div
-                    class="registration-form__server-table-row registration-form__server-table-row--summary"
+            @if (!compactOnly() || !selectedVmTargets.length) {
+              <div class="registration-form__server-list">
+                @for (server of results.servers; track trackServer($index, server)) {
+                  <article
+                    class="registration-form__server-table"
+                    [class.registration-form__server-table--interactive]="compactOnly()"
+                    [class.registration-form__server-table--selected]="isServerSelected(server.name)"
+                    [attr.aria-label]="compactOnly() ? 'Select server ' + server.name : null"
+                    [attr.aria-pressed]="compactOnly() ? isServerSelected(server.name) : null"
+                    [attr.role]="compactOnly() ? 'button' : null"
+                    [attr.tabindex]="compactOnly() ? 0 : null"
+                    (click)="chooseServer(server.name)"
+                    (keydown.enter)="chooseServer(server.name)"
+                    (keydown.space)="chooseServer(server.name); $event.preventDefault()"
                   >
                     <div
-                      class="registration-form__server-cell registration-form__server-cell--name"
+                      class="registration-form__server-table-row registration-form__server-table-row--summary"
                     >
-                      <span>Name</span>
-                      <strong>{{ server.name }}</strong>
-                    </div>
-                    <div class="registration-form__server-cell">
-                      <span>CPU</span>
-                      <strong>{{ server.cpu }}</strong>
-                    </div>
-                    <div class="registration-form__server-cell">
-                      <span>RAM</span>
-                      <strong>{{ server.memory }}</strong>
-                    </div>
-                    <div class="registration-form__server-cell">
-                      <span>Disk</span>
-                      <strong>{{ server.disk }}</strong>
-                    </div>
-                  </div>
-
-                  @if (server.storage.length) {
-                    @for (storage of server.storage; track trackStorage($index, storage)) {
                       <div
-                        class="registration-form__server-table-row registration-form__server-table-row--storage"
+                        class="registration-form__server-cell registration-form__server-cell--name"
                       >
+                        <span>Name</span>
+                        <strong>{{ server.name }}</strong>
+                        @if (compactOnly() && isServerSelected(server.name)) {
+                          <em class="registration-form__server-selection-pill">Selected</em>
+                        }
+                      </div>
+                      <div class="registration-form__server-cell">
+                        <span>CPU</span>
+                        <strong>{{ server.cpu }}</strong>
+                      </div>
+                      <div class="registration-form__server-cell">
+                        <span>RAM</span>
+                        <strong>{{ server.memory }}</strong>
+                      </div>
+                      <div class="registration-form__server-cell">
+                        <span>Disk</span>
+                        <strong>{{ server.disk }}</strong>
+                      </div>
+                    </div>
+
+                    @if (server.storage.length) {
+                      @for (storage of server.storage; track trackStorage($index, storage)) {
                         <div
-                          class="registration-form__server-storage-cell registration-form__server-storage-cell--name"
+                          class="registration-form__server-table-row registration-form__server-table-row--storage"
                         >
-                          <span>Storage</span>
-                          <strong>{{ storage.name }}</strong>
-                          <p>{{ storage.type }}</p>
+                          <div
+                            class="registration-form__server-storage-cell registration-form__server-storage-cell--name"
+                          >
+                            <span>Storage</span>
+                            <strong>{{ storage.name }}</strong>
+                            <p>{{ storage.type }}</p>
+                          </div>
+                          <div class="registration-form__server-storage-cell">
+                            <span>Free</span>
+                            <strong>{{ storage.remaining }}</strong>
+                          </div>
+                          <div class="registration-form__server-storage-cell">
+                            <span>Used</span>
+                            <strong>{{ storage.used }}</strong>
+                          </div>
+                          <div class="registration-form__server-storage-cell">
+                            <span>Total</span>
+                            <strong>{{ storage.total }}</strong>
+                          </div>
                         </div>
-                        <div class="registration-form__server-storage-cell">
-                          <span>Free</span>
-                          <strong>{{ storage.remaining }}</strong>
-                        </div>
-                        <div class="registration-form__server-storage-cell">
-                          <span>Used</span>
-                          <strong>{{ storage.used }}</strong>
-                        </div>
-                        <div class="registration-form__server-storage-cell">
-                          <span>Total</span>
-                          <strong>{{ storage.total }}</strong>
-                        </div>
+                      }
+                    } @else {
+                      <div
+                        class="registration-form__server-table-row registration-form__server-table-row--empty"
+                      >
+                        <p class="registration-form__empty">
+                          No storage entries returned for this node.
+                        </p>
                       </div>
                     }
-                  } @else {
-                    <div
-                      class="registration-form__server-table-row registration-form__server-table-row--empty"
-                    >
-                      <p class="registration-form__empty">
-                        No storage entries returned for this node.
-                      </p>
-                    </div>
-                  }
-                </article>
+                  </article>
+                }
+              </div>
+            }
+
+            @if (compactOnly()) {
+              @if (selectedVmTargets.length) {
+                <div class="registration-form__server-selected-summary">
+                  <div>
+                    <span>Selected server</span>
+                    <strong>{{ selectedVmTargets[0].node }}</strong>
+                  </div>
+                  <button
+                    class="registration-form__server-change-button"
+                    type="button"
+                    (click)="clearServerSelection()"
+                  >
+                    Change server
+                  </button>
+                </div>
+
+                <app-proxmox-vm-creation-form
+                  [standaloneAuthPayload]="standaloneAuthPayload"
+                  [standaloneClusterName]="currentSnapshot.name"
+                  [serverTargets]="selectedVmTargets"
+                  (deployed)="handleVmDeployed($event)"
+                ></app-proxmox-vm-creation-form>
+              } @else {
+                <p class="registration-form__selection-copy">
+                  Select a server to continue to VM deployment.
+                </p>
               }
-            </div>
+            }
           } @else {
             <p class="registration-form__empty">No servers returned.</p>
           }

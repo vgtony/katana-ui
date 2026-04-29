@@ -2,6 +2,11 @@ import { ChangeDetectorRef, Component, NgZone, input, inject, output } from '@an
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize, forkJoin, of, switchMap } from 'rxjs';
+import { ProxmoxStandaloneVmTarget } from '../../../models/interfaces/proxmox-standalone-vm-target.interface';
+import {
+  DeploymentAttemptEvent,
+  ProxmoxVmCreationFormComponent
+} from '../proxmox-vm-creation-form/proxmox-vm-creation-form.component';
 import {
   ProxmoxStandaloneApiService,
   ProxmoxStandaloneAuthPayload,
@@ -83,7 +88,7 @@ const initialSnapshot: ProxmoxStandaloneSnapshot = {
 
 @Component({
   selector: 'app-proxmox-standalone-registration-form',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, ProxmoxVmCreationFormComponent],
   templateUrl: './proxmox-standalone-registration-form.component.html',
   styleUrl: './proxmox-standalone-registration-form.component.scss'
 })
@@ -97,6 +102,7 @@ export class ProxmoxStandaloneRegistrationFormComponent {
   readonly compactOnly = input(false);
   readonly completed = output<void>();
   readonly failed = output<void>();
+  readonly deployed = output<DeploymentAttemptEvent>();
 
   protected readonly model = this.deploymentDraftService.getFormValue(
     'proxmox-standalone',
@@ -118,7 +124,9 @@ export class ProxmoxStandaloneRegistrationFormComponent {
   protected submitMessage = '';
   protected submitError = '';
   protected resultsView: CompactResultsView | null = this.buildResultsView(this.model);
-  private currentSnapshot: ProxmoxStandaloneSnapshot = this.model;
+  protected selectedVmTargets: ProxmoxStandaloneVmTarget[] = [];
+  protected readonly selectedServerNames = new Set<string>();
+  protected currentSnapshot: ProxmoxStandaloneSnapshot = this.model;
 
   protected readonly form = this.formBuilder.nonNullable.group({
     name: [this.model.name, Validators.required],
@@ -156,6 +164,33 @@ export class ProxmoxStandaloneRegistrationFormComponent {
 
   protected get hasResults(): boolean {
     return this.resultsView !== null;
+  }
+
+  protected get standaloneAuthPayload(): ProxmoxStandaloneAuthPayload | null {
+    return this.buildPayload();
+  }
+
+  protected isServerSelected(serverName: string): boolean {
+    return this.selectedServerNames.has(serverName);
+  }
+
+  protected chooseServer(serverName: string): void {
+    if (!this.compactOnly()) {
+      return;
+    }
+
+    this.selectedServerNames.clear();
+    this.selectedServerNames.add(serverName);
+    this.syncSelectedVmTargets();
+  }
+
+  protected clearServerSelection(): void {
+    this.selectedServerNames.clear();
+    this.syncSelectedVmTargets();
+  }
+
+  protected handleVmDeployed(event: DeploymentAttemptEvent): void {
+    this.deployed.emit(event);
   }
 
   protected submit(): void {
@@ -221,6 +256,7 @@ export class ProxmoxStandaloneRegistrationFormComponent {
 
             this.currentSnapshot = snapshot;
             this.resultsView = this.buildResultsView(snapshot);
+            this.syncSelectedVmTargets();
             this.deploymentDraftService.saveFormValue(
               'proxmox-standalone',
               'proxmox-standalone',
@@ -548,5 +584,23 @@ export class ProxmoxStandaloneRegistrationFormComponent {
 
   private asFiniteNumber(value: unknown): number | null {
     return typeof value === 'number' && Number.isFinite(value) ? value : null;
+  }
+
+  private syncSelectedVmTargets(): void {
+    const availableServers = new Set(this.resultsView?.servers.map((server) => server.name) ?? []);
+
+    for (const selectedServerName of [...this.selectedServerNames]) {
+      if (!availableServers.has(selectedServerName)) {
+        this.selectedServerNames.delete(selectedServerName);
+      }
+    }
+
+    this.selectedVmTargets =
+      this.resultsView?.servers
+        .filter((server) => this.selectedServerNames.has(server.name))
+        .map((server) => ({
+          node: server.name,
+          storageOptions: [...new Set(server.storage.map((storage) => storage.name))]
+        })) ?? [];
   }
 }
