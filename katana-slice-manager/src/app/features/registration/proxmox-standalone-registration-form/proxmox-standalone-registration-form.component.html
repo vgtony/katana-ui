@@ -16,11 +16,8 @@
       </label>
 
       <label>
-        <span>Authentication method</span>
-        <select formControlName="authMethod">
-          <option value="password">Username and password</option>
-          <option value="token">API token</option>
-        </select>
+        <span>Default node</span>
+        <input type="text" formControlName="node" placeholder="pve-node-01" />
       </label>
 
       <label class="registration-form__checkbox">
@@ -28,31 +25,15 @@
         <span>Verify SSL certificate</span>
       </label>
 
-      @if (authMethod === 'password') {
-        <label>
-          <span>Username</span>
-          <input type="text" formControlName="username" placeholder="root@pam" />
-        </label>
+      <label>
+        <span>Username</span>
+        <input type="text" formControlName="username" placeholder="root@pam" />
+      </label>
 
-        <label>
-          <span>Password</span>
-          <input type="password" formControlName="password" placeholder="Enter Proxmox password" />
-        </label>
-      } @else {
-        <label>
-          <span>API token id</span>
-          <input type="text" formControlName="apiTokenId" placeholder="root@pam!mytoken" />
-        </label>
-
-        <label>
-          <span>API token secret</span>
-          <input
-            type="password"
-            formControlName="apiTokenSecret"
-            placeholder="Enter API token secret"
-          />
-        </label>
-      }
+      <label>
+        <span>Password</span>
+        <input type="password" formControlName="password" placeholder="Enter Proxmox password" />
+      </label>
 
       <button class="registration-form__submit" type="submit" [disabled]="submitting">
         {{ submitting ? 'Loading Proxmox data...' : 'Register Proxmox' }}
@@ -61,7 +42,7 @@
       @if (submitting) {
         <div class="registration-form__loader" role="status" aria-live="polite">
           <span class="registration-form__spinner" aria-hidden="true"></span>
-          <span>Authenticating and loading clusters, servers, and remaining resources…</span>
+          <span>Registering the cluster and loading nodes, servers, and remaining resources…</span>
         </div>
       }
 
@@ -268,7 +249,6 @@
                 </div>
 
                 <app-proxmox-vm-creation-form
-                  [standaloneAuthPayload]="standaloneAuthPayload"
                   [standaloneClusterName]="currentSnapshot.name"
                   [serverTargets]="selectedVmTargets"
                   (deployed)="handleVmDeployed($event)"

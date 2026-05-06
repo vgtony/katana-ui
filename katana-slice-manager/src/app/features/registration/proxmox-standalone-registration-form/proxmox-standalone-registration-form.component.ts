@@ -1,15 +1,16 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectorRef, Component, NgZone, input, inject, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { finalize, forkJoin, of, switchMap } from 'rxjs';
+import { catchError, finalize, forkJoin, of, switchMap } from 'rxjs';
 import { ProxmoxStandaloneVmTarget } from '../../../models/interfaces/proxmox-standalone-vm-target.interface';
+import { ProxmoxClusterRegistrationFormModel } from '../../../models/interfaces/proxmox-cluster-registration-form.interface';
 import {
   DeploymentAttemptEvent,
   ProxmoxVmCreationFormComponent
 } from '../proxmox-vm-creation-form/proxmox-vm-creation-form.component';
 import {
-  ProxmoxStandaloneApiService,
-  ProxmoxStandaloneAuthPayload,
+  ProxmoxApiService,
   getApiErrorMessage
 } from '../../../shared/services/api';
 import { DeploymentDraftService } from '../../../shared/services/deployment-draft.service';
@@ -20,6 +21,7 @@ type UnknownRecord = Record<string, unknown>;
 interface ProxmoxStandaloneSnapshot {
   name: string;
   url: string;
+  node: string;
   verifySsl: boolean;
   authMethod: AuthMethod;
   username: string;
@@ -73,6 +75,7 @@ function isRecord(value: unknown): value is UnknownRecord {
 const initialSnapshot: ProxmoxStandaloneSnapshot = {
   name: '',
   url: 'https://10.160.100.11:8006',
+  node: '',
   verifySsl: false,
   authMethod: 'password',
   username: 'root@pam',
@@ -96,7 +99,7 @@ export class ProxmoxStandaloneRegistrationFormComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly ngZone = inject(NgZone);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
-  private readonly proxmoxStandaloneApi = inject(ProxmoxStandaloneApiService);
+  private readonly proxmoxApi = inject(ProxmoxApiService);
   private readonly deploymentDraftService = inject(DeploymentDraftService);
 
   readonly compactOnly = input(false);
@@ -131,10 +134,11 @@ export class ProxmoxStandaloneRegistrationFormComponent {
   protected readonly form = this.formBuilder.nonNullable.group({
     name: [this.model.name, Validators.required],
     url: [this.model.url, Validators.required],
+    node: [this.model.node, Validators.required],
     verifySsl: this.model.verifySsl,
-    authMethod: this.model.authMethod,
-    username: this.model.username,
-    password: this.model.password,
+    authMethod: 'password' as AuthMethod,
+    username: [this.model.username, Validators.required],
+    password: [this.model.password, Validators.required],
     apiTokenId: this.model.apiTokenId,
     apiTokenSecret: this.model.apiTokenSecret
   });
@@ -164,10 +168,6 @@ export class ProxmoxStandaloneRegistrationFormComponent {
 
   protected get hasResults(): boolean {
     return this.resultsView !== null;
-  }
-
-  protected get standaloneAuthPayload(): ProxmoxStandaloneAuthPayload | null {
-    return this.buildPayload();
   }
 
   protected isServerSelected(serverName: string): boolean {
@@ -200,10 +200,7 @@ export class ProxmoxStandaloneRegistrationFormComponent {
 
     if (this.form.invalid || !this.hasAuthenticationValues()) {
       this.form.markAllAsTouched();
-      this.submitError =
-        this.authMethod === 'password'
-          ? 'Enter both username and password to continue.'
-          : 'Enter both token id and token secret to continue.';
+      this.submitError = 'Enter cluster name, URL, username, password, and node to continue.';
       return;
     }
 
@@ -215,24 +212,42 @@ export class ProxmoxStandaloneRegistrationFormComponent {
       return;
     }
 
-    const payload = this.buildPayload();
+    const payload = this.buildClusterRegistrationPayload();
 
     if (!payload) {
-      this.submitError = 'Unable to build the Proxmox authentication payload.';
+      this.submitError = 'Unable to build the Proxmox cluster registration payload.';
       return;
     }
 
+    const clusterLookupPayload = {
+      cluster_name: payload.name
+    };
+
     this.submitting = true;
 
-    this.proxmoxStandaloneApi
-      .connect(payload)
+    this.proxmoxApi
+      .createCluster(payload)
       .pipe(
-        switchMap((connectResponse) =>
+        catchError((error: unknown) => {
+          if (error instanceof HttpErrorResponse && error.status === 409) {
+            return of({
+              message: 'A Proxmox cluster with these details is already active.',
+              cluster_id: null,
+              reusedExistingCluster: true
+            });
+          }
+
+          throw error;
+        }),
+        switchMap((clusterResponse) =>
           forkJoin({
-            connectResponse: of(connectResponse),
-            clusters: this.proxmoxStandaloneApi.getClusters(payload),
-            servers: this.proxmoxStandaloneApi.getServers(payload),
-            remainingResources: this.proxmoxStandaloneApi.getRemainingResources(payload)
+            clusterResponse: of(clusterResponse),
+            nodes: this.proxmoxApi.getNodes(clusterLookupPayload),
+            clusters: this.proxmoxApi.getStandaloneClusters(clusterLookupPayload),
+            servers: this.proxmoxApi.getStandaloneServers(clusterLookupPayload),
+            remainingResources: this.proxmoxApi.getStandaloneRemainingResources(
+              clusterLookupPayload
+            )
           })
         ),
         finalize(() =>
@@ -243,11 +258,11 @@ export class ProxmoxStandaloneRegistrationFormComponent {
         )
       )
       .subscribe({
-        next: ({ connectResponse, clusters, servers, remainingResources }) => {
+        next: ({ clusterResponse, nodes, clusters, servers, remainingResources }) => {
           this.ngZone.run(() => {
             const snapshot: ProxmoxStandaloneSnapshot = {
               ...this.form.getRawValue(),
-              connectedNodes: this.extractConnectedNodes(connectResponse),
+              connectedNodes: this.extractConnectedNodes(nodes),
               clusters: this.extractClusters(clusters),
               servers: this.extractServers(servers),
               remainingResources,
@@ -264,7 +279,10 @@ export class ProxmoxStandaloneRegistrationFormComponent {
               'active'
             );
             this.submitSucceeded = true;
-            this.submitMessage = `Loaded ${snapshot.clusters.length} clusters and ${snapshot.servers.length} servers.`;
+            this.submitMessage =
+              'reusedExistingCluster' in clusterResponse && clusterResponse.reusedExistingCluster
+                ? `Using existing Proxmox cluster registration. Loaded ${snapshot.connectedNodes.length} nodes and ${snapshot.servers.length} servers.`
+                : `Registered Proxmox cluster and loaded ${snapshot.connectedNodes.length} nodes and ${snapshot.servers.length} servers.`;
             this.completed.emit();
             this.changeDetectorRef.detectChanges();
           });
@@ -302,8 +320,9 @@ export class ProxmoxStandaloneRegistrationFormComponent {
         JSON.stringify({
           name: this.model.name,
           url: this.model.url,
+          node: this.model.node,
           verifySsl: this.model.verifySsl,
-          authMethod: this.model.authMethod,
+          authMethod: 'password',
           username: this.model.username,
           password: this.model.password,
           apiTokenId: this.model.apiTokenId,
@@ -314,46 +333,32 @@ export class ProxmoxStandaloneRegistrationFormComponent {
 
   private hasAuthenticationValues(): boolean {
     const value = this.form.getRawValue();
-
-    if (value.authMethod === 'password') {
-      return !!value.username.trim() && !!value.password.trim();
-    }
-
-    return !!value.apiTokenId.trim() && !!value.apiTokenSecret.trim();
+    return (
+      !!value.name.trim() &&
+      !!value.url.trim() &&
+      !!value.node.trim() &&
+      !!value.username.trim() &&
+      !!value.password.trim()
+    );
   }
 
-  private buildPayload(): ProxmoxStandaloneAuthPayload | null {
+  private buildClusterRegistrationPayload(): ProxmoxClusterRegistrationFormModel | null {
     const value = this.form.getRawValue();
-    const basePayload: ProxmoxStandaloneAuthPayload = {
-      name: value.name.trim(),
-      url: value.url.trim(),
-      verify_ssl: value.verifySsl
-    };
+    const name = value.name.trim();
+    const url = value.url.trim();
+    const username = value.username.trim();
+    const node = value.node.trim();
 
-    if (!basePayload.name || !basePayload.url) {
-      return null;
-    }
-
-    if (value.authMethod === 'password') {
-      if (!value.username.trim() || !value.password.trim()) {
-        return null;
-      }
-
-      return {
-        ...basePayload,
-        username: value.username.trim(),
-        password: value.password
-      };
-    }
-
-    if (!value.apiTokenId.trim() || !value.apiTokenSecret.trim()) {
+    if (!name || !url || !username || !value.password.trim() || !node) {
       return null;
     }
 
     return {
-      ...basePayload,
-      api_token_id: value.apiTokenId.trim(),
-      api_token_secret: value.apiTokenSecret
+      name,
+      url,
+      username,
+      password: value.password,
+      node
     };
   }
 

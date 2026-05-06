@@ -71,7 +71,8 @@
               "buildTarget": "katana-slice-manager:build:production"
             },
             "development": {
-              "buildTarget": "katana-slice-manager:build:development"
+              "buildTarget": "katana-slice-manager:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"

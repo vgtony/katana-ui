@@ -2,7 +2,11 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ProxmoxClusterRegistrationFormModel } from '../../../models/interfaces/proxmox-cluster-registration-form.interface';
 import {
+  ProxmoxListVmsResponse,
   ProxmoxClusterRegistrationResponse,
+  ProxmoxNodesRequest,
+  ProxmoxNodesResponse,
+  ProxmoxProvisionResponse,
   ProxmoxClusterResponse,
   ProxmoxDeleteClusterResponse,
   ProxmoxVmDeploymentRequest,
@@ -28,6 +32,30 @@ export class ProxmoxApiService extends KatanaApiBaseService {
 
   deleteCluster(clusterId: string): Observable<ProxmoxDeleteClusterResponse> {
     return this.http.delete<ProxmoxDeleteClusterResponse>(this.buildApiUrl('proxmox', 'cluster', clusterId));
+  }
+
+  getNodes(payload: ProxmoxNodesRequest): Observable<ProxmoxNodesResponse> {
+    return this.http.post<ProxmoxNodesResponse>(this.buildApiUrl('proxmox', 'nodes'), payload);
+  }
+
+  getStandaloneClusters(payload: ProxmoxNodesRequest): Observable<unknown> {
+    return this.http.post(this.buildApiUrl('proxmox', 'clusters'), payload);
+  }
+
+  getStandaloneServers(payload: ProxmoxNodesRequest): Observable<unknown> {
+    return this.http.post(this.buildApiUrl('proxmox', 'servers'), payload);
+  }
+
+  getStandaloneRemainingResources(payload: ProxmoxNodesRequest): Observable<unknown> {
+    return this.http.post(this.buildApiUrl('proxmox', 'remaining-resources'), payload);
+  }
+
+  provisionVms(payload: ProxmoxVmDeploymentRequest): Observable<ProxmoxProvisionResponse> {
+    return this.http.post<ProxmoxProvisionResponse>(this.buildApiUrl('proxmox', 'provision'), payload);
+  }
+
+  listVms(payload: ProxmoxNodesRequest, node: string): Observable<ProxmoxListVmsResponse> {
+    return this.http.post<ProxmoxListVmsResponse>(`${this.buildApiUrl('proxmox', 'list-vms')}?node=${encodeURIComponent(node)}`, payload);
   }
 
   deployVms(payload: ProxmoxVmDeploymentRequest): Observable<ProxmoxVmDeploymentResponse> {

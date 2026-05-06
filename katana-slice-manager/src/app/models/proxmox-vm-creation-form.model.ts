@@ -1,5 +1,7 @@
 import { ProxmoxVmCreationFormModel } from './interfaces/proxmox-vm-creation-form.interface';
 
+export const DEFAULT_PROXMOX_CUSTOM_BRIDGE_NAME = 'vmbr1:1601';
+
 export const initialProxmoxVmCreationFormModel: ProxmoxVmCreationFormModel = {
   clusterName: '',
   vmName: 'katana-vm-1',
@@ -11,7 +13,7 @@ export const initialProxmoxVmCreationFormModel: ProxmoxVmCreationFormModel = {
   vmTargets: [],
   managementBridgeName: 'vmbr0',
   managementBridgeType: 'management',
-  customBridgeName: '',
+  customBridgeName: DEFAULT_PROXMOX_CUSTOM_BRIDGE_NAME,
   customBridgeType: '',
   customIp: '',
   customNetmask: '',

@@ -1,6 +1,6 @@
 import { buildKatanaApiEndpoints } from './api-endpoints';
 
-const apiBase = 'http://localhost:8000/api';
+const apiBase = '/api';
 
 export const environment = {
   production: false,

@@ -4,7 +4,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Subject, throwError } from 'rxjs';
 import { vi } from 'vitest';
-import { ProxmoxStandaloneApiService } from '../../../shared/services/api';
+import { ProxmoxApiService } from '../../../shared/services/api';
 import { DeploymentDraftService } from '../../../shared/services/deployment-draft.service';
 import { ProxmoxStandaloneRegistrationFormComponent } from './proxmox-standalone-registration-form.component';
 
@@ -12,7 +12,8 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
   let fixture: ComponentFixture<ProxmoxStandaloneRegistrationFormComponent>;
   let component: ProxmoxStandaloneRegistrationFormComponent;
   let draftService: DeploymentDraftService;
-  let connectMock: ReturnType<typeof vi.fn>;
+  let createClusterMock: ReturnType<typeof vi.fn>;
+  let getNodesMock: ReturnType<typeof vi.fn>;
   let getClustersMock: ReturnType<typeof vi.fn>;
   let getServersMock: ReturnType<typeof vi.fn>;
   let getRemainingResourcesMock: ReturnType<typeof vi.fn>;
@@ -20,6 +21,7 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
   const activeSnapshot = {
     name: 'lab-cluster',
     url: 'https://proxmox.example:8006',
+    node: 'pve-01',
     verifySsl: false,
     authMethod: 'password' as const,
     username: 'root@pam',
@@ -77,7 +79,8 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
 
   beforeEach(async () => {
     localStorage.clear();
-    connectMock = vi.fn();
+    createClusterMock = vi.fn();
+    getNodesMock = vi.fn();
     getClustersMock = vi.fn();
     getServersMock = vi.fn();
     getRemainingResourcesMock = vi.fn();
@@ -89,12 +92,13 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
         provideHttpClientTesting(),
         DeploymentDraftService,
         {
-          provide: ProxmoxStandaloneApiService,
+          provide: ProxmoxApiService,
           useValue: {
-            connect: connectMock,
-            getClusters: getClustersMock,
-            getServers: getServersMock,
-            getRemainingResources: getRemainingResourcesMock
+            createCluster: createClusterMock,
+            getNodes: getNodesMock,
+            getStandaloneClusters: getClustersMock,
+            getStandaloneServers: getServersMock,
+            getStandaloneRemainingResources: getRemainingResourcesMock
           }
         }
       ]
@@ -124,7 +128,7 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
     submitButton.click();
     fixture.detectChanges();
 
-    expect(connectMock).not.toHaveBeenCalled();
+    expect(createClusterMock).not.toHaveBeenCalled();
     expect(getClustersMock).not.toHaveBeenCalled();
     expect(draftService.getFormState('proxmox-standalone', 'proxmox-standalone')).toBe('active');
     expect(component['submitMessage']).toContain(
@@ -134,11 +138,13 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
   });
 
   it('shows a loading spinner, saves the active snapshot, and renders compact results after a successful registration', () => {
-    const connect$ = new Subject<unknown>();
+    const createCluster$ = new Subject<unknown>();
+    const nodes$ = new Subject<unknown>();
     const clusters$ = new Subject<unknown>();
     const servers$ = new Subject<unknown>();
     const remainingResources$ = new Subject<unknown>();
-    connectMock.mockReturnValue(connect$);
+    createClusterMock.mockReturnValue(createCluster$);
+    getNodesMock.mockReturnValue(nodes$);
     getClustersMock.mockReturnValue(clusters$);
     getServersMock.mockReturnValue(servers$);
     getRemainingResourcesMock.mockReturnValue(remainingResources$);
@@ -147,6 +153,7 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
     component['form'].setValue({
       name: 'lab-cluster',
       url: 'https://proxmox.example:8006',
+      node: 'pve-01',
       verifySsl: false,
       authMethod: 'password',
       username: 'root@pam',
@@ -164,11 +171,13 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
     expect(component['submitting']).toBe(true);
     expect(submitButton.disabled).toBe(true);
     expect(fixture.nativeElement.textContent).toContain(
-      'Authenticating and loading clusters, servers, and remaining resources'
+      'Registering the cluster and loading nodes, servers, and remaining resources'
     );
 
-    connect$.next({ nodes: ['pve-01', 'pve-02'] });
-    connect$.complete();
+    createCluster$.next({ message: 'Proxmox cluster registered successfully', cluster_id: 'c-1' });
+    createCluster$.complete();
+    nodes$.next({ nodes: ['pve-01', 'pve-02'] });
+    nodes$.complete();
     clusters$.next([{ name: 'cluster-a', status: 'online', node_count: 2 }]);
     clusters$.complete();
     servers$.next([{ name: 'server-wrapper-should-not-render' }]);
@@ -177,12 +186,15 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
     remainingResources$.complete();
     fixture.detectChanges();
 
-    expect(connectMock).toHaveBeenCalledTimes(1);
+    expect(createClusterMock).toHaveBeenCalledTimes(1);
+    expect(getNodesMock).toHaveBeenCalledTimes(1);
     expect(getClustersMock).toHaveBeenCalledTimes(1);
     expect(getServersMock).toHaveBeenCalledTimes(1);
     expect(getRemainingResourcesMock).toHaveBeenCalledTimes(1);
     expect(component['submitting']).toBe(false);
-    expect(component['submitMessage']).toBe('Loaded 1 clusters and 1 servers.');
+    expect(component['submitMessage']).toBe(
+      'Registered Proxmox cluster and loaded 2 nodes and 1 servers.'
+    );
     expect(draftService.getFormState('proxmox-standalone', 'proxmox-standalone')).toBe('active');
     expect(
       draftService.getSavedFormSnapshot<{ name: string }>(
@@ -238,7 +250,7 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
   });
 
   it('shows the backend error when authentication fails', () => {
-    connectMock.mockReturnValue(
+    createClusterMock.mockReturnValue(
       throwError(
         () =>
           new HttpErrorResponse({
@@ -252,6 +264,7 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
     component['form'].setValue({
       name: 'lab-cluster',
       url: 'https://proxmox.example:8006',
+      node: 'pve-01',
       verifySsl: false,
       authMethod: 'password',
       username: 'root@pam',

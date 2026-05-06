@@ -27,19 +27,20 @@ export interface ProxmoxBridgeConfig {
 }
 
 export interface ProxmoxVmConfig {
-  node?: string;
   name: string;
   template?: string;
   cpu: number;
   ram: number;
   storage_type: string;
   disk_size: number;
+  start?: boolean;
   bridges: ProxmoxBridgeConfig[];
 }
 
 export interface ProxmoxVmDeploymentRequest {
   cluster_id?: string;
   cluster_name?: string;
+  node?: string;
   vms: ProxmoxVmConfig[];
 }
 
@@ -67,4 +68,48 @@ export interface ProxmoxVmDeploymentResponse {
   deployment_status: string;
   estimated_time: string;
   vms: ProxmoxVmSummary[];
+}
+
+export interface ProxmoxNodesRequest {
+  cluster_id?: string;
+  cluster_name?: string;
+  name?: string;
+  url?: string;
+  username?: string;
+  password?: string;
+  verify_ssl?: boolean;
+  node?: string;
+}
+
+export interface ProxmoxNodesResponse {
+  cluster: string;
+  nodes: Array<string | Record<string, unknown>>;
+}
+
+export interface ProxmoxProvisionResult {
+  name: string;
+  vmid: number;
+  template: number | null;
+  source: string;
+  node: string;
+  status: string;
+  started: boolean;
+  clone_task?: string | null;
+  create_task?: string | null;
+  start_task?: string | null;
+  warnings?: string[];
+  bridges: ProxmoxBridgeConfig[];
+}
+
+export interface ProxmoxProvisionResponse {
+  cluster: string;
+  node: string;
+  vm_count: number;
+  results: ProxmoxProvisionResult[];
+}
+
+export interface ProxmoxListVmsResponse {
+  cluster: string;
+  node: string;
+  vms: unknown[];
 }
