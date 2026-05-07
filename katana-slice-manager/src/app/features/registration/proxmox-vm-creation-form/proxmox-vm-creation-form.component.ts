@@ -10,6 +10,7 @@ import {
 import { DeploymentPackStatus } from '../../../models/interfaces/deployment-pack.interface';
 import {
   ProxmoxStandaloneVmTarget,
+  ProxmoxStorageIsoOption,
   ProxmoxVmTemplateOption
 } from '../../../models/interfaces/proxmox-standalone-vm-target.interface';
 import {
@@ -46,7 +47,7 @@ export class ProxmoxVmCreationFormComponent {
   private readonly proxmoxApi = inject(ProxmoxApiService);
   private readonly deploymentDraftService = inject(DeploymentDraftService);
   private readonly standaloneStorageOptions = new Map<string, string[]>();
-  private readonly standaloneIsoImageOptions = new Map<string, string[]>();
+  private readonly standaloneIsoImageOptions = new Map<string, Map<string, string[]>>();
   private readonly standaloneTemplateOptions = new Map<string, ProxmoxVmTemplateOption[]>();
   private readonly vmIpPollIntervalMs = 4000;
   private vmIpPollingSubscription: Subscription | null = null;
@@ -151,7 +152,36 @@ export class ProxmoxVmCreationFormComponent {
 
   protected getIsoImageOptions(index: number): string[] {
     const node = this.vmTargetControls[index]?.get('node')?.value;
-    return typeof node === 'string' ? this.standaloneIsoImageOptions.get(node) ?? [] : [];
+    const storageType = this.vmTargetControls[index]?.get('storageType')?.value;
+
+    if (typeof node !== 'string' || typeof storageType !== 'string' || !storageType.trim()) {
+      return [];
+    }
+
+    return this.standaloneIsoImageOptions.get(node)?.get(storageType.trim()) ?? [];
+  }
+
+  protected isIsoImageDisabled(index: number): boolean {
+    const storageType = this.vmTargetControls[index]?.get('storageType')?.value;
+    return typeof storageType !== 'string' || !storageType.trim();
+  }
+
+  protected handleStorageSelectionChange(index: number): void {
+    const vmTargetControl = this.vmTargetControls[index];
+
+    if (!vmTargetControl) {
+      return;
+    }
+
+    this.syncIsoImageControlState(vmTargetControl);
+
+    const isoImageControl = vmTargetControl.get('isoImage');
+    const currentIsoImage = isoImageControl?.value;
+    const isoImageOptions = this.getIsoImageOptions(index);
+
+    if (typeof currentIsoImage === 'string' && currentIsoImage && !isoImageOptions.includes(currentIsoImage)) {
+      isoImageControl?.patchValue('');
+    }
   }
 
   protected submit(): void {
@@ -331,14 +361,13 @@ export class ProxmoxVmCreationFormComponent {
 
     for (const target of targets) {
       this.standaloneStorageOptions.set(target.node, target.storageOptions);
-      this.standaloneIsoImageOptions.set(target.node, target.isoImages ?? []);
+      this.standaloneIsoImageOptions.set(target.node, this.buildStorageIsoImageMap(target.storageIsoImages));
       this.standaloneTemplateOptions.set(target.node, target.templateOptions ?? []);
       const savedTarget =
         existingTargets.get(target.node) ?? this.findSavedVmTarget(target.node) ?? null;
-      this.vmTargetsArray.push(
-        this.createVmTargetGroup(savedTarget ?? this.createDefaultVmTarget(target)),
-        { emitEvent: false }
-      );
+      const vmTargetGroup = this.createVmTargetGroup(savedTarget ?? this.createDefaultVmTarget(target));
+      this.syncIsoImageControlState(vmTargetGroup);
+      this.vmTargetsArray.push(vmTargetGroup, { emitEvent: false });
     }
   }
 
@@ -394,7 +423,7 @@ export class ProxmoxVmCreationFormComponent {
       start: this.model.start,
       cpu: this.model.cpu,
       ram: this.model.ram,
-      storageType: target.storageOptions[0] ?? this.model.storageType,
+      storageType: '',
       diskSize: this.model.diskSize
     };
   }
@@ -411,6 +440,23 @@ export class ProxmoxVmCreationFormComponent {
       storageType: [value.storageType, Validators.required],
       diskSize: [value.diskSize, [Validators.required, Validators.min(1)]]
     });
+  }
+
+  private syncIsoImageControlState(vmTargetGroup: FormGroup): void {
+    const storageType = vmTargetGroup.get('storageType')?.value;
+    const isoImageControl = vmTargetGroup.get('isoImage');
+    const hasStorageSelection = typeof storageType === 'string' && !!storageType.trim();
+
+    if (!isoImageControl) {
+      return;
+    }
+
+    if (hasStorageSelection) {
+      isoImageControl.enable({ emitEvent: false });
+      return;
+    }
+
+    isoImageControl.disable({ emitEvent: false });
   }
 
   private buildVmConfig(
@@ -446,6 +492,18 @@ export class ProxmoxVmCreationFormComponent {
     }
 
     return /^\d+$/.test(template) ? Number(template) : template;
+  }
+
+  private buildStorageIsoImageMap(
+    storageIsoImages: ProxmoxStorageIsoOption[] | undefined
+  ): Map<string, string[]> {
+    const storageIsoImageMap = new Map<string, string[]>();
+
+    for (const entry of storageIsoImages ?? []) {
+      storageIsoImageMap.set(entry.storage, entry.isoImages);
+    }
+
+    return storageIsoImageMap;
   }
 
   private buildRequiredBridgeConfig(name: string, type: string): ProxmoxBridgeConfig | null {

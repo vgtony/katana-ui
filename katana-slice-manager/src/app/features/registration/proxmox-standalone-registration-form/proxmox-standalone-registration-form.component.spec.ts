@@ -51,7 +51,13 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
               remaining_human: '800.00 GB',
               used_human: '200.00 GB',
               maximum_load_human: '1.00 TB',
-              iso_images: ['local:iso/ubuntu-22.04-live-server-amd64.iso']
+              iso_images: [
+                {
+                  volid: 'local:iso/ubuntu-22.04-live-server-amd64.iso',
+                  name: 'ubuntu-22.04-live-server-amd64.iso',
+                  storage: 'backup'
+                }
+              ]
             },
             {
               node: 'cls01srv01',
@@ -60,7 +66,13 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
               remaining_human: '120.00 GB',
               used_human: '380.00 GB',
               maximum_load_human: '500.00 GB',
-              iso_images: ['local:iso/ubuntu-24.04-live-server-amd64.iso']
+              iso_images: [
+                {
+                  volid: 'local:iso/ubuntu-24.04-live-server-amd64.iso',
+                  name: 'ubuntu-24.04-live-server-amd64.iso',
+                  storage: 'fast'
+                }
+              ]
             }
           ],
           templates: [{ template_id: 9000, name: 'ubuntu-cloudinit', template: true }]
@@ -231,9 +243,15 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
       {
         node: 'cls01srv01',
         storageOptions: ['backup', 'fast'],
-        isoImages: [
-          'local:iso/ubuntu-22.04-live-server-amd64.iso',
-          'local:iso/ubuntu-24.04-live-server-amd64.iso'
+        storageIsoImages: [
+          {
+            storage: 'backup',
+            isoImages: ['local:iso/ubuntu-22.04-live-server-amd64.iso']
+          },
+          {
+            storage: 'fast',
+            isoImages: ['local:iso/ubuntu-24.04-live-server-amd64.iso']
+          }
         ],
         templateOptions: [{ value: '9000', label: 'ubuntu-cloudinit (9000)' }]
       }

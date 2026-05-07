@@ -688,7 +688,20 @@ describe('Registration form components', () => {
       fixture.componentRef.setInput('standaloneClusterId', 'saved-katana-id');
       fixture.componentRef.setInput('standaloneClusterName', 'standalone-lab');
       fixture.componentRef.setInput('serverTargets', [
-        { node: 'cls01srv01', storageOptions: ['datastorage', 'fast'] }
+        {
+          node: 'cls01srv01',
+          storageOptions: ['datastorage', 'fast'],
+          storageIsoImages: [
+            {
+              storage: 'datastorage',
+              isoImages: ['local:iso/ubuntu-22.04-live-server-amd64.iso']
+            },
+            {
+              storage: 'fast',
+              isoImages: ['local:iso/ubuntu-24.04-live-server-amd64.iso']
+            }
+          ]
+        }
       ]);
       fixture.detectChanges();
 
@@ -744,6 +757,70 @@ describe('Registration form components', () => {
       httpTestingController.expectNone((req) => req.url.includes('/proxmox/vm-ip'));
     });
 
+    it('keeps the ISO dropdown disabled until a storage is chosen and then shows that storage ISOs', () => {
+      fixture.componentRef.setInput('standaloneClusterId', 'saved-katana-id');
+      fixture.componentRef.setInput('standaloneClusterName', 'standalone-lab');
+      fixture.componentRef.setInput('serverTargets', [
+        {
+          node: 'cls01srv01',
+          storageOptions: ['datastorage', 'fast'],
+          storageIsoImages: [
+            {
+              storage: 'datastorage',
+              isoImages: ['local:iso/ubuntu-22.04-live-server-amd64.iso']
+            },
+            {
+              storage: 'fast',
+              isoImages: ['local:iso/ubuntu-24.04-live-server-amd64.iso']
+            }
+          ]
+        }
+      ]);
+      fixture.detectChanges();
+
+      const component = fixture.componentInstance as any;
+      const storageSelect = component.form.controls.vmTargets.at(0).get('storageType');
+      const isoSelect = component.form.controls.vmTargets.at(0).get('isoImage');
+      const standaloneStorageSelect = fixture.nativeElement.querySelector(
+        '[formarrayname="vmTargets"] select[formControlName="storageType"]'
+      ) as HTMLSelectElement;
+      const standaloneIsoSelect = fixture.nativeElement.querySelector(
+        '[formarrayname="vmTargets"] select[formControlName="isoImage"]'
+      ) as HTMLSelectElement;
+
+      expect(storageSelect?.value).toBe('');
+      expect(standaloneStorageSelect.options[0]?.textContent?.trim()).toBe('Choose a storage');
+      expect(standaloneIsoSelect.disabled).toBe(true);
+      expect(standaloneIsoSelect.options[0]?.textContent?.trim()).toBe('Choose a storage first');
+
+      storageSelect?.setValue('fast');
+      component.handleStorageSelectionChange(0);
+      fixture.detectChanges();
+
+      const enabledIsoSelect = fixture.nativeElement.querySelector(
+        '[formarrayname="vmTargets"] select[formControlName="isoImage"]'
+      ) as HTMLSelectElement;
+
+      expect(enabledIsoSelect.disabled).toBe(false);
+      expect(enabledIsoSelect.options[1]?.textContent?.trim()).toBe(
+        'local:iso/ubuntu-24.04-live-server-amd64.iso'
+      );
+
+      isoSelect?.setValue('local:iso/ubuntu-24.04-live-server-amd64.iso');
+      storageSelect?.setValue('datastorage');
+      component.handleStorageSelectionChange(0);
+      fixture.detectChanges();
+
+      const changedIsoSelect = fixture.nativeElement.querySelector(
+        '[formarrayname="vmTargets"] select[formControlName="isoImage"]'
+      ) as HTMLSelectElement;
+
+      expect(isoSelect?.value).toBe('');
+      expect(changedIsoSelect.options[1]?.textContent?.trim()).toBe(
+        'local:iso/ubuntu-22.04-live-server-amd64.iso'
+      );
+    });
+
     it('submits selected-server deployments even when hidden single-vm draft fields are invalid', () => {
       fixture.destroy();
       localStorage.setItem(
@@ -780,7 +857,16 @@ describe('Registration form components', () => {
       fixture.componentRef.setInput('standaloneClusterId', 'saved-katana-id');
       fixture.componentRef.setInput('standaloneClusterName', 'standalone-lab');
       fixture.componentRef.setInput('serverTargets', [
-        { node: 'cls01srv01', storageOptions: ['fast'] }
+        {
+          node: 'cls01srv01',
+          storageOptions: ['fast'],
+          storageIsoImages: [
+            {
+              storage: 'fast',
+              isoImages: ['local:iso/ubuntu-22.04-live-server-amd64.iso']
+            }
+          ]
+        }
       ]);
       fixture.detectChanges();
 
@@ -874,7 +960,20 @@ describe('Registration form components', () => {
       fixture = TestBed.createComponent(ProxmoxVmCreationFormComponent);
       fixture.componentRef.setInput('standaloneClusterName', 'standalone-lab');
       fixture.componentRef.setInput('serverTargets', [
-        { node: 'cls01srv01', storageOptions: ['fast', 'backup'] }
+        {
+          node: 'cls01srv01',
+          storageOptions: ['fast', 'backup'],
+          storageIsoImages: [
+            {
+              storage: 'fast',
+              isoImages: ['local:iso/ubuntu-24.04-live-server-amd64.iso']
+            },
+            {
+              storage: 'backup',
+              isoImages: ['local:iso/ubuntu-22.04-live-server-amd64.iso']
+            }
+          ]
+        }
       ]);
       fixture.detectChanges();
 
@@ -894,8 +993,8 @@ describe('Registration form components', () => {
       expect(customNetworkDetails?.open).toBe(false);
       expect(target.get('vmName')?.value).toBe('edge-01');
       expect(target.get('template')?.value).toBe('');
-      expect(target.get('cpu')?.value).toBe(8);
       expect(target.get('storageType')?.value).toBe('fast');
+      expect(target.get('cpu')?.value).toBe(8);
     });
   });
 });

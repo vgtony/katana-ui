@@ -604,7 +604,7 @@ export class ProxmoxStandaloneRegistrationFormComponent {
       remaining: this.stringify(storage['remaining_human'] ?? storage['free_human']) ?? '—',
       used: this.stringify(storage['used_human']) ?? '—',
       total: this.stringify(storage['maximum_load_human'] ?? storage['total_human']) ?? '—',
-      isoImages: this.extractStringArray(storage['iso_images'])
+      isoImages: this.extractIsoImageValues(storage['iso_images'])
     };
   }
 
@@ -680,6 +680,26 @@ export class ProxmoxStandaloneRegistrationFormComponent {
           .map((entry) => this.stringify(entry))
           .filter((entry): entry is string => entry !== null)
       : [];
+  }
+
+  private extractIsoImageValues(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value
+      .map((entry) => {
+        if (isRecord(entry)) {
+          return (
+            this.stringify(entry['volid']) ??
+            this.stringify(entry['name']) ??
+            this.stringify(entry['id'])
+          );
+        }
+
+        return this.stringify(entry);
+      })
+      .filter((entry): entry is string => entry !== null);
   }
 
   private formatClusterMetric(metric: UnknownRecord | null): string | null {
@@ -786,7 +806,10 @@ export class ProxmoxStandaloneRegistrationFormComponent {
         .map((server) => ({
           node: server.node,
           storageOptions: [...new Set(server.storage.map((storage) => storage.name))],
-          isoImages: server.isoImages,
+          storageIsoImages: server.storage.map((storage) => ({
+            storage: storage.name,
+            isoImages: storage.isoImages
+          })),
           templateOptions: server.templateOptions
         })) ?? [];
   }

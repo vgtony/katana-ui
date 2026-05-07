@@ -50,6 +50,19 @@
               }
             </label>
             <label>
+              <span>Choose a storage</span>
+              @if (getStorageOptions(index).length) {
+                <select formControlName="storageType" (change)="handleStorageSelectionChange(index)">
+                  <option value="">Choose a storage</option>
+                  @for (storageOption of getStorageOptions(index); track storageOption) {
+                    <option [value]="storageOption">{{ storageOption }}</option>
+                  }
+                </select>
+              } @else {
+                <input type="text" formControlName="storageType" />
+              }
+            </label>
+            <label>
               <span>ISO image</span>
               @if (getIsoImageOptions(index).length) {
                 <select formControlName="isoImage">
@@ -59,7 +72,11 @@
                   }
                 </select>
               } @else {
-                <input type="text" formControlName="isoImage" placeholder="local:iso/ubuntu.iso" />
+                <select formControlName="isoImage">
+                  <option value="">
+                    {{ isIsoImageDisabled(index) ? 'Choose a storage first' : 'No ISOs found for this storage' }}
+                  </option>
+                </select>
               }
             </label>
             <label class="registration-form__checkbox registration-form__checkbox--inline">
@@ -68,18 +85,6 @@
             </label>
             <label><span>CPU</span><input type="number" formControlName="cpu" /></label>
             <label><span>RAM (MB)</span><input type="number" formControlName="ram" /></label>
-            <label>
-              <span>Storage type</span>
-              @if (getStorageOptions(index).length) {
-                <select formControlName="storageType">
-                  @for (storageOption of getStorageOptions(index); track storageOption) {
-                    <option [value]="storageOption">{{ storageOption }}</option>
-                  }
-                </select>
-              } @else {
-                <input type="text" formControlName="storageType" />
-              }
-            </label>
             <label><span>Disk size (GB)</span><input type="number" formControlName="diskSize" /></label>
           </article>
         }

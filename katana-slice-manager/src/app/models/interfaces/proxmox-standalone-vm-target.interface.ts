@@ -3,9 +3,14 @@ export interface ProxmoxVmTemplateOption {
   value: string;
 }
 
+export interface ProxmoxStorageIsoOption {
+  storage: string;
+  isoImages: string[];
+}
+
 export interface ProxmoxStandaloneVmTarget {
   node: string;
   storageOptions: string[];
-  isoImages?: string[];
+  storageIsoImages?: ProxmoxStorageIsoOption[];
   templateOptions?: ProxmoxVmTemplateOption[];
 }
