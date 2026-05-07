@@ -274,7 +274,8 @@
 
 .registration-form__cluster-pill,
 .registration-form__server-table,
-.registration-form__storage-card {
+.registration-form__storage-card,
+.registration-form__datacenter-card {
   display: grid;
   gap: 10px;
   padding: 14px 16px;
@@ -295,6 +296,31 @@
   // background:
   //   linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
   //   var(--app-surface);
+}
+
+.registration-form__datacenter-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.registration-form__datacenter-card {
+  text-align: left;
+  cursor: pointer;
+}
+
+.registration-form__datacenter-card strong {
+  color: #fff7f1;
+}
+
+.registration-form__datacenter-card--selected {
+  border-color: rgba(94, 240, 210, 0.32);
+  background: rgba(94, 240, 210, 0.05);
+}
+
+.registration-form__datacenter-card:disabled {
+  cursor: wait;
+  opacity: 0.72;
 }
 
 .registration-form__compact-section--servers,

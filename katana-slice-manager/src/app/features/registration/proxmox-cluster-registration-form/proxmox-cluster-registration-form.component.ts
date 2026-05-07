@@ -43,11 +43,9 @@ export class ProxmoxClusterRegistrationFormComponent {
   protected submitError = '';
 
   protected readonly form = this.formBuilder.group({
-    name: [this.model.name, Validators.required],
     url: [this.model.url, Validators.required],
     username: [this.model.username, Validators.required],
-    password: [this.model.password, Validators.required],
-    node: [this.model.node, Validators.required]
+    password: [this.model.password, Validators.required]
   });
 
   constructor() {
@@ -107,7 +105,7 @@ export class ProxmoxClusterRegistrationFormComponent {
               'active'
             );
             this.submitSucceeded = true;
-            this.submitMessage = `${response.message}. Cluster id: ${response.cluster_id}.`;
+            this.submitMessage = `Registered Proxmox cluster. Found ${response.datacenters.length} datacenters.`;
             this.completed.emit();
             this.changeDetectorRef.detectChanges();
           });

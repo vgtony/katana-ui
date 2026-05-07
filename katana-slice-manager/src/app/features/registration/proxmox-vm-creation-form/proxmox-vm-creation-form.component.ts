@@ -1,20 +1,22 @@
-import { ChangeDetectorRef, Component, NgZone, effect, inject, input, output } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, NgZone, effect, inject, input, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { finalize } from 'rxjs';
-import {
-  DEFAULT_PROXMOX_CUSTOM_BRIDGE_NAME,
-  initialProxmoxVmCreationFormModel
-} from '../../../models/proxmox-vm-creation-form.model';
+import { Subscription, finalize, switchMap, takeWhile, timer } from 'rxjs';
+import { initialProxmoxVmCreationFormModel } from '../../../models/proxmox-vm-creation-form.model';
 import {
   ProxmoxVmCreationFormModel,
   ProxmoxVmTargetFormModel
 } from '../../../models/interfaces/proxmox-vm-creation-form.interface';
 import { DeploymentPackStatus } from '../../../models/interfaces/deployment-pack.interface';
-import { ProxmoxStandaloneVmTarget } from '../../../models/interfaces/proxmox-standalone-vm-target.interface';
+import {
+  ProxmoxStandaloneVmTarget,
+  ProxmoxVmTemplateOption
+} from '../../../models/interfaces/proxmox-standalone-vm-target.interface';
 import {
   ProxmoxBridgeConfig,
   ProxmoxVmConfig,
+  ProxmoxVmIpRequest,
+  ProxmoxVmIpResponse,
   ProxmoxProvisionResponse,
   ProxmoxVmDeploymentRequest
 } from '../../../models/interfaces/proxmox.interface';
@@ -38,11 +40,17 @@ export interface DeploymentAttemptEvent {
 })
 export class ProxmoxVmCreationFormComponent {
   private readonly formBuilder = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly ngZone = inject(NgZone);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly proxmoxApi = inject(ProxmoxApiService);
   private readonly deploymentDraftService = inject(DeploymentDraftService);
   private readonly standaloneStorageOptions = new Map<string, string[]>();
+  private readonly standaloneIsoImageOptions = new Map<string, string[]>();
+  private readonly standaloneTemplateOptions = new Map<string, ProxmoxVmTemplateOption[]>();
+  private readonly vmIpPollIntervalMs = 4000;
+  private vmIpPollingSubscription: Subscription | null = null;
+  readonly standaloneClusterId = input('');
   readonly standaloneClusterName = input('');
   readonly serverTargets = input<ProxmoxStandaloneVmTarget[]>([]);
   readonly deployed = output<DeploymentAttemptEvent>();
@@ -64,14 +72,18 @@ export class ProxmoxVmCreationFormComponent {
         ? 'Saved Proxmox VM draft restored.'
         : '';
   protected submitting = false;
+  protected waitingForVmIp = false;
   protected submitSucceeded = false;
   protected submitMessage = '';
   protected submitError = '';
+  protected vmIpStatusMessage = '';
 
   protected readonly form = this.formBuilder.group({
     clusterName: [this.model.clusterName, Validators.required],
     vmName: [this.model.vmName, Validators.required],
     template: [this.model.template],
+    isoImage: [this.model.isoImage],
+    start: [this.model.start],
     cpu: [this.model.cpu, Validators.required],
     ram: [this.model.ram, Validators.required],
     storageType: [this.model.storageType, Validators.required],
@@ -87,6 +99,10 @@ export class ProxmoxVmCreationFormComponent {
   });
 
   constructor() {
+    this.destroyRef.onDestroy(() => {
+      this.stopVmIpPolling();
+    });
+
     effect(() => {
       const serverTargets = this.serverTargets();
       this.syncStandaloneTargets(serverTargets, this.standaloneClusterName());
@@ -111,12 +127,37 @@ export class ProxmoxVmCreationFormComponent {
     return this.vmTargetsArray.controls as FormGroup[];
   }
 
+  protected get hasCustomBridgeValues(): boolean {
+    const values = this.form.getRawValue();
+
+    return [
+      values.customBridgeName,
+      values.customBridgeType,
+      values.customIp,
+      values.customNetmask,
+      values.customGateway
+    ].some((value) => (value ?? '').trim().length > 0);
+  }
+
   protected getStorageOptions(index: number): string[] {
     const node = this.vmTargetControls[index]?.get('node')?.value;
     return typeof node === 'string' ? this.standaloneStorageOptions.get(node) ?? [] : [];
   }
 
+  protected getTemplateOptions(index: number): ProxmoxVmTemplateOption[] {
+    const node = this.vmTargetControls[index]?.get('node')?.value;
+    return typeof node === 'string' ? this.standaloneTemplateOptions.get(node) ?? [] : [];
+  }
+
+  protected getIsoImageOptions(index: number): string[] {
+    const node = this.vmTargetControls[index]?.get('node')?.value;
+    return typeof node === 'string' ? this.standaloneIsoImageOptions.get(node) ?? [] : [];
+  }
+
   protected submit(): void {
+    this.stopVmIpPolling();
+    this.waitingForVmIp = false;
+    this.vmIpStatusMessage = '';
     this.submitSucceeded = false;
     this.submitMessage = '';
     this.submitError = '';
@@ -154,14 +195,15 @@ export class ProxmoxVmCreationFormComponent {
               this.form.getRawValue() as ProxmoxVmCreationFormModel,
               'active'
             );
-            this.submitSucceeded = true;
-            this.submitMessage = this.buildProvisionSuccessMessage(response, payload);
-            this.deployed.emit({ status: 'done' });
+            this.startVmIpLookup(response, payload);
             this.changeDetectorRef.detectChanges();
           });
         },
         error: (error: unknown) => {
           this.ngZone.run(() => {
+            this.stopVmIpPolling();
+            this.waitingForVmIp = false;
+            this.vmIpStatusMessage = '';
             this.submitSucceeded = false;
             this.submitError = getApiErrorMessage(error, 'Unable to deploy Proxmox VM.');
             this.deployed.emit({
@@ -176,6 +218,7 @@ export class ProxmoxVmCreationFormComponent {
 
   private buildDeploymentRequest(): ProxmoxVmDeploymentRequest | null {
     const formValue = this.form.getRawValue() as ProxmoxVmCreationFormModel;
+    const clusterId = this.standaloneClusterId().trim();
     const clusterName = formValue.clusterName.trim();
 
     const managementBridge = this.buildRequiredBridgeConfig(
@@ -208,8 +251,8 @@ export class ProxmoxVmCreationFormComponent {
         : [];
     const targetNodes = [...new Set(standaloneVmTargets.map((vmTarget) => vmTarget.node.trim()).filter(Boolean))];
 
-    if (!clusterName) {
-      this.submitError = 'Cluster name is required before deploying.';
+    if (!clusterId && !clusterName) {
+      this.submitError = 'Cluster selection is required before deploying.';
       return null;
     }
 
@@ -218,26 +261,36 @@ export class ProxmoxVmCreationFormComponent {
       return null;
     }
 
-    const provisionNode = targetNodes[0] ?? this.readRegisteredNode() ?? '';
-    const vms = standaloneVmTargets.length
-      ? standaloneVmTargets.map((vmTarget) => this.buildVmConfig(vmTarget, bridges))
+    const provisionNode = targetNodes[0] ?? '';
+    const vmInputs = standaloneVmTargets.length
+      ? standaloneVmTargets
       : [
-          this.buildVmConfig(
-            {
-              node: '',
-              vmName: formValue.vmName,
-              template: formValue.template,
-              cpu: formValue.cpu,
-              ram: formValue.ram,
-              storageType: formValue.storageType,
-              diskSize: formValue.diskSize
-            },
-            bridges
-          )
+          {
+            node: '',
+            vmName: formValue.vmName,
+            template: formValue.template,
+            isoImage: formValue.isoImage,
+            start: formValue.start,
+            cpu: formValue.cpu,
+            ram: formValue.ram,
+            storageType: formValue.storageType,
+            diskSize: formValue.diskSize
+          }
         ];
+    const vms: ProxmoxVmConfig[] = [];
+
+    for (const vmInput of vmInputs) {
+      const vmConfig = this.buildVmConfig(vmInput, bridges);
+
+      if (!vmConfig) {
+        return null;
+      }
+
+      vms.push(vmConfig);
+    }
 
     return {
-      cluster_name: clusterName,
+      ...(clusterId ? { cluster_id: clusterId } : { cluster_name: clusterName }),
       ...(provisionNode ? { node: provisionNode } : {}),
       vms
     };
@@ -254,6 +307,8 @@ export class ProxmoxVmCreationFormComponent {
 
     if (!targets.length) {
       this.standaloneStorageOptions.clear();
+      this.standaloneIsoImageOptions.clear();
+      this.standaloneTemplateOptions.clear();
       while (this.vmTargetsArray.length) {
         this.vmTargetsArray.removeAt(0, { emitEvent: false });
       }
@@ -268,12 +323,16 @@ export class ProxmoxVmCreationFormComponent {
     );
 
     this.standaloneStorageOptions.clear();
+    this.standaloneIsoImageOptions.clear();
+    this.standaloneTemplateOptions.clear();
     while (this.vmTargetsArray.length) {
       this.vmTargetsArray.removeAt(0, { emitEvent: false });
     }
 
     for (const target of targets) {
       this.standaloneStorageOptions.set(target.node, target.storageOptions);
+      this.standaloneIsoImageOptions.set(target.node, target.isoImages ?? []);
+      this.standaloneTemplateOptions.set(target.node, target.templateOptions ?? []);
       const savedTarget =
         existingTargets.get(target.node) ?? this.findSavedVmTarget(target.node) ?? null;
       this.vmTargetsArray.push(
@@ -285,8 +344,8 @@ export class ProxmoxVmCreationFormComponent {
 
   private syncStandaloneFormMode(hasTargets: boolean): void {
     const singleVmControlNames: Array<
-      'vmName' | 'template' | 'cpu' | 'ram' | 'storageType' | 'diskSize'
-    > = ['vmName', 'template', 'cpu', 'ram', 'storageType', 'diskSize'];
+      'vmName' | 'template' | 'isoImage' | 'start' | 'cpu' | 'ram' | 'storageType' | 'diskSize'
+    > = ['vmName', 'template', 'isoImage', 'start', 'cpu', 'ram', 'storageType', 'diskSize'];
 
     for (const controlName of singleVmControlNames) {
       const control = this.form.controls[controlName];
@@ -310,14 +369,18 @@ export class ProxmoxVmCreationFormComponent {
     return {
       ...model,
       template: '',
-      customBridgeName: DEFAULT_PROXMOX_CUSTOM_BRIDGE_NAME,
+      isoImage: '',
+      start: false,
+      customBridgeName: '',
       customBridgeType: '',
       customIp: '',
       customNetmask: '',
       customGateway: '',
       vmTargets: model.vmTargets.map((target) => ({
         ...target,
-        template: ''
+        template: '',
+        isoImage: '',
+        start: false
       }))
     };
   }
@@ -327,6 +390,8 @@ export class ProxmoxVmCreationFormComponent {
       node: target.node,
       vmName: `${this.model.vmName}-${target.node}`,
       template: this.model.template,
+      isoImage: this.model.isoImage,
+      start: this.model.start,
       cpu: this.model.cpu,
       ram: this.model.ram,
       storageType: target.storageOptions[0] ?? this.model.storageType,
@@ -339,6 +404,8 @@ export class ProxmoxVmCreationFormComponent {
       node: [value.node, Validators.required],
       vmName: [value.vmName, Validators.required],
       template: [value.template],
+      isoImage: [value.isoImage],
+      start: [value.start],
       cpu: [value.cpu, [Validators.required, Validators.min(1)]],
       ram: [value.ram, [Validators.required, Validators.min(1)]],
       storageType: [value.storageType, Validators.required],
@@ -349,18 +416,36 @@ export class ProxmoxVmCreationFormComponent {
   private buildVmConfig(
     vmValue: ProxmoxVmTargetFormModel,
     bridges: ProxmoxBridgeConfig[]
-  ): ProxmoxVmConfig {
+  ): ProxmoxVmConfig | null {
     const template = vmValue.template.trim();
+    const isoImage = vmValue.isoImage.trim();
+
+    if (!template && !isoImage) {
+      this.submitError = 'Provide a template or choose an ISO image before deploying.';
+      return null;
+    }
+
+    const parsedTemplate = this.parseTemplateValue(template);
 
     return {
       name: vmValue.vmName,
-      ...(template ? { template } : {}),
+      ...(parsedTemplate !== null ? { template: parsedTemplate } : {}),
       cpu: vmValue.cpu,
       ram: vmValue.ram,
       storage_type: vmValue.storageType,
       disk_size: vmValue.diskSize,
+      ...(parsedTemplate === null ? { iso_image: isoImage } : {}),
+      start: vmValue.start,
       bridges
     };
+  }
+
+  private parseTemplateValue(template: string): string | number | null {
+    if (!template) {
+      return null;
+    }
+
+    return /^\d+$/.test(template) ? Number(template) : template;
   }
 
   private buildRequiredBridgeConfig(name: string, type: string): ProxmoxBridgeConfig | null {
@@ -402,17 +487,6 @@ export class ProxmoxVmCreationFormComponent {
       return null;
     }
 
-    const hasOnlyDefaultCustomBridgeName =
-      normalizedName === DEFAULT_PROXMOX_CUSTOM_BRIDGE_NAME &&
-      !normalizedType &&
-      !normalizedIp &&
-      !normalizedNetmask &&
-      !normalizedGateway;
-
-    if (hasOnlyDefaultCustomBridgeName) {
-      return null;
-    }
-
     if (!normalizedName || !normalizedType) {
       return 'invalid';
     }
@@ -434,19 +508,64 @@ export class ProxmoxVmCreationFormComponent {
     };
   }
 
-  private readRegisteredNode(): string | null {
-    const snapshot = this.deploymentDraftService.getSavedFormSnapshot<Record<string, unknown>>(
-      'proxmox-standalone',
-      'proxmox-standalone'
-    );
-    const node = snapshot?.['node'];
+  private startVmIpLookup(
+    response: ProxmoxProvisionResponse,
+    request: ProxmoxVmDeploymentRequest
+  ): void {
+    const vmIpRequest = this.buildVmIpRequest(response, request);
 
-    if (typeof node !== 'string') {
+    if (!vmIpRequest) {
+      this.completeSuccessfulDeployment(this.buildProvisionSuccessMessage(response, request));
+      return;
+    }
+
+    this.waitingForVmIp = true;
+    this.vmIpStatusMessage = this.buildPendingVmIpMessage(vmIpRequest);
+    this.vmIpPollingSubscription = timer(0, this.vmIpPollIntervalMs)
+      .pipe(
+        switchMap(() => this.proxmoxApi.getVmIp(vmIpRequest)),
+        takeWhile((vmIpResponse) => vmIpResponse.ip_status !== 'ready', true),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: (vmIpResponse) => {
+          this.ngZone.run(() => {
+            if (vmIpResponse.ip_status === 'ready') {
+              this.completeSuccessfulDeployment(this.buildVmIpReadyMessage(vmIpResponse, response, request));
+              return;
+            }
+
+            this.vmIpStatusMessage = this.buildPendingVmIpMessage(vmIpRequest, vmIpResponse);
+            this.changeDetectorRef.detectChanges();
+          });
+        },
+        error: () => {
+          this.ngZone.run(() => {
+            this.completeSuccessfulDeployment(this.buildProvisionSuccessMessage(response, request));
+          });
+        }
+      });
+  }
+
+  private buildVmIpRequest(
+    response: ProxmoxProvisionResponse,
+    request: ProxmoxVmDeploymentRequest
+  ): ProxmoxVmIpRequest | null {
+    const vmid = response.results[0]?.vmid;
+    const node = response.results[0]?.node?.trim() || response.node.trim() || request.node?.trim() || '';
+
+    if (!vmid || !node) {
       return null;
     }
 
-    const normalized = node.trim();
-    return normalized || null;
+    return {
+      ...(request.cluster_id ? { cluster_id: request.cluster_id } : {}),
+      ...(!request.cluster_id && request.cluster_name?.trim()
+        ? { cluster_name: request.cluster_name.trim() }
+        : {}),
+      node,
+      vmid
+    };
   }
 
   private buildProvisionSuccessMessage(
@@ -455,6 +574,46 @@ export class ProxmoxVmCreationFormComponent {
   ): string {
     const ipAddress = this.findProvisionedVmIp(response, request);
     return `VM Deployed. IP: ${ipAddress ?? 'unavailable'}`;
+  }
+
+  private buildPendingVmIpMessage(
+    request: ProxmoxVmIpRequest,
+    response?: ProxmoxVmIpResponse
+  ): string {
+    const statusLabel = response?.error?.trim() ? ` Last update: ${response.error.trim()}.` : '';
+    return `Deployment started on ${request.node}. Waiting for Proxmox to report the guest IP for VM ${request.vmid}. Current status: IP pending.${statusLabel}`;
+  }
+
+  private buildVmIpReadyMessage(
+    response: ProxmoxVmIpResponse,
+    provisionResponse: ProxmoxProvisionResponse,
+    request: ProxmoxVmDeploymentRequest
+  ): string {
+    const primaryIp =
+      this.readString(response.primary_ip) ??
+      response.ip_addresses.map((ip) => this.readString(ip)).find((ip) => ip !== null) ??
+      response.network_interfaces
+        .flatMap((networkInterface) => networkInterface.ipv4)
+        .map((ip) => this.readString(ip))
+        .find((ip) => ip !== null) ??
+      this.findProvisionedVmIp(provisionResponse, request);
+
+    return `VM Deployed. IP: ${primaryIp ?? 'unavailable'}`;
+  }
+
+  private completeSuccessfulDeployment(message: string): void {
+    this.stopVmIpPolling();
+    this.waitingForVmIp = false;
+    this.vmIpStatusMessage = '';
+    this.submitSucceeded = true;
+    this.submitMessage = message;
+    this.deployed.emit({ status: 'done' });
+    this.changeDetectorRef.detectChanges();
+  }
+
+  private stopVmIpPolling(): void {
+    this.vmIpPollingSubscription?.unsubscribe();
+    this.vmIpPollingSubscription = null;
   }
 
   private findProvisionedVmIp(

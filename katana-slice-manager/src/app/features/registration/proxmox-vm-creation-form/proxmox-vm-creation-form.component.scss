@@ -35,6 +35,20 @@
   gap: 8px;
 }
 
+.registration-form__checkbox {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.registration-form__checkbox input {
+  width: auto;
+  margin: 0;
+}
+
+.registration-form__checkbox--inline {
+  padding-top: 28px;
+}
+
 .registration-form__grid span {
   color: var(--app-text-muted);
   font-size: 0.92rem;
@@ -88,6 +102,32 @@
   color: #fff7f1;
 }
 
+.registration-form__loader,
+.registration-form__status {
+  grid-column: 1 / -1;
+}
+
+.registration-form__custom-network {
+  grid-column: 1 / -1;
+  padding: 0.95rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--app-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.registration-form__custom-network summary {
+  cursor: pointer;
+  color: var(--app-text);
+  font-weight: 600;
+}
+
+.registration-form__custom-network-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
 .registration-form__grid button {
   grid-column: 1 / -1;
   padding: 0.95rem 1.2rem;
@@ -104,11 +144,44 @@
   opacity: 0.72;
 }
 
+.registration-form__loader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0.95rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 143, 90, 0.22);
+  background:
+    linear-gradient(135deg, rgba(255, 143, 90, 0.12), rgba(242, 95, 92, 0.08)),
+    var(--app-surface);
+}
+
+.registration-form__spinner {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  border-top-color: #ff8f5a;
+  border-radius: 50%;
+  animation: proxmox-vm-ip-spin 700ms linear infinite;
+}
+
+.registration-form__status--success {
+  border-color: rgba(94, 240, 210, 0.22);
+}
+
+@keyframes proxmox-vm-ip-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (max-width: 760px) {
   .registration-form__grid {
     grid-template-columns: 1fr;
   }
 
+  .registration-form__custom-network-grid,
   .registration-form__vm-target-card {
     grid-template-columns: 1fr;
   }

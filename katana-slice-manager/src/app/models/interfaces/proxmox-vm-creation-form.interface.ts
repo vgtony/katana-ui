@@ -2,6 +2,8 @@ export interface ProxmoxVmTargetFormModel {
   node: string;
   vmName: string;
   template: string;
+  isoImage: string;
+  start: boolean;
   cpu: number;
   ram: number;
   storageType: string;
@@ -12,6 +14,8 @@ export interface ProxmoxVmCreationFormModel {
   clusterName: string;
   vmName: string;
   template: string;
+  isoImage: string;
+  start: boolean;
   cpu: number;
   ram: number;
   storageType: string;

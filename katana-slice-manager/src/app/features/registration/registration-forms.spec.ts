@@ -3,6 +3,7 @@ import { Type } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { Validators } from '@angular/forms';
+import { vi } from 'vitest';
 import { FunctionRegistrationFormComponent } from './function-registration-form/function-registration-form.component';
 import { K8sClusterRegistrationFormComponent } from './k8s-cluster-registration-form/k8s-cluster-registration-form.component';
 import { K8sCredentialsUploadFormComponent } from './k8s-credentials-upload-form/k8s-credentials-upload-form.component';
@@ -111,13 +112,13 @@ const formDefinitions: FormDefinition[] = [
   {
     component: ProxmoxClusterRegistrationFormComponent,
     name: 'ProxmoxClusterRegistrationFormComponent',
-    requiredControls: ['name', 'url', 'username', 'password', 'node'],
+    requiredControls: ['url', 'username', 'password'],
     optionalControls: []
   },
   {
     component: ProxmoxStandaloneRegistrationFormComponent,
     name: 'ProxmoxStandaloneRegistrationFormComponent',
-    requiredControls: ['name', 'url', 'node', 'username', 'password'],
+    requiredControls: ['url', 'username', 'password'],
     optionalControls: ['verifySsl', 'authMethod', 'apiTokenId', 'apiTokenSecret']
   },
   {
@@ -141,6 +142,8 @@ const formDefinitions: FormDefinition[] = [
     ],
     optionalControls: [
       'template',
+      'isoImage',
+      'start',
       'vmTargets',
       'customBridgeName',
       'customBridgeType',
@@ -315,11 +318,9 @@ describe('Registration form components', () => {
     it('shows Registered after a successful Proxmox cluster response', () => {
       const component = fixture.componentInstance as any;
       component.form.setValue({
-        name: 'prod-cluster-01',
         url: 'https://10.0.0.10:8006',
         username: 'root@pam',
-        password: 'securepassword123',
-        node: 'pve1'
+        password: 'securepassword123'
       });
 
       fixture.detectChanges();
@@ -331,13 +332,22 @@ describe('Registration form components', () => {
       const request = httpTestingController.expectOne((req) => req.url.includes('/proxmox/cluster'));
       expect(request.request.method).toBe('POST');
       request.flush({
-        message: 'Proxmox cluster registered successfully',
-        cluster_id: '550e8400-e29b-41d4-a716-446655440000'
+        cluster_id: '550e8400-e29b-41d4-a716-446655440000',
+        cluster_name: 'Antares',
+        datacenters: [
+          { id: 'cluster', name: 'Antares', node_count: 3 },
+          { id: 'dc-2', name: 'Borealis', node_count: 2 },
+          { id: 'dc-3', name: 'Cygnus', node_count: 1 }
+        ],
+        nodes: [],
+        servers: []
       });
       fixture.detectChanges();
 
       expect(submitButton.textContent?.trim()).toBe('Registered');
-      expect(fixture.nativeElement.textContent).toContain('Proxmox cluster registered successfully');
+      expect(fixture.nativeElement.textContent).toContain(
+        'Registered Proxmox cluster. Found 3 datacenters.'
+      );
     });
   });
 
@@ -356,7 +366,6 @@ describe('Registration form components', () => {
               value: {
                 name: 'lab-proxmox',
                 url: 'https://proxmox.example:8006',
-                node: 'pve-01',
                 verifySsl: false,
                 authMethod: 'password',
                 username: 'root@pam',
@@ -384,12 +393,16 @@ describe('Registration form components', () => {
       localStorage.clear();
     });
 
-    it('shows Deployment Started after a successful Proxmox VM response', () => {
+    it('polls vm-ip until Proxmox reports a ready IP', () => {
+      vi.useFakeTimers();
+
       const component = fixture.componentInstance as any;
       component.form.setValue({
         clusterName: 'prod-cluster-01',
         vmName: 'web-server-01',
         template: 'ubuntu-2204-cloudinit',
+        isoImage: '',
+        start: false,
         cpu: 4,
         ram: 4096,
         storageType: 'local-lvm',
@@ -413,19 +426,76 @@ describe('Registration form components', () => {
       const request = httpTestingController.expectOne((req) => req.url.includes('/proxmox/provision'));
       expect(request.request.method).toBe('POST');
       expect(request.request.body.cluster_name).toBe('prod-cluster-01');
-      expect(request.request.body.node).toBe('pve-01');
+      expect(request.request.body.node).toBeUndefined();
       expect(request.request.body.vms[0].bridges).toHaveLength(2);
       request.flush({
         cluster: 'prod-cluster-01',
         node: 'pve-01',
         vm_count: 1,
-        results: []
+        results: [
+          {
+            name: 'web-server-01',
+            vmid: 123,
+            template: null,
+            source: 'ubuntu-2204-cloudinit',
+            node: 'pve-01',
+            status: 'running',
+            started: true,
+            bridges: []
+          }
+        ]
+      });
+      fixture.detectChanges();
+
+      expect(submitButton.textContent?.trim()).toBe('Waiting for VM IP...');
+      expect(fixture.nativeElement.textContent).toContain(
+        'Waiting for Proxmox to report the guest IP for VM 123'
+      );
+
+      vi.advanceTimersByTime(0);
+      const pendingIpRequest = httpTestingController.expectOne(
+        (req) => req.url.includes('/proxmox/vm-ip')
+      );
+      expect(pendingIpRequest.request.method).toBe('POST');
+      expect(pendingIpRequest.request.body).toEqual({
+        cluster_name: 'prod-cluster-01',
+        node: 'pve-01',
+        vmid: 123
+      });
+      pendingIpRequest.flush({
+        cluster: 'prod-cluster-01',
+        node: 'pve-01',
+        vmid: 123,
+        primary_ip: null,
+        ip_addresses: [],
+        ip_status: 'pending',
+        network_interfaces: [],
+        error: null
+      });
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).toContain('Current status: IP pending.');
+
+      vi.advanceTimersByTime(4000);
+      const readyIpRequest = httpTestingController.expectOne(
+        (req) => req.url.includes('/proxmox/vm-ip')
+      );
+      readyIpRequest.flush({
+        cluster: 'prod-cluster-01',
+        node: 'pve-01',
+        vmid: 123,
+        primary_ip: '10.160.101.55',
+        ip_addresses: ['10.160.101.55'],
+        ip_status: 'ready',
+        network_interfaces: [{ name: 'eth0', ipv4: ['10.160.101.55'] }],
+        error: null
       });
       fixture.detectChanges();
 
       expect(submitButton.textContent?.trim()).toBe('Deployment Started');
-      expect(fixture.nativeElement.textContent).toContain('VM Deployed. IP: 192.168.1.100');
+      expect(fixture.nativeElement.textContent).toContain('VM Deployed. IP: 10.160.101.55');
       httpTestingController.expectNone((req) => req.url.includes('/proxmox/list-vms'));
+      vi.useRealTimers();
     });
 
     it('allows deploying without custom bridge values', () => {
@@ -434,6 +504,8 @@ describe('Registration form components', () => {
         clusterName: 'prod-cluster-01',
         vmName: 'web-server-01',
         template: 'ubuntu-2204-cloudinit',
+        isoImage: '',
+        start: false,
         cpu: 4,
         ram: 4096,
         storageType: 'local-lvm',
@@ -456,7 +528,7 @@ describe('Registration form components', () => {
 
       const request = httpTestingController.expectOne((req) => req.url.includes('/proxmox/provision'));
       expect(request.request.method).toBe('POST');
-      expect(request.request.body.node).toBe('pve-01');
+      expect(request.request.body.node).toBeUndefined();
       expect(request.request.body.vms[0].bridges).toHaveLength(1);
       expect(request.request.body.vms[0].bridges[0]).toEqual({
         name: 'vmbr0',
@@ -472,6 +544,7 @@ describe('Registration form components', () => {
 
       expect(submitButton.textContent?.trim()).toBe('Deployment Started');
       httpTestingController.expectNone((req) => req.url.includes('/proxmox/list-vms'));
+      httpTestingController.expectNone((req) => req.url.includes('/proxmox/vm-ip'));
     });
 
     it('shows an invalid-form error and marks missing required fields as invalid', () => {
@@ -506,12 +579,14 @@ describe('Registration form components', () => {
       ).toBe(true);
     });
 
-    it('allows deploying without a template and omits it from the payload', () => {
+    it('allows deploying from an ISO when no template is provided', () => {
       const component = fixture.componentInstance as any;
       component.form.setValue({
         clusterName: 'prod-cluster-01',
         vmName: 'web-server-01',
         template: '',
+        isoImage: 'local:iso/ubuntu-22.04-live-server-amd64.iso',
+        start: false,
         cpu: 4,
         ram: 4096,
         storageType: 'local-lvm',
@@ -534,8 +609,11 @@ describe('Registration form components', () => {
 
       const request = httpTestingController.expectOne((req) => req.url.includes('/proxmox/provision'));
       expect(request.request.method).toBe('POST');
-      expect(request.request.body.node).toBe('pve-01');
+      expect(request.request.body.node).toBeUndefined();
       expect(request.request.body.vms[0].template).toBeUndefined();
+      expect(request.request.body.vms[0].iso_image).toBe(
+        'local:iso/ubuntu-22.04-live-server-amd64.iso'
+      );
       request.flush({
         cluster: 'prod-cluster-01',
         node: 'pve-01',
@@ -546,6 +624,7 @@ describe('Registration form components', () => {
 
       expect(submitButton.textContent?.trim()).toBe('Deployment Started');
       httpTestingController.expectNone((req) => req.url.includes('/proxmox/list-vms'));
+      httpTestingController.expectNone((req) => req.url.includes('/proxmox/vm-ip'));
     });
 
     it('emits a failed deployment attempt with the API error type when deployment fails', () => {
@@ -559,6 +638,8 @@ describe('Registration form components', () => {
         clusterName: 'prod-cluster-01',
         vmName: 'web-server-01',
         template: 'ubuntu-2204-cloudinit',
+        isoImage: '',
+        start: false,
         cpu: 4,
         ram: 4096,
         storageType: 'local-lvm',
@@ -603,7 +684,8 @@ describe('Registration form components', () => {
       );
     });
 
-    it('builds one VM for the selected standalone server and sends the node at the top level', () => {
+    it('builds one VM for the selected standalone server and sends cluster_id plus the node', () => {
+      fixture.componentRef.setInput('standaloneClusterId', 'saved-katana-id');
       fixture.componentRef.setInput('standaloneClusterName', 'standalone-lab');
       fixture.componentRef.setInput('serverTargets', [
         { node: 'cls01srv01', storageOptions: ['datastorage', 'fast'] }
@@ -623,6 +705,8 @@ describe('Registration form components', () => {
       component.form.controls.vmTargets.at(0).patchValue({
         vmName: 'edge-01',
         template: 'ubuntu-2204-cloudinit',
+        isoImage: '',
+        start: false,
         cpu: 8,
         ram: 8192,
         storageType: 'fast',
@@ -635,7 +719,8 @@ describe('Registration form components', () => {
       fixture.detectChanges();
 
       const request = httpTestingController.expectOne((req) => req.url.includes('/proxmox/provision'));
-      expect(request.request.body.cluster_name).toBe('standalone-lab');
+      expect(request.request.body.cluster_id).toBe('saved-katana-id');
+      expect(request.request.body.cluster_name).toBeUndefined();
       expect(request.request.body.node).toBe('cls01srv01');
       expect(request.request.body.vms).toEqual([
         {
@@ -645,6 +730,7 @@ describe('Registration form components', () => {
           ram: 8192,
           storage_type: 'fast',
           disk_size: 120,
+          start: false,
           bridges: [{ name: 'vmbr0', type: 'management' }]
         }
       ]);
@@ -655,6 +741,7 @@ describe('Registration form components', () => {
         results: []
       });
       httpTestingController.expectNone((req) => req.url.includes('/proxmox/list-vms'));
+      httpTestingController.expectNone((req) => req.url.includes('/proxmox/vm-ip'));
     });
 
     it('submits selected-server deployments even when hidden single-vm draft fields are invalid', () => {
@@ -669,6 +756,8 @@ describe('Registration form components', () => {
                 clusterName: '',
                 vmName: '',
                 template: '',
+                isoImage: '',
+                start: false,
                 cpu: null,
                 ram: null,
                 storageType: '',
@@ -688,6 +777,7 @@ describe('Registration form components', () => {
       );
       fixture = TestBed.createComponent(ProxmoxVmCreationFormComponent);
       httpTestingController = TestBed.inject(HttpTestingController);
+      fixture.componentRef.setInput('standaloneClusterId', 'saved-katana-id');
       fixture.componentRef.setInput('standaloneClusterName', 'standalone-lab');
       fixture.componentRef.setInput('serverTargets', [
         { node: 'cls01srv01', storageOptions: ['fast'] }
@@ -697,6 +787,9 @@ describe('Registration form components', () => {
       const component = fixture.componentInstance as any;
       component.form.controls.vmTargets.at(0).patchValue({
         vmName: 'edge-01',
+        template: '',
+        isoImage: 'local:iso/ubuntu-22.04-live-server-amd64.iso',
+        start: false,
         cpu: 4,
         ram: 4096,
         storageType: 'fast',
@@ -709,15 +802,18 @@ describe('Registration form components', () => {
       fixture.detectChanges();
 
       const request = httpTestingController.expectOne((req) => req.url.includes('/proxmox/provision'));
-      expect(request.request.body.cluster_name).toBe('standalone-lab');
+      expect(request.request.body.cluster_id).toBe('saved-katana-id');
+      expect(request.request.body.cluster_name).toBeUndefined();
       expect(request.request.body.node).toBe('cls01srv01');
       expect(request.request.body.vms).toEqual([
         {
           name: 'edge-01',
+          iso_image: 'local:iso/ubuntu-22.04-live-server-amd64.iso',
           cpu: 4,
           ram: 4096,
           storage_type: 'fast',
           disk_size: 80,
+          start: false,
           bridges: [{ name: 'vmbr0', type: 'management' }]
         }
       ]);
@@ -728,6 +824,7 @@ describe('Registration form components', () => {
         results: []
       });
       httpTestingController.expectNone((req) => req.url.includes('/proxmox/list-vms'));
+      httpTestingController.expectNone((req) => req.url.includes('/proxmox/vm-ip'));
     });
 
     it('does not prefill optional values when restoring a saved standalone VM draft', () => {
@@ -742,6 +839,8 @@ describe('Registration form components', () => {
                 clusterName: 'prod-cluster-01',
                 vmName: 'web-server-01',
                 template: 'ubuntu-2204-cloudinit',
+                isoImage: '',
+                start: false,
                 cpu: 4,
                 ram: 4096,
                 storageType: 'local-lvm',
@@ -751,6 +850,8 @@ describe('Registration form components', () => {
                     node: 'cls01srv01',
                     vmName: 'edge-01',
                     template: 'ubuntu-2204-cloudinit',
+                    isoImage: '',
+                    start: false,
                     cpu: 8,
                     ram: 8192,
                     storageType: 'fast',
@@ -779,14 +880,18 @@ describe('Registration form components', () => {
 
       const component = fixture.componentInstance as any;
       const target = component.form.controls.vmTargets.at(0);
+      const customNetworkDetails = fixture.nativeElement.querySelector(
+        '.registration-form__custom-network'
+      ) as HTMLDetailsElement | null;
 
       expect(component.form.get('vmName')?.value).toBe('web-server-01');
       expect(component.form.get('template')?.value).toBe('');
-      expect(component.form.get('customBridgeName')?.value).toBe('vmbr1:1601');
+      expect(component.form.get('customBridgeName')?.value).toBe('');
       expect(component.form.get('customBridgeType')?.value).toBe('');
       expect(component.form.get('customIp')?.value).toBe('');
       expect(component.form.get('customNetmask')?.value).toBe('');
       expect(component.form.get('customGateway')?.value).toBe('');
+      expect(customNetworkDetails?.open).toBe(false);
       expect(target.get('vmName')?.value).toBe('edge-01');
       expect(target.get('template')?.value).toBe('');
       expect(target.get('cpu')?.value).toBe(8);

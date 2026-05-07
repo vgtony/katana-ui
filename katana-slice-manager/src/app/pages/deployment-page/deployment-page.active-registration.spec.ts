@@ -65,7 +65,6 @@ describe('DeploymentPageComponent active registration', () => {
       'proxmox-standalone',
       'proxmox-standalone',
       {
-        name: 'lab-cluster',
         url: 'https://proxmox.example:8006',
         verifySsl: false,
         authMethod: 'password',
@@ -73,10 +72,34 @@ describe('DeploymentPageComponent active registration', () => {
         password: 'secret',
         apiTokenId: '',
         apiTokenSecret: '',
-        connectedNodes: ['pve-01'],
-        clusters: [],
-        servers: [],
-        remainingResources: null,
+        clusterId: 'saved-katana-id',
+        clusterName: 'Antares',
+        datacenters: [{ id: 'cluster', name: 'Antares', node_count: 1 }],
+        selectedDatacenter: { id: 'cluster', name: 'Antares' },
+        nodes: [{ name: 'pve-01' }],
+        servers: [{ name: 'pve-01', node: 'pve-01' }],
+        overview: {
+          cluster: {
+            cpu: { free_cores_estimate: 8, free_percent: 50 },
+            memory: { free_human: '16.00 GB', total_human: '32.00 GB', free: 16, total: 32 },
+            disk: { free_human: '500.00 GB', total_human: '1.00 TB', free: 5, total: 10 }
+          },
+          servers: [
+            {
+              name: 'pve-01',
+              node: 'pve-01',
+              cpu: { free_cores_estimate: 8, free_percent: 50 },
+              memory: {
+                free_human: '16.00 GB',
+                total_human: '32.00 GB',
+                free: 16,
+                total: 32
+              },
+              disk: { free_human: '500.00 GB', total_human: '1.00 TB', free: 5, total: 10 },
+              storage_options: []
+            }
+          ]
+        },
         loadedAt: '2026-04-27T08:00:00.000Z'
       },
       'active'

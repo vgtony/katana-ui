@@ -4,8 +4,13 @@ import { ProxmoxClusterRegistrationFormModel } from '../../../models/interfaces/
 import {
   ProxmoxListVmsResponse,
   ProxmoxClusterRegistrationResponse,
+  ProxmoxConnectRequest,
+  ProxmoxConnectResponse,
   ProxmoxNodesRequest,
   ProxmoxNodesResponse,
+  ProxmoxOverviewRequest,
+  ProxmoxVmIpRequest,
+  ProxmoxVmIpResponse,
   ProxmoxProvisionResponse,
   ProxmoxClusterResponse,
   ProxmoxDeleteClusterResponse,
@@ -50,8 +55,20 @@ export class ProxmoxApiService extends KatanaApiBaseService {
     return this.http.post(this.buildApiUrl('proxmox', 'remaining-resources'), payload);
   }
 
+  connect(payload: ProxmoxConnectRequest): Observable<ProxmoxConnectResponse> {
+    return this.http.post<ProxmoxConnectResponse>(this.buildApiUrl('proxmox', 'connect'), payload);
+  }
+
+  getOverview(payload: ProxmoxOverviewRequest): Observable<unknown> {
+    return this.http.post(this.buildApiUrl('proxmox', 'overview'), payload);
+  }
+
   provisionVms(payload: ProxmoxVmDeploymentRequest): Observable<ProxmoxProvisionResponse> {
     return this.http.post<ProxmoxProvisionResponse>(this.buildApiUrl('proxmox', 'provision'), payload);
+  }
+
+  getVmIp(payload: ProxmoxVmIpRequest): Observable<ProxmoxVmIpResponse> {
+    return this.http.post<ProxmoxVmIpResponse>(this.buildApiUrl('proxmox', 'vm-ip'), payload);
   }
 
   listVms(payload: ProxmoxNodesRequest, node: string): Observable<ProxmoxListVmsResponse> {

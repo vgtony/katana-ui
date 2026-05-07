@@ -13,19 +13,24 @@ describe('ProxmoxClusterRegistrationFormComponent interaction', () => {
   let createClusterMock: ReturnType<typeof vi.fn>;
 
   const activeCluster = {
-    name: 'lab-cluster',
     url: 'https://proxmox.example:8006',
     username: 'root@pam',
-    password: 'secret',
-    node: 'pve-01'
+    password: 'secret'
   };
 
   beforeEach(async () => {
     localStorage.clear();
     createClusterMock = vi.fn(() =>
       of({
-        message: 'Cluster created successfully',
-        cluster_id: 'cluster-1'
+        cluster_id: 'cluster-1',
+        cluster_name: 'Antares',
+        datacenters: [
+          { id: 'cluster', name: 'Antares', node_count: 3 },
+          { id: 'dc-2', name: 'Borealis', node_count: 2 },
+          { id: 'dc-3', name: 'Cygnus', node_count: 1 }
+        ],
+        nodes: [],
+        servers: []
       })
     );
 
@@ -92,5 +97,21 @@ describe('ProxmoxClusterRegistrationFormComponent interaction', () => {
     );
     expect(completedSpy).toHaveBeenCalled();
     expect(failedSpy).not.toHaveBeenCalled();
+  });
+
+  it('shows the datacenter count after a successful registration', () => {
+    createComponent();
+
+    component['form'].setValue(activeCluster);
+    fixture.detectChanges();
+
+    const completedSpy = vi.spyOn(component.completed, 'emit');
+    const submitButton = fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement;
+    submitButton.click();
+    fixture.detectChanges();
+
+    expect(createClusterMock).toHaveBeenCalledWith(activeCluster);
+    expect(component['submitMessage']).toBe('Registered Proxmox cluster. Found 3 datacenters.');
+    expect(completedSpy).toHaveBeenCalled();
   });
 });
