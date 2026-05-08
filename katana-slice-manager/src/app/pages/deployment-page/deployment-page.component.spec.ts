@@ -88,6 +88,19 @@ describe('DeploymentPageComponent', () => {
     return match;
   }
 
+  function getButtonByAriaLabel(label: string): HTMLButtonElement {
+    const buttons = Array.from(
+      fixture.nativeElement.querySelectorAll('button')
+    ) as HTMLButtonElement[];
+    const match = buttons.find((button) => button.getAttribute('aria-label') === label);
+
+    if (!match) {
+      throw new Error(`Button with aria-label "${label}" not found.`);
+    }
+
+    return match;
+  }
+
   function getWizardButtons(): HTMLButtonElement[] {
     return Array.from(fixture.nativeElement.querySelectorAll('.deployment-page__step')) as HTMLButtonElement[];
   }
@@ -134,15 +147,17 @@ describe('DeploymentPageComponent', () => {
       createComponentForOption('slice');
     });
 
-    it('returns to the deployment chooser when change type is clicked', () => {
+    it('clears the selected route before returning to the deployment chooser', () => {
       const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
       getButtonByText('Change Type').click();
+      expect(navigateSpy).toHaveBeenCalledWith(['/deployment']);
+
+      paramMap$.next(convertToParamMap({}));
       fixture.detectChanges();
 
       expect(component['selectedRouteOptionId']).toBeNull();
       expect(component['isNewDeploymentModalOpen']).toBe(true);
-      expect(navigateSpy).not.toHaveBeenCalled();
       expect(getTextContent()).toContain('Create New Network Slice');
       expect(getTextContent()).toContain('Slice / OpenStack');
       expect(getTextContent()).toContain('K8s Deploy');
@@ -250,6 +265,75 @@ describe('DeploymentPageComponent', () => {
       expect(
         fixture.debugElement.query(By.directive(ProxmoxStandaloneRegistrationFormComponent))
       ).not.toBeNull();
+    });
+  });
+
+  describe('Proxmox standalone wizard', () => {
+    beforeEach(() => {
+      createComponentForOption('proxmox-standalone');
+    });
+
+    it('lets Proxmox be selected again after returning to the chooser', () => {
+      const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+      getButtonByText('Change Type').click();
+      expect(navigateSpy).toHaveBeenCalledWith(['/deployment']);
+
+      paramMap$.next(convertToParamMap({}));
+      fixture.detectChanges();
+
+      getButtonByText('Proxmox').click();
+      paramMap$.next(convertToParamMap({ option: 'proxmox-standalone' }));
+      fixture.detectChanges();
+
+      expect(component['selectedRouteOptionId']).toBe('proxmox-standalone');
+      expect(getTextContent()).toContain('Standalone API');
+    });
+
+    it('shows a compact/detail toggle next to change type on the deploy step', async () => {
+      component['markRequirementDone']('proxmox-standalone');
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(getButtonByAriaLabel('Compact view')).toBeTruthy();
+      expect(getButtonByAriaLabel('Detail view')).toBeTruthy();
+      expect(getButtonByText('Change Type')).toBeTruthy();
+
+      getButtonByAriaLabel('Detail view').click();
+      fixture.detectChanges();
+
+      expect(component['proxmoxServerViewMode']).toBe('detail');
+      expect(getButtonByAriaLabel('Detail view').getAttribute('aria-pressed')).toBe('true');
+    });
+
+    it('passes the selected server view mode into the embedded standalone form', async () => {
+      component['markRequirementDone']('proxmox-standalone');
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const proxmoxStandaloneForm = fixture.debugElement.query(
+        By.directive(ProxmoxStandaloneRegistrationFormComponent)
+      );
+      expect(proxmoxStandaloneForm.componentInstance.serverViewMode()).toBe('compact');
+
+      getButtonByAriaLabel('Detail view').click();
+      fixture.detectChanges();
+
+      expect(proxmoxStandaloneForm.componentInstance.serverViewMode()).toBe('detail');
+    });
+
+    it('returns to the registration step when the standalone registration is deregistered', async () => {
+      component['markRequirementDone']('proxmox-standalone');
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      component['handleRequirementDeregistered']('proxmox-standalone');
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(component['canAccessStepTwo']()).toBe(false);
+      expect(component['currentStep']).toBe(1);
+      expect(getTextContent()).toContain('Standalone API');
     });
   });
 });

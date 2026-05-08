@@ -100,6 +100,7 @@ export class DeploymentPageComponent implements OnInit {
   protected lastDeploymentStatus: DeploymentPackStatus = 'done';
   protected isNewDeploymentModalOpen = false;
   protected selectedRouteOptionId: DeploymentOption['id'] | null = null;
+  protected proxmoxServerViewMode: 'compact' | 'detail' = 'compact';
 
   protected readonly deploymentOptions: DeploymentOption[] = [
     {
@@ -256,7 +257,23 @@ export class DeploymentPageComponent implements OnInit {
   }
 
   protected returnToDeploymentChooser(): void {
+    this.keepModalOpenAfterRouteClear = true;
+
+    if (this.selectedRouteOptionId) {
+      void this.router.navigate(['/deployment']);
+      return;
+    }
+
     this.openDeploymentChooser();
+  }
+
+  protected toggleProxmoxServerViewMode(): void {
+    this.proxmoxServerViewMode =
+      this.proxmoxServerViewMode === 'compact' ? 'detail' : 'compact';
+  }
+
+  protected setProxmoxServerViewMode(mode: 'compact' | 'detail'): void {
+    this.proxmoxServerViewMode = mode;
   }
 
   protected hasSelectedDeploymentOption(): boolean {
@@ -509,6 +526,18 @@ export class DeploymentPageComponent implements OnInit {
     });
   }
 
+  protected handleRequirementDeregistered(requirementId: string): void {
+    this.deferRequirementStateUpdate(() => {
+      this.completedRequirementIds.delete(requirementId);
+      this.failedRequirementIds.delete(requirementId);
+      this.pendingRequirementDeactivationId = null;
+      this.pendingConfigurationDeactivation = false;
+      this.deploymentStarted = false;
+      this.syncSavedState();
+      this.refreshRequirementContextTags();
+    });
+  }
+
   protected isRequirementError(requirementId: string): boolean {
     return this.failedRequirementIds.has(requirementId);
   }
@@ -666,6 +695,7 @@ export class DeploymentPageComponent implements OnInit {
     this.pendingRequirementDeactivationId = null;
     this.pendingConfigurationDeactivation = false;
     this.sliceConfigurationComplete = false;
+    this.proxmoxServerViewMode = 'compact';
     this.completedRequirementIds = new Set<string>();
     this.failedRequirementIds = new Set<string>();
     this.expandedRequirementIds = new Set<string>(

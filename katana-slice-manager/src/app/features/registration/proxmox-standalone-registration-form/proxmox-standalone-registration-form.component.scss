@@ -375,6 +375,10 @@
   padding-top: 0;
 }
 
+.registration-form__server-table-row--summary-compact {
+  padding-bottom: 0;
+}
+
 .registration-form__server-table-row--storage:last-child {
   padding-bottom: 0;
 }
@@ -481,6 +485,11 @@
   background: transparent;
   color: var(--app-text);
   cursor: pointer;
+}
+
+.registration-form__server-change-button--danger {
+  border-color: rgba(255, 125, 125, 0.28);
+  color: #ffb0b0;
 }
 
 .registration-form__storage-grid {

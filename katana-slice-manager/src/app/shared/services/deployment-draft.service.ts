@@ -185,6 +185,25 @@ export class DeploymentDraftService {
     this.writeDrafts(drafts);
   }
 
+  clearForm(optionId: DeploymentOption['id'], formKey: DeploymentFormKey): void {
+    const drafts = this.readDrafts();
+    const optionDrafts = drafts[optionId];
+
+    if (!optionDrafts || !(formKey in optionDrafts)) {
+      return;
+    }
+
+    const { [formKey]: _removedEntry, ...remainingDrafts } = optionDrafts;
+
+    if (Object.keys(remainingDrafts).length === 0) {
+      delete drafts[optionId];
+    } else {
+      drafts[optionId] = remainingDrafts;
+    }
+
+    this.writeDrafts(drafts);
+  }
+
   loadPackAsDraft(pack: DeploymentPack): void {
     const drafts = this.readDrafts();
     drafts[pack.optionId] = Object.fromEntries(

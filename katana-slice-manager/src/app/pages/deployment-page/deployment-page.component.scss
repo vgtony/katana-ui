@@ -501,6 +501,62 @@
   color: var(--app-text);
 }
 
+.deployment-page__view-toggle {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 3px;
+  border: 1px solid var(--app-interactive-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+}
+
+.deployment-page__view-toggle-option {
+  display: inline-flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--app-text-muted);
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.deployment-page__view-toggle-option:hover {
+  color: var(--app-text);
+}
+
+.deployment-page__view-toggle-option--active {
+  background: linear-gradient(135deg, rgba(255, 143, 90, 0.18), rgba(94, 240, 210, 0.14));
+  color: var(--app-text);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.deployment-page__view-toggle-option:first-child {
+  border-radius: 999px 0 0 999px;
+}
+
+.deployment-page__view-toggle-option:last-child {
+  border-radius: 0 999px 999px 0;
+}
+
+.deployment-page__view-toggle-option svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  pointer-events: none;
+}
+
 .deployment-page__icon-button {
   display: inline-flex;
   align-items: center;

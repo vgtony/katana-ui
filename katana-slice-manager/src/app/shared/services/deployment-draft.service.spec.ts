@@ -215,4 +215,39 @@ describe('DeploymentDraftService', () => {
       node: 'pve-node-01'
     });
   });
+
+  it('clears an individual saved form without disturbing sibling entries', () => {
+    service.saveFormValue(
+      'proxmox-standalone',
+      'proxmox-standalone',
+      {
+        clusterId: 'saved-katana-id',
+        clusterName: 'Antares'
+      },
+      'active'
+    );
+    service.saveFormValue(
+      'proxmox-standalone',
+      'proxmox-vm',
+      {
+        vmName: 'katana-vm-01',
+        clusterName: 'Antares'
+      },
+      'draft'
+    );
+
+    service.clearForm('proxmox-standalone', 'proxmox-vm');
+
+    expect(service.getFormState('proxmox-standalone', 'proxmox-vm')).toBe('missing');
+    expect(service.getFormState('proxmox-standalone', 'proxmox-standalone')).toBe('active');
+    expect(
+      service.getSavedFormSnapshot<{ clusterId: string; clusterName: string }>(
+        'proxmox-standalone',
+        'proxmox-standalone'
+      )
+    ).toEqual({
+      clusterId: 'saved-katana-id',
+      clusterName: 'Antares'
+    });
+  });
 });

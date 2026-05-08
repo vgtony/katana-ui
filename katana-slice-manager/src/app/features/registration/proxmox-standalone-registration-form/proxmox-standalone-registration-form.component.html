@@ -62,13 +62,14 @@
         </div>
         <div class="registration-form__results-rail">
           <span class="registration-form__count">{{ results.datacenters.length }} datacenters</span>
-          @if (results.connectedNodes.length) {
-            <div class="registration-form__chip-group">
-              @for (node of results.connectedNodes; track node) {
-                <span class="registration-form__chip">{{ node }}</span>
-              }
-            </div>
-          }
+          <button
+            class="registration-form__server-change-button registration-form__server-change-button--danger"
+            type="button"
+            [disabled]="submitting"
+            (click)="deregister()"
+          >
+            Deregister Proxmox
+          </button>
         </div>
       </div>
 
@@ -105,20 +106,6 @@
               <div>
                 <p class="registration-form__eyebrow">Selected Datacenter</p>
                 <h5>{{ results.selectedDatacenter.name }}</h5>
-              </div>
-              <div class="registration-form__hero-stats">
-                <div>
-                  <span>Servers</span>
-                  <strong>{{ results.servers.length }}</strong>
-                </div>
-                <div>
-                  <span>Storage</span>
-                  <strong>{{ results.storage.length }}</strong>
-                </div>
-                <div>
-                  <span>Nodes</span>
-                  <strong>{{ results.connectedNodes.length }}</strong>
-                </div>
               </div>
             </div>
 
@@ -173,6 +160,9 @@
                     >
                       <div
                         class="registration-form__server-table-row registration-form__server-table-row--summary"
+                        [class.registration-form__server-table-row--summary-compact]="
+                          serverViewMode() === 'compact'
+                        "
                       >
                         <div
                           class="registration-form__server-cell registration-form__server-cell--name"
@@ -197,7 +187,7 @@
                         </div>
                       </div>
 
-                      @if (server.storage.length) {
+                      @if (serverViewMode() === 'detail' && server.storage.length) {
                         @for (storage of server.storage; track trackStorage($index, storage)) {
                           <div
                             class="registration-form__server-table-row registration-form__server-table-row--storage"
@@ -223,7 +213,7 @@
                             </div>
                           </div>
                         }
-                      } @else {
+                      } @else if (serverViewMode() === 'detail') {
                         <div
                           class="registration-form__server-table-row registration-form__server-table-row--empty"
                         >
