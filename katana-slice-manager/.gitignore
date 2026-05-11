@@ -38,6 +38,7 @@ yarn-error.log
 testem.log
 /typings
 __screenshots__/
+/src/app/shared/services/api/Untitled-1.json
 
 # System files
 .DS_Store
