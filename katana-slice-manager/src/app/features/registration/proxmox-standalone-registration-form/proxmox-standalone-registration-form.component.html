@@ -52,27 +52,6 @@
 
   @if (hasResults && resultsView; as results) {
     <section class="registration-form__results">
-      <div class="registration-form__results-head">
-        <div>
-          <p class="registration-form__eyebrow">Registered Proxmox</p>
-          <h4>{{ results.clusterName }}</h4>
-          <p class="registration-form__results-copy">
-            Select a datacenter, then choose a server to open the VM deployment options.
-          </p>
-        </div>
-        <div class="registration-form__results-rail">
-          <span class="registration-form__count">{{ results.datacenters.length }} datacenters</span>
-          <button
-            class="registration-form__server-change-button registration-form__server-change-button--danger"
-            type="button"
-            [disabled]="submitting"
-            (click)="deregister()"
-          >
-            Deregister Proxmox
-          </button>
-        </div>
-      </div>
-
       @if (results.datacenters.length) {
         <section class="registration-form__compact-section">
           <div class="registration-form__section-head">
@@ -84,16 +63,38 @@
 
           <div class="registration-form__datacenter-list">
             @for (datacenter of results.datacenters; track trackDatacenter($index, datacenter)) {
-              <button
+              <article
                 class="registration-form__datacenter-card"
-                type="button"
-                [class.registration-form__datacenter-card--selected]="isDatacenterSelected(datacenter.id)"
-                [disabled]="submitting"
-                (click)="selectDatacenter(datacenter)"
+                [class.registration-form__datacenter-card--selected]="
+                  isDatacenterSelected(datacenter.id)
+                "
               >
-                <span>{{ datacenter.name }}</span>
-                <strong>{{ datacenter.nodeCount }} nodes</strong>
-              </button>
+                <div class="registration-form__datacenter-card-top">
+                  <button
+                    class="registration-form__datacenter-card-button"
+                    type="button"
+                    [disabled]="submitting"
+                    (click)="
+                      isDatacenterSelected(datacenter.id)
+                        ? clearSelectedDatacenter()
+                        : selectDatacenter(datacenter)
+                    "
+                  >
+                    <span>{{ datacenter.name }}</span>
+                    <strong>{{ datacenter.nodeCount }} nodes</strong>
+                  </button>
+                  @if (isDatacenterSelected(datacenter.id)) {
+                    <button
+                      class="registration-form__server-change-button registration-form__server-change-button--danger"
+                      type="button"
+                      [disabled]="submitting"
+                      (click)="deregister()"
+                    >
+                      Deregister Proxmox
+                    </button>
+                  }
+                </div>
+              </article>
             }
           </div>
         </section>
@@ -102,12 +103,12 @@
       @if (results.selectedDatacenter) {
         <div class="registration-form__board">
           <article class="registration-form__hero-card">
-            <div class="registration-form__hero-top">
+            <!-- <div class="registration-form__hero-top">
               <div>
                 <p class="registration-form__eyebrow">Selected Datacenter</p>
                 <h5>{{ results.selectedDatacenter.name }}</h5>
               </div>
-            </div>
+            </div> -->
 
             <div class="registration-form__resource-grid">
               <article
@@ -149,7 +150,9 @@
                     <article
                       class="registration-form__server-table"
                       [class.registration-form__server-table--interactive]="compactOnly()"
-                      [class.registration-form__server-table--selected]="isServerSelected(server.name)"
+                      [class.registration-form__server-table--selected]="
+                        isServerSelected(server.name)
+                      "
                       [attr.aria-label]="compactOnly() ? 'Select server ' + server.name : null"
                       [attr.aria-pressed]="compactOnly() ? isServerSelected(server.name) : null"
                       [attr.role]="compactOnly() ? 'button' : null"

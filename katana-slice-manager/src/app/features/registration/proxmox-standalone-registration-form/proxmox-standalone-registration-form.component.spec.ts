@@ -256,7 +256,7 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
     fixture.detectChanges();
 
     const datacenterButton = fixture.nativeElement.querySelector(
-      '.registration-form__datacenter-card'
+      '.registration-form__datacenter-card-button'
     ) as HTMLButtonElement;
     datacenterButton.click();
     fixture.detectChanges();
@@ -267,7 +267,7 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
     });
     expect(getOverviewMock).toHaveBeenCalledWith({ cluster_id: 'saved-katana-id' });
     expect(component['submitMessage']).toBe('Loaded Antares. Select a server to continue.');
-    expect(fixture.nativeElement.textContent).toContain('Selected Datacenter');
+    expect(fixture.nativeElement.textContent).toContain('Deregister Proxmox');
     expect(fixture.nativeElement.textContent).toContain('Servers');
     expect(fixture.nativeElement.textContent).toContain('backup');
     expect(fixture.nativeElement.textContent).toContain('fast');
@@ -297,6 +297,58 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
     ]);
     expect(fixture.nativeElement.textContent).toContain('Selected server');
     expect(fixture.nativeElement.textContent).toContain('Deploy Selected VMs');
+  });
+
+  it('returns to the original datacenter choices when the selected datacenter card is clicked again', () => {
+    draftService.saveFormValue(
+      'proxmox-standalone',
+      'proxmox-standalone',
+      {
+        ...activeSnapshot,
+        datacenters: [
+          { id: 'cluster', name: 'Antares', node_count: 3 },
+          { id: 'lyra', name: 'Lyra', node_count: 2 }
+        ],
+        selectedDatacenter: null,
+        nodes: [],
+        servers: [],
+        overview: null
+      },
+      'active'
+    );
+    connectMock.mockReturnValue(
+      of({
+        selected_datacenter: { id: 'cluster', name: 'Antares' },
+        nodes: [{ name: 'cls01srv01' }],
+        servers: [{ name: 'cls01srv01', node: 'cls01srv01' }]
+      })
+    );
+    getOverviewMock.mockReturnValue(of(activeSnapshot.overview));
+    createComponent();
+    fixture.componentRef.setInput('compactOnly', true);
+    fixture.detectChanges();
+
+    const datacenterButtons = Array.from(
+      fixture.nativeElement.querySelectorAll('.registration-form__datacenter-card-button')
+    ) as HTMLButtonElement[];
+
+    datacenterButtons[0].click();
+    fixture.detectChanges();
+
+    expect(connectMock).toHaveBeenCalledTimes(1);
+    expect(getOverviewMock).toHaveBeenCalledTimes(1);
+    expect(fixture.nativeElement.textContent).toContain('Servers');
+
+    datacenterButtons[0].click();
+    fixture.detectChanges();
+
+    expect(connectMock).toHaveBeenCalledTimes(1);
+    expect(getOverviewMock).toHaveBeenCalledTimes(1);
+    expect(component['resultsView']?.selectedDatacenter).toBeNull();
+    expect(component['submitMessage']).toBe('Select a datacenter to continue.');
+    expect(fixture.nativeElement.textContent).toContain('Antares');
+    expect(fixture.nativeElement.textContent).toContain('Lyra');
+    expect(fixture.nativeElement.textContent).not.toContain('Servers');
   });
 
   it('computes free node resources from the connect response when overview metrics are absent', () => {
@@ -346,7 +398,7 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
     fixture.detectChanges();
 
     const datacenterButton = fixture.nativeElement.querySelector(
-      '.registration-form__datacenter-card'
+      '.registration-form__datacenter-card-button'
     ) as HTMLButtonElement;
     datacenterButton.click();
     fixture.detectChanges();
@@ -408,7 +460,7 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
     fixture.detectChanges();
 
     const datacenterButton = fixture.nativeElement.querySelector(
-      '.registration-form__datacenter-card'
+      '.registration-form__datacenter-card-button'
     ) as HTMLButtonElement;
     datacenterButton.click();
     fixture.detectChanges();
@@ -448,7 +500,7 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
     fixture.detectChanges();
 
     const datacenterButton = fixture.nativeElement.querySelector(
-      '.registration-form__datacenter-card'
+      '.registration-form__datacenter-card-button'
     ) as HTMLButtonElement;
     datacenterButton.click();
     fixture.detectChanges();
@@ -525,7 +577,7 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
     fixture.detectChanges();
 
     const datacenterButton = fixture.nativeElement.querySelector(
-      '.registration-form__datacenter-card'
+      '.registration-form__datacenter-card-button'
     ) as HTMLButtonElement;
     datacenterButton.click();
     fixture.detectChanges();

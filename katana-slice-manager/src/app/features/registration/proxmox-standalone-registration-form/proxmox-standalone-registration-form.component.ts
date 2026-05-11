@@ -216,6 +216,34 @@ export class ProxmoxStandaloneRegistrationFormComponent implements OnInit {
     this.syncSelectedVmTargets();
   }
 
+  protected clearSelectedDatacenter(): void {
+    if (this.submitting || !this.currentSnapshot.selectedDatacenter) {
+      return;
+    }
+
+    const snapshot: ProxmoxStandaloneSnapshot = {
+      ...this.currentSnapshot,
+      selectedDatacenter: null,
+      nodes: [],
+      servers: [],
+      overview: null
+    };
+
+    this.currentSnapshot = snapshot;
+    this.resultsView = this.buildResultsView(snapshot);
+    this.selectedServerNames.clear();
+    this.selectedVmTargets = [];
+    this.submitSucceeded = true;
+    this.submitMessage = 'Select a datacenter to continue.';
+    this.submitError = '';
+    this.deploymentDraftService.saveFormValue(
+      'proxmox-standalone',
+      'proxmox-standalone',
+      snapshot,
+      'active'
+    );
+  }
+
   protected selectDatacenter(datacenter: CompactDatacenterView): void {
     if (!this.currentSnapshot.clusterId || this.submitting) {
       return;

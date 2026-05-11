@@ -306,6 +306,26 @@
 
 .registration-form__datacenter-card {
   text-align: left;
+  align-content: start;
+}
+
+.registration-form__datacenter-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.registration-form__datacenter-card-button {
+  display: grid;
+  flex: 1;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
   cursor: pointer;
 }
 
@@ -318,7 +338,7 @@
   background: rgba(94, 240, 210, 0.05);
 }
 
-.registration-form__datacenter-card:disabled {
+.registration-form__datacenter-card-button:disabled {
   cursor: wait;
   opacity: 0.72;
 }
@@ -490,6 +510,13 @@
 .registration-form__server-change-button--danger {
   border-color: rgba(255, 125, 125, 0.28);
   color: #ffb0b0;
+}
+
+@media (max-width: 720px) {
+  .registration-form__datacenter-card-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 .registration-form__storage-grid {
