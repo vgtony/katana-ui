@@ -54,7 +54,6 @@ interface CompactServerView {
   memory: string;
   disk: string;
   storage: CompactStorageView[];
-  isoImages: string[];
   templateOptions: ProxmoxVmTemplateOption[];
 }
 
@@ -69,15 +68,12 @@ interface CompactStorageView {
 }
 
 interface CompactResultsView {
-  clusterName: string;
-  connectedNodes: string[];
   datacenters: CompactDatacenterView[];
   selectedDatacenter: CompactDatacenterView | null;
   servers: CompactServerView[];
   clusterCpu: string;
   clusterMemory: string;
   clusterDisk: string;
-  storage: CompactStorageView[];
 }
 
 function isRecord(value: unknown): value is UnknownRecord {
@@ -611,7 +607,6 @@ export class ProxmoxStandaloneRegistrationFormComponent implements OnInit {
     const selectedDatacenter = this.mapSelectedDatacenter(snapshot.selectedDatacenter, datacenters);
     const connectedNodes = this.extractConnectedNodes(snapshot.nodes);
     const servers = this.buildServerViews(snapshot, connectedNodes);
-    const storage = servers.flatMap((server) => server.storage);
     const clusterResource = this.extractClusterResource(snapshot.overview);
 
     if (
@@ -624,8 +619,6 @@ export class ProxmoxStandaloneRegistrationFormComponent implements OnInit {
     }
 
     return {
-      clusterName: snapshot.clusterName || selectedDatacenter?.name || 'Proxmox',
-      connectedNodes,
       datacenters,
       selectedDatacenter,
       servers,
@@ -633,8 +626,7 @@ export class ProxmoxStandaloneRegistrationFormComponent implements OnInit {
       clusterMemory:
         this.formatClusterSummaryCapacityMetric(this.pickRecord(clusterResource, ['memory'])) ?? '—',
       clusterDisk:
-        this.formatClusterSummaryCapacityMetric(this.pickRecord(clusterResource, ['disk'])) ?? '—',
-      storage
+        this.formatClusterSummaryCapacityMetric(this.pickRecord(clusterResource, ['disk'])) ?? '—'
     };
   }
 
@@ -708,7 +700,6 @@ export class ProxmoxStandaloneRegistrationFormComponent implements OnInit {
         this.formatServerCapacityMetric(server, ['disk'], ['maxdisk']) ??
         '—',
       storage,
-      isoImages: [...new Set(storage.flatMap((entry) => entry.isoImages))],
       templateOptions: this.extractTemplateOptions(server)
     };
   }
@@ -785,8 +776,7 @@ export class ProxmoxStandaloneRegistrationFormComponent implements OnInit {
 
     return {
       ...mappedServer,
-      storage,
-      isoImages: [...new Set(storage.flatMap((entry) => entry.isoImages))]
+      storage
     };
   }
 
@@ -1035,14 +1025,6 @@ export class ProxmoxStandaloneRegistrationFormComponent implements OnInit {
           this.changeDetectorRef.detectChanges();
         }
       });
-  }
-
-  private extractStringArray(value: unknown): string[] {
-    return Array.isArray(value)
-      ? value
-          .map((entry) => this.stringify(entry))
-          .filter((entry): entry is string => entry !== null)
-      : [];
   }
 
   private extractIsoImageValues(value: unknown): string[] {

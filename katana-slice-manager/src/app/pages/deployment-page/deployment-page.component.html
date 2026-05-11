@@ -48,9 +48,22 @@
           >
             <div class="deployment-page__inventory-body-inner">
               @if (section.loading) {
-                <p class="deployment-page__inventory-empty">
-                  Loading {{ section.title.toLowerCase() }}…
-                </p>
+                <div class="deployment-page__inventory-skeleton" role="status" aria-live="polite">
+                  <div class="deployment-page__inventory-skeleton-head">
+                    <span class="deployment-page__inventory-skeleton-line deployment-page__inventory-skeleton-line--title"></span>
+                    <span class="deployment-page__inventory-skeleton-line deployment-page__inventory-skeleton-line--pill"></span>
+                  </div>
+                  @for (row of [1, 2, 3]; track row) {
+                    <div class="deployment-page__inventory-skeleton-row" aria-hidden="true">
+                      @for (column of [1, 2, 3, 4]; track column) {
+                        <span class="deployment-page__inventory-skeleton-line"></span>
+                      }
+                    </div>
+                  }
+                  <span class="deployment-page__inventory-skeleton-copy"
+                    >Loading {{ section.title.toLowerCase() }}…</span
+                  >
+                </div>
               } @else if (section.error) {
                 <p class="deployment-page__error" role="alert">{{ section.error }}</p>
               } @else if (section.rows.length) {

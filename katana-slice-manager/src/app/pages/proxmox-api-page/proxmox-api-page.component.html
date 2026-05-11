@@ -71,6 +71,13 @@
           {{ submitting ? 'Loading capacity dashboard...' : 'Load capacity dashboard' }}
         </button>
 
+        @if (submitting) {
+          <div class="proxmox-api-page__loader" role="status" aria-live="polite">
+            <span class="proxmox-api-page__spinner" aria-hidden="true"></span>
+            <span>Loading cluster capacity and node cards…</span>
+          </div>
+        }
+
         @if (submitMessage) {
           <p class="proxmox-api-page__status proxmox-api-page__status--success" role="status">
             {{ submitMessage }}
@@ -247,6 +254,17 @@
             </div>
           </div>
         }
+      } @else if (submitting) {
+        <div class="proxmox-api-page__summary-grid proxmox-api-page__summary-grid--skeleton" aria-hidden="true">
+          @for (item of [1, 2, 3, 4]; track item) {
+            <article class="proxmox-api-page__metric-card">
+              <span class="proxmox-api-page__skeleton proxmox-api-page__skeleton--label"></span>
+              <span class="proxmox-api-page__skeleton proxmox-api-page__skeleton--title"></span>
+              <span class="proxmox-api-page__skeleton proxmox-api-page__skeleton--copy"></span>
+              <span class="proxmox-api-page__skeleton proxmox-api-page__skeleton--bar"></span>
+            </article>
+          }
+        </div>
       } @else {
         <div class="proxmox-api-page__empty">
           <p class="proxmox-api-page__empty-count">No cluster data loaded yet</p>
@@ -349,6 +367,31 @@
                 }
               </div>
             }
+          </article>
+        }
+      </div>
+    } @else if (submitting) {
+      <div class="proxmox-api-page__node-grid" aria-hidden="true">
+        @for (node of [1, 2]; track node) {
+          <article class="proxmox-api-page__node-card proxmox-api-page__node-card--skeleton">
+            <div class="proxmox-api-page__node-head">
+              <div>
+                <span class="proxmox-api-page__skeleton proxmox-api-page__skeleton--title"></span>
+                <span class="proxmox-api-page__skeleton proxmox-api-page__skeleton--copy"></span>
+              </div>
+              <span class="proxmox-api-page__skeleton proxmox-api-page__skeleton--pill"></span>
+            </div>
+
+            <div class="proxmox-api-page__node-metrics">
+              @for (metric of [1, 2, 3]; track metric) {
+                <article class="proxmox-api-page__mini-metric">
+                  <span class="proxmox-api-page__skeleton proxmox-api-page__skeleton--label"></span>
+                  <span class="proxmox-api-page__skeleton proxmox-api-page__skeleton--title"></span>
+                  <span class="proxmox-api-page__skeleton proxmox-api-page__skeleton--copy"></span>
+                  <span class="proxmox-api-page__skeleton proxmox-api-page__skeleton--bar"></span>
+                </article>
+              }
+            </div>
           </article>
         }
       </div>

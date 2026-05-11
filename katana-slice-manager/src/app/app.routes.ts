@@ -1,22 +1,50 @@
 import { Routes } from '@angular/router';
-import { MainLayoutComponent } from './layout/main-layout/main-layout.component';
-import { HomePageComponent } from './pages/home-page/home-page.component';
-import { DashboardPageComponent } from './pages/dashboard-page/dashboard-page.component';
-import { DeploymentPageComponent } from './pages/deployment-page/deployment-page.component';
-import { HistoryPageComponent } from './pages/history-page/history-page.component';
-import { ProxmoxApiPageComponent } from './pages/proxmox-api-page/proxmox-api-page.component';
 
 export const routes: Routes = [
   {
     path: '',
-    component: MainLayoutComponent,
+    loadComponent: () =>
+      import('./layout/main-layout/main-layout.component').then((m) => m.MainLayoutComponent),
     children: [
-      { path: '', pathMatch: 'full', component: HomePageComponent },
-      { path: 'dashboard', component: DashboardPageComponent },
-      { path: 'history', component: HistoryPageComponent },
-      { path: 'proxmox-api', component: ProxmoxApiPageComponent },
-      { path: 'deployment', component: DeploymentPageComponent },
-      { path: 'deployment/:option', component: DeploymentPageComponent }
+      {
+        path: '',
+        pathMatch: 'full',
+        loadComponent: () =>
+          import('./pages/home-page/home-page.component').then((m) => m.HomePageComponent)
+      },
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./pages/dashboard-page/dashboard-page.component').then(
+            (m) => m.DashboardPageComponent
+          )
+      },
+      {
+        path: 'history',
+        loadComponent: () =>
+          import('./pages/history-page/history-page.component').then((m) => m.HistoryPageComponent)
+      },
+      {
+        path: 'proxmox-api',
+        loadComponent: () =>
+          import('./pages/proxmox-api-page/proxmox-api-page.component').then(
+            (m) => m.ProxmoxApiPageComponent
+          )
+      },
+      {
+        path: 'deployment',
+        loadComponent: () =>
+          import('./pages/deployment-page/deployment-page.component').then(
+            (m) => m.DeploymentPageComponent
+          )
+      },
+      {
+        path: 'deployment/:option',
+        loadComponent: () =>
+          import('./pages/deployment-page/deployment-page.component').then(
+            (m) => m.DeploymentPageComponent
+          )
+      }
     ]
   },
   { path: '**', redirectTo: '' }

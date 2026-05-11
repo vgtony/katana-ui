@@ -1,6 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { HttpActivityService } from '../../shared/services/http-activity.service';
 import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
 
 type AppTheme = 'dark' | 'light';
@@ -14,6 +15,7 @@ type AppTheme = 'dark' | 'light';
 export class MainLayoutComponent implements OnInit {
   private readonly document = inject(DOCUMENT);
   private readonly themeStorageKey = 'katana-ui-theme';
+  protected readonly httpActivityService = inject(HttpActivityService);
 
   protected theme: AppTheme = 'dark';
 

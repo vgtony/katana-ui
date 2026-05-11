@@ -1,5 +1,3 @@
-import { DeploymentOption } from './deployment.interface';
-
 export type DeploymentFormKey =
   | 'nfvo'
   | 'function'
@@ -14,7 +12,5 @@ export type DeploymentFormKey =
   | 'proxmox-standalone';
 
 export type DeploymentFormSnapshots = Partial<Record<DeploymentFormKey, unknown>>;
-
-export type DeploymentDraftMap = Partial<Record<DeploymentOption['id'], DeploymentFormSnapshots>>;
 
 export type DeploymentFormState = 'missing' | 'draft' | 'active';

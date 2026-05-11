@@ -75,6 +75,12 @@
     <button type="submit" [disabled]="form.invalid || submitting">
       {{ submitting ? 'Registering VIM...' : 'Register VIM' }}
     </button>
+    @if (submitting) {
+      <div class="registration-form__loader" role="status" aria-live="polite">
+        <span class="registration-form__spinner" aria-hidden="true"></span>
+        <span>Registering VIM…</span>
+      </div>
+    }
     @if (submitMessage) {
       <p class="registration-form__status registration-form__status--success" role="status">
         {{ submitMessage }}

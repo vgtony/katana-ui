@@ -18,10 +18,16 @@
           : isUsingLoadedActiveCluster()
             ? 'Use Active Proxmox Cluster'
             : submitSucceeded
-              ? 'Registered'
-              : 'Register Proxmox Cluster'
+            ? 'Registered'
+            : 'Register Proxmox Cluster'
       }}
     </button>
+    @if (submitting) {
+      <div class="registration-form__loader" role="status" aria-live="polite">
+        <span class="registration-form__spinner" aria-hidden="true"></span>
+        <span>Registering cluster…</span>
+      </div>
+    }
     @if (submitMessage) {
       <p class="registration-form__status registration-form__status--success" role="status">
         {{ submitMessage }}

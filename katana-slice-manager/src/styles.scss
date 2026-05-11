@@ -136,6 +136,34 @@ textarea {
   font: inherit;
 }
 
+.registration-form__loader {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid var(--app-border-accent);
+  background: color-mix(in srgb, var(--app-accent-soft) 70%, transparent);
+  color: var(--app-text);
+}
+
+.registration-form__spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 2px solid color-mix(in srgb, var(--app-accent) 24%, transparent);
+  border-top-color: var(--app-accent);
+  animation: app-spinner 0.78s linear infinite;
+}
+
+@keyframes app-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .deployment-page__inventory-toggle {
   min-height: 34px;
   padding: 0 14px;
