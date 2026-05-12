@@ -97,12 +97,12 @@
 }
 
 .registration-form__spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(255, 255, 255, 0.16);
-  border-top-color: #ff8f5a;
-  border-radius: 50%;
-  animation: proxmox-standalone-spin 700ms linear infinite;
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  background: url('/katana-logo-spinner.svg') center / contain no-repeat;
+  filter: drop-shadow(0 0 8px rgba(255, 143, 90, 0.34));
 }
 
 .registration-form__status--success {
@@ -580,12 +580,6 @@
 .registration-form__empty--panel {
   display: grid;
   gap: 8px;
-}
-
-@keyframes proxmox-standalone-spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 @media (max-width: 1100px) {

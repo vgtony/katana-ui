@@ -12,51 +12,57 @@
   min-height: 100dvh;
 }
 
-.layout-loading-bar {
+.layout-loading-overlay {
   position: fixed;
-  inset: 0 0 auto 0;
-  z-index: 90;
-  height: 3px;
-  overflow: hidden;
-  pointer-events: none;
-  background: color-mix(in srgb, var(--app-accent) 12%, transparent);
-}
-
-.layout-loading-bar span {
-  display: block;
-  width: 42%;
-  height: 100%;
-  border-radius: 999px;
-  background: var(--app-primary-gradient);
-  animation: layout-loading-slide 1.1s ease-in-out infinite;
-}
-
-.layout-loading-indicator {
-  position: fixed;
-  top: 18px;
-  right: 24px;
-  z-index: 91;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 42px;
-  padding: 0 14px;
-  border-radius: 999px;
-  border: 1px solid var(--app-border-accent);
-  background: color-mix(in srgb, var(--app-surface-elevated) 88%, transparent);
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 16px;
+  background: color-mix(in srgb, var(--app-shell-bg) 74%, transparent);
   color: var(--app-text);
-  box-shadow: var(--app-shadow);
-  pointer-events: none;
+  pointer-events: auto;
   backdrop-filter: blur(10px);
 }
 
-.layout-loading-indicator__spinner {
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  border: 2px solid color-mix(in srgb, var(--app-accent) 26%, transparent);
-  border-top-color: var(--app-accent);
-  animation: layout-loading-spin 0.78s linear infinite;
+.layout-loading-logo {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: clamp(180px, 18vw, 280px);
+  aspect-ratio: 864 / 976;
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--app-accent) 34%, transparent));
+}
+
+.layout-loading-logo__stripe {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  opacity: 0;
+  animation: layout-loading-stripe-reveal 1.45s steps(1, end) infinite;
+}
+
+.layout-loading-logo__stripe--left {
+  background-image: url('/spinner-pieces/logo-stripe-right.svg');
+}
+
+.layout-loading-logo__stripe--middle {
+  background-image: url('/spinner-pieces/logo-stripe-middle.svg');
+  animation-delay: .18s;
+}
+
+.layout-loading-logo__stripe--right {
+  background-image: url('/spinner-pieces/logo-stripe-left.svg');
+  animation-delay: .36s;
+}
+
+.layout-loading-overlay__text {
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .28em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--app-muted);
 }
 
 .layout-content {
@@ -101,19 +107,20 @@
   line-height: 1;
 }
 
-@keyframes layout-loading-slide {
-  0% {
-    transform: translateX(-120%);
+@keyframes layout-loading-stripe-reveal {
+  0%,
+  12% {
+    opacity: 0;
   }
 
+  13%,
+  82% {
+    opacity: 1;
+  }
+
+  83%,
   100% {
-    transform: translateX(340%);
-  }
-}
-
-@keyframes layout-loading-spin {
-  to {
-    transform: rotate(360deg);
+    opacity: 0;
   }
 }
 
@@ -129,10 +136,5 @@
 
   .layout-content {
     padding: var(--layout-content-padding);
-  }
-
-  .layout-loading-indicator {
-    top: 12px;
-    right: 12px;
   }
 }

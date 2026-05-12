@@ -1,12 +1,12 @@
 <div class="layout-shell">
   @if (httpActivityService.isLoading()) {
-    <div class="layout-loading-bar" aria-hidden="true">
-      <span></span>
-    </div>
-
-    <div class="layout-loading-indicator" role="status" aria-live="polite">
-      <span class="layout-loading-indicator__spinner" aria-hidden="true"></span>
-      <span>Loading…</span>
+    <div class="layout-loading-overlay" role="status" aria-live="polite">
+      <span class="layout-loading-logo" aria-hidden="true">
+        <span class="layout-loading-logo__stripe layout-loading-logo__stripe--left"></span>
+        <span class="layout-loading-logo__stripe layout-loading-logo__stripe--middle"></span>
+        <span class="layout-loading-logo__stripe layout-loading-logo__stripe--right"></span>
+      </span>
+      <span class="layout-loading-overlay__text">Loading…</span>
     </div>
   }
 

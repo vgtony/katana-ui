@@ -152,18 +152,12 @@ textarea {
 }
 
 .registration-form__spinner {
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  border: 2px solid color-mix(in srgb, var(--app-accent) 24%, transparent);
-  border-top-color: var(--app-accent);
-  animation: app-spinner 0.78s linear infinite;
-}
-
-@keyframes app-spinner {
-  to {
-    transform: rotate(360deg);
-  }
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  background: url('/katana-logo-spinner.svg') center / contain no-repeat;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--app-accent) 32%, transparent));
 }
 
 .deployment-page__inventory-toggle {
