@@ -14,7 +14,40 @@
         routerLinkActive="sidebar__link--active"
         [routerLinkActiveOptions]="{ exact: item.route === '/' }"
       >
-        {{ item.label }}
+        <span class="sidebar__link-icon" aria-hidden="true">
+          @switch (item.icon) {
+            @case ('overview') {
+              <svg viewBox="0 0 24 24">
+                <path d="M4 11.2 12 4l8 7.2"></path>
+                <path d="M6.5 10.5V20h11v-9.5"></path>
+                <path d="M10 20v-5h4v5"></path>
+              </svg>
+            }
+            @case ('dashboard') {
+              <svg viewBox="0 0 24 24">
+                <rect x="4" y="4" width="7" height="7" rx="1.5"></rect>
+                <rect x="13" y="4" width="7" height="5" rx="1.5"></rect>
+                <rect x="4" y="13" width="7" height="7" rx="1.5"></rect>
+                <rect x="13" y="11" width="7" height="9" rx="1.5"></rect>
+              </svg>
+            }
+            @case ('history') {
+              <svg viewBox="0 0 24 24">
+                <path d="M4 12a8 8 0 1 0 2.35-5.65"></path>
+                <path d="M4 5v4h4"></path>
+                <path d="M12 8v5l3 2"></path>
+              </svg>
+            }
+            @case ('deployment') {
+              <svg viewBox="0 0 24 24">
+                <path d="M12 3 4.5 7.2 12 11.4l7.5-4.2L12 3Z"></path>
+                <path d="m4.5 12.8 7.5 4.2 7.5-4.2"></path>
+                <path d="m4.5 17.2 7.5 4.2 7.5-4.2"></path>
+              </svg>
+            }
+          }
+        </span>
+        <span>{{ item.label }}</span>
       </a>
     }
   </nav>

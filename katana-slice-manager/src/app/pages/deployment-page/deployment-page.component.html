@@ -197,7 +197,7 @@
               <button
                 class="deployment-page__link deployment-page__link--subtle"
                 type="button"
-                (click)="returnToDeploymentChooser()"
+                (click)="returnToDeploymentChooser($event)"
               >
                 Change Type
               </button>
@@ -222,6 +222,41 @@
                   type="button"
                   (click)="chooseDeploymentOption(option.id)"
                 >
+                  <span class="deployment-page__option-icon" aria-hidden="true">
+                    @switch (option.id) {
+                      @case ('slice') {
+                        <svg viewBox="0 0 24 24">
+                          <path d="M5 7h14"></path>
+                          <path d="M5 12h14"></path>
+                          <path d="M5 17h14"></path>
+                          <path d="M8 4v16"></path>
+                          <path d="M16 4v16"></path>
+                        </svg>
+                      }
+                      @case ('k8s') {
+                        <svg viewBox="0 0 24 24">
+                          <path d="M12 3.5 19.4 8v8L12 20.5 4.6 16V8L12 3.5Z"></path>
+                          <path d="M12 8v8"></path>
+                          <path d="m8.5 10 7 4"></path>
+                          <path d="m15.5 10-7 4"></path>
+                        </svg>
+                      }
+                      @case ('proxmox-standalone') {
+                        <svg viewBox="0 0 24 24">
+                          <rect x="4" y="5" width="16" height="14" rx="2"></rect>
+                          <path d="M8 9h8"></path>
+                          <path d="M8 13h3"></path>
+                          <path d="M14 13h2"></path>
+                        </svg>
+                      }
+                      @default {
+                        <svg viewBox="0 0 24 24">
+                          <rect x="5" y="5" width="14" height="14" rx="2"></rect>
+                          <path d="M9 9h6v6H9z"></path>
+                        </svg>
+                      }
+                    }
+                  </span>
                   <strong>{{ option.label }}</strong>
                 </button>
               }

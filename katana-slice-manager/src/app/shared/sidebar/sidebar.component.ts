@@ -10,10 +10,9 @@ import { NavigationItem } from '../../models/interfaces/navigation.interface';
 })
 export class SidebarComponent {
   protected readonly navigationItems: NavigationItem[] = [
-    { label: 'Overview', route: '/' },
-    { label: 'Dashboard', route: '/dashboard' },
-    { label: 'History', route: '/history' },
-    { label: 'Proxmox API', route: '/proxmox-api' },
-    { label: 'Deployments', route: '/deployment' }
+    { icon: 'overview', label: 'Overview', route: '/' },
+    { icon: 'dashboard', label: 'Dashboard', route: '/dashboard' },
+    { icon: 'history', label: 'History', route: '/history' },
+    { icon: 'deployment', label: 'Deployments', route: '/deployment' }
   ];
 }

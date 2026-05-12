@@ -305,7 +305,7 @@
 }
 
 .deployment-page__option-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
 }
 
 // .deployment-page__requirement-card,
@@ -323,12 +323,34 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 46px;
+  gap: 12px;
+  min-height: 56px;
   padding: 0 20px;
+  background: var(--app-option-card-bg);
   color: var(--app-text);
   text-align: center;
   cursor: pointer;
   transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.deployment-page__option-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  color: var(--app-accent-heading);
+}
+
+.deployment-page__option-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .deployment-page__option-card:hover,
@@ -365,6 +387,10 @@
   padding: 0;
   overflow-y: auto;
   --deployment-modal-sticky-offset: 84px;
+}
+
+.deployment-page__modal--chooser {
+  width: min(520px, calc(100vw - var(--layout-sidebar-width, 280px) - 96px));
 }
 
 .deployment-page__modal-header,

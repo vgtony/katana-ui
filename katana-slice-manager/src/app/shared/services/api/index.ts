@@ -10,7 +10,6 @@ export * from './location-api.service';
 export * from './nfvo-api.service';
 export * from './policy-api.service';
 export * from './proxmox-api.service';
-export * from './proxmox-standalone-api.service';
 export * from './resources-api.service';
 export * from './security-api.service';
 export * from './slice-api.service';

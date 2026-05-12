@@ -499,6 +499,10 @@
 }
 
 .registration-form__server-change-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   padding: 0.72rem 1rem;
   border: 1px solid var(--app-border);
   border-radius: 12px;
@@ -510,6 +514,25 @@
 .registration-form__server-change-button--danger {
   border-color: rgba(255, 125, 125, 0.28);
   color: #ffb0b0;
+}
+
+.registration-form__button-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.registration-form__button-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 @media (max-width: 720px) {

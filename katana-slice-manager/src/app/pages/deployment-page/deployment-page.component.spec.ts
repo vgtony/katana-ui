@@ -11,12 +11,14 @@ import {
   KubernetesApiService,
   SliceApiService
 } from '../../shared/services/api';
+import { DeploymentDraftService } from '../../shared/services/deployment-draft.service';
 import { DeploymentPageComponent } from './deployment-page.component';
 
 describe('DeploymentPageComponent', () => {
   let fixture!: ComponentFixture<DeploymentPageComponent>;
   let component!: DeploymentPageComponent;
   let router!: Router;
+  let deploymentDraftService!: DeploymentDraftService;
   let paramMap$!: BehaviorSubject<ParamMap>;
   let queryParamMap$!: BehaviorSubject<ParamMap>;
 
@@ -32,6 +34,9 @@ describe('DeploymentPageComponent', () => {
         {
           provide: ActivatedRoute,
           useValue: {
+            snapshot: {
+              queryParamMap: convertToParamMap({})
+            },
             get paramMap() {
               return paramMap$.asObservable();
             },
@@ -57,6 +62,7 @@ describe('DeploymentPageComponent', () => {
     }).compileComponents();
 
     router = TestBed.inject(Router);
+    deploymentDraftService = TestBed.inject(DeploymentDraftService);
   });
 
   function createComponentForOption(
@@ -151,13 +157,23 @@ describe('DeploymentPageComponent', () => {
       const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
       getButtonByText('Change Type').click();
-      expect(navigateSpy).toHaveBeenCalledWith(['/deployment']);
+      expect(navigateSpy).toHaveBeenCalledWith(['/deployment'], {
+        replaceUrl: true,
+        queryParams: { modal: 'chooser' }
+      });
+      fixture.detectChanges();
+
+      expect(component['selectedRouteOptionId']).toBeNull();
+      expect(component['isNewDeploymentModalOpen']).toBe(true);
+      expect(component['isDeploymentChooserOpen']).toBe(true);
+      expect(getTextContent()).toContain('Create New Network Slice');
 
       paramMap$.next(convertToParamMap({}));
       fixture.detectChanges();
 
       expect(component['selectedRouteOptionId']).toBeNull();
       expect(component['isNewDeploymentModalOpen']).toBe(true);
+      expect(component['isDeploymentChooserOpen']).toBe(true);
       expect(getTextContent()).toContain('Create New Network Slice');
       expect(getTextContent()).toContain('Slice / OpenStack');
       expect(getTextContent()).toContain('K8s Deploy');
@@ -277,7 +293,22 @@ describe('DeploymentPageComponent', () => {
       const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
       getButtonByText('Change Type').click();
-      expect(navigateSpy).toHaveBeenCalledWith(['/deployment']);
+      expect(navigateSpy).toHaveBeenCalledWith(['/deployment'], {
+        replaceUrl: true,
+        queryParams: { modal: 'chooser' }
+      });
+      fixture.detectChanges();
+
+      expect(component['selectedRouteOptionId']).toBeNull();
+      expect(component['isNewDeploymentModalOpen']).toBe(true);
+      expect(component['isDeploymentChooserOpen']).toBe(true);
+      expect(getTextContent()).toContain('Create New Network Slice');
+
+      paramMap$.next(convertToParamMap({ option: 'proxmox-standalone' }));
+      fixture.detectChanges();
+
+      expect(component['isDeploymentChooserOpen']).toBe(true);
+      expect(getTextContent()).toContain('Create New Network Slice');
 
       paramMap$.next(convertToParamMap({}));
       fixture.detectChanges();
@@ -288,6 +319,37 @@ describe('DeploymentPageComponent', () => {
 
       expect(component['selectedRouteOptionId']).toBe('proxmox-standalone');
       expect(getTextContent()).toContain('Standalone API');
+    });
+
+    it('keeps the chooser open when an active Proxmox registration exists', () => {
+      deploymentDraftService.saveFormValue(
+        'proxmox-standalone',
+        'proxmox-standalone',
+        {
+          url: 'https://proxmox.example:8006',
+          clusterId: 'cluster-1',
+          selectedDatacenter: { id: 'antares', name: 'antares' }
+        },
+        'active'
+      );
+      const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+      getButtonByText('Change Type').click();
+      expect(navigateSpy).toHaveBeenCalledWith(['/deployment'], {
+        replaceUrl: true,
+        queryParams: { modal: 'chooser' }
+      });
+
+      queryParamMap$.next(convertToParamMap({ modal: 'chooser' }));
+      paramMap$.next(convertToParamMap({}));
+      fixture.detectChanges();
+
+      expect(component['selectedRouteOptionId']).toBeNull();
+      expect(component['isNewDeploymentModalOpen']).toBe(true);
+      expect(component['isDeploymentChooserOpen']).toBe(true);
+      expect(getTextContent()).toContain('Create New Network Slice');
+      expect(getTextContent()).toContain('Proxmox');
+      expect(getTextContent()).not.toContain('Deploy Proxmox');
     });
 
     it('shows a compact/detail toggle next to change type on the deploy step', async () => {
@@ -323,6 +385,16 @@ describe('DeploymentPageComponent', () => {
     });
 
     it('returns to the registration step when the standalone registration is deregistered', async () => {
+      deploymentDraftService.saveFormValue(
+        'proxmox-standalone',
+        'proxmox-standalone',
+        {
+          url: 'https://proxmox.example:8006',
+          clusterId: 'cluster-1',
+          selectedDatacenter: { id: 'antares', name: 'antares' }
+        },
+        'active'
+      );
       component['markRequirementDone']('proxmox-standalone');
       await fixture.whenStable();
       fixture.detectChanges();
@@ -331,6 +403,9 @@ describe('DeploymentPageComponent', () => {
       await fixture.whenStable();
       fixture.detectChanges();
 
+      expect(
+        deploymentDraftService.getFormState('proxmox-standalone', 'proxmox-standalone')
+      ).toBe('missing');
       expect(component['canAccessStepTwo']()).toBe(false);
       expect(component['currentStep']).toBe(1);
       expect(getTextContent()).toContain('Standalone API');

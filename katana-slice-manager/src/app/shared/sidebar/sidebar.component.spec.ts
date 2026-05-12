@@ -23,7 +23,7 @@ describe('SidebarComponent', () => {
     );
 
     expect(navButtons.length).toBe(0);
-    expect(navLinks).toContain('Proxmox API');
+    expect(navLinks).not.toContain('Proxmox API');
     expect(navLinks).toContain('Deployments');
     expect(element.querySelectorAll('.sidebar__sublink').length).toBe(0);
   });

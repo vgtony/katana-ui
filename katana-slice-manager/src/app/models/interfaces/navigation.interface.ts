@@ -7,6 +7,7 @@ export interface NavigationChild {
 
 export interface NavigationItem {
   key?: NavigationSectionKey;
+  icon: 'overview' | 'dashboard' | 'history' | 'deployment';
   label: string;
   route: string;
   children?: NavigationChild[];

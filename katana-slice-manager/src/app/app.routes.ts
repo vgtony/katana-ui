@@ -25,13 +25,6 @@ export const routes: Routes = [
           import('./pages/history-page/history-page.component').then((m) => m.HistoryPageComponent)
       },
       {
-        path: 'proxmox-api',
-        loadComponent: () =>
-          import('./pages/proxmox-api-page/proxmox-api-page.component').then(
-            (m) => m.ProxmoxApiPageComponent
-          )
-      },
-      {
         path: 'deployment',
         loadComponent: () =>
           import('./pages/deployment-page/deployment-page.component').then(

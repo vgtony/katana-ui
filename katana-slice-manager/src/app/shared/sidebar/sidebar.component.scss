@@ -54,7 +54,9 @@
 }
 
 .sidebar__link {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   width: 100%;
   padding: 0.95rem 1rem;
   border-radius: 16px;
@@ -65,6 +67,26 @@
   background: var(--app-surface);
   border: 1px solid transparent;
   transition: background 220ms ease, border-color 220ms ease, transform 220ms ease;
+}
+
+.sidebar__link-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  color: var(--app-accent-heading);
+}
+
+.sidebar__link-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .sidebar__link:hover {

@@ -99,6 +99,7 @@ export class DeploymentPageComponent implements OnInit {
   protected sliceConfigurationComplete = false;
   protected lastDeploymentStatus: DeploymentPackStatus = 'done';
   protected isNewDeploymentModalOpen = false;
+  protected isDeploymentChooserOpen = false;
   protected selectedRouteOptionId: DeploymentOption['id'] | null = null;
   protected proxmoxServerViewMode: 'compact' | 'detail' = 'compact';
 
@@ -231,6 +232,12 @@ export class DeploymentPageComponent implements OnInit {
     combineLatest([this.route.paramMap, this.route.queryParamMap])
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(([params, queryParams]) => {
+        if (queryParams.get('modal') === 'chooser') {
+          this.restoredPackId = null;
+          this.openDeploymentChooser();
+          return;
+        }
+
         this.restoredPackId = queryParams.get('packId');
         this.setSelectedOption(params.get('option'));
         this.restoreHistoryPackState();
@@ -243,28 +250,41 @@ export class DeploymentPageComponent implements OnInit {
 
   protected closeNewDeploymentModal(): void {
     this.keepModalOpenAfterRouteClear = false;
+    this.isDeploymentChooserOpen = false;
 
     if (this.selectedRouteOptionId) {
       void this.router.navigate(['/deployment']);
       return;
+    }
+
+    if (this.route.snapshot.queryParamMap.get('modal') === 'chooser') {
+      void this.router.navigate(['/deployment'], { replaceUrl: true });
     }
 
     this.isNewDeploymentModalOpen = false;
   }
 
   protected chooseDeploymentOption(optionId: DeploymentOption['id']): void {
+    this.keepModalOpenAfterRouteClear = false;
+    this.isDeploymentChooserOpen = false;
     void this.router.navigate(['/deployment', optionId]);
   }
 
-  protected returnToDeploymentChooser(): void {
+  protected returnToDeploymentChooser(event?: Event): void {
+    event?.preventDefault();
+    event?.stopPropagation();
     this.keepModalOpenAfterRouteClear = true;
+    this.selectedRouteOptionId = null;
+    this.selectedOption = this.deploymentOptions[0];
+    this.isNewDeploymentModalOpen = true;
+    this.isDeploymentChooserOpen = true;
+    this.resetStepState();
+    this.changeDetectorRef.detectChanges();
 
-    if (this.selectedRouteOptionId) {
-      void this.router.navigate(['/deployment']);
-      return;
-    }
-
-    this.openDeploymentChooser();
+    void this.router.navigate(['/deployment'], {
+      replaceUrl: true,
+      queryParams: { modal: 'chooser' }
+    });
   }
 
   protected toggleProxmoxServerViewMode(): void {
@@ -277,7 +297,7 @@ export class DeploymentPageComponent implements OnInit {
   }
 
   protected hasSelectedDeploymentOption(): boolean {
-    return this.selectedRouteOptionId !== null;
+    return this.selectedRouteOptionId !== null && !this.isDeploymentChooserOpen;
   }
 
   protected getWizardStepNumbers(): number[] {
@@ -415,13 +435,19 @@ export class DeploymentPageComponent implements OnInit {
     if (!option) {
       this.selectedRouteOptionId = null;
       this.isNewDeploymentModalOpen = this.keepModalOpenAfterRouteClear;
+      this.isDeploymentChooserOpen = this.isNewDeploymentModalOpen;
       this.keepModalOpenAfterRouteClear = false;
       this.selectedOption = this.deploymentOptions[0];
       this.resetStepState();
       return;
     }
 
+    if (this.keepModalOpenAfterRouteClear) {
+      return;
+    }
+
     this.keepModalOpenAfterRouteClear = false;
+    this.isDeploymentChooserOpen = false;
     this.selectedRouteOptionId = option.id;
     this.isNewDeploymentModalOpen = true;
     this.selectedOption = option;
@@ -432,6 +458,7 @@ export class DeploymentPageComponent implements OnInit {
     this.selectedRouteOptionId = null;
     this.selectedOption = this.deploymentOptions[0];
     this.isNewDeploymentModalOpen = true;
+    this.isDeploymentChooserOpen = true;
     this.resetStepState();
   }
 
@@ -528,12 +555,20 @@ export class DeploymentPageComponent implements OnInit {
 
   protected handleRequirementDeregistered(requirementId: string): void {
     this.deferRequirementStateUpdate(() => {
+      const target = this.getRequirementDraftTarget(requirementId);
+
+      if (target) {
+        this.deploymentDraftService.clearForm(target.optionId, target.formKey);
+      }
+
       this.completedRequirementIds.delete(requirementId);
       this.failedRequirementIds.delete(requirementId);
       this.pendingRequirementDeactivationId = null;
       this.pendingConfigurationDeactivation = false;
       this.deploymentStarted = false;
-      this.syncSavedState();
+      this.currentStep = this.selectedOption.requirements.findIndex(
+        (requirement) => requirement.id === requirementId
+      ) + 1 || this.getFirstIncompleteRequirementStep();
       this.refreshRequirementContextTags();
     });
   }

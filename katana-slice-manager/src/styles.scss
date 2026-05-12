@@ -8,6 +8,7 @@ html {
   --app-sidebar-bg: linear-gradient(180deg, rgba(5, 15, 25, 0.95), rgba(9, 23, 36, 0.92));
   --app-surface: rgba(255, 255, 255, 0.03);
   --app-surface-2: rgba(255, 255, 255, 0.04);
+  --app-option-card-bg: #182430;
   --app-surface-strong: linear-gradient(180deg, rgba(14, 31, 46, 0.96), rgba(10, 25, 38, 0.88));
   --app-surface-elevated: linear-gradient(180deg, rgba(13, 23, 34, 0.98), rgba(11, 20, 30, 0.98));
   --app-surface-accent: linear-gradient(180deg, rgba(17, 40, 58, 0.94), rgba(12, 31, 46, 0.88));
@@ -69,6 +70,7 @@ html[data-theme='light'] {
   --app-sidebar-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(240, 246, 251, 0.98));
   --app-surface: rgba(255, 255, 255, 0.74);
   --app-surface-2: rgba(255, 255, 255, 0.84);
+  --app-option-card-bg: #edf1f5;
   --app-surface-strong: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(243, 248, 252, 0.94));
   --app-surface-elevated: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(241, 247, 252, 0.97));
   --app-surface-accent: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(237, 244, 250, 0.96));
@@ -346,7 +348,7 @@ textarea {
   min-height: 72px;
   padding: 0 20px;
   text-align: center;
-  background: color-mix(in srgb, var(--app-surface) 92%, transparent);
+  background: var(--app-option-card-bg);
   box-shadow: none;
 }
 
