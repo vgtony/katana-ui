@@ -156,7 +156,7 @@ describe('DeploymentPageComponent', () => {
     it('clears the selected route before returning to the deployment chooser', () => {
       const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
-      getButtonByText('Change Type').click();
+      getButtonByAriaLabel('Change deployment type').click();
       expect(navigateSpy).toHaveBeenCalledWith(['/deployment'], {
         replaceUrl: true,
         queryParams: { modal: 'chooser' }
@@ -292,7 +292,7 @@ describe('DeploymentPageComponent', () => {
     it('lets Proxmox be selected again after returning to the chooser', () => {
       const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
-      getButtonByText('Change Type').click();
+      getButtonByAriaLabel('Change deployment type').click();
       expect(navigateSpy).toHaveBeenCalledWith(['/deployment'], {
         replaceUrl: true,
         queryParams: { modal: 'chooser' }
@@ -334,7 +334,7 @@ describe('DeploymentPageComponent', () => {
       );
       const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
-      getButtonByText('Change Type').click();
+      getButtonByAriaLabel('Change deployment type').click();
       expect(navigateSpy).toHaveBeenCalledWith(['/deployment'], {
         replaceUrl: true,
         queryParams: { modal: 'chooser' }
@@ -359,7 +359,7 @@ describe('DeploymentPageComponent', () => {
 
       expect(getButtonByAriaLabel('Compact view')).toBeTruthy();
       expect(getButtonByAriaLabel('Detail view')).toBeTruthy();
-      expect(getButtonByText('Change Type')).toBeTruthy();
+      expect(getButtonByAriaLabel('Change deployment type')).toBeTruthy();
 
       getButtonByAriaLabel('Detail view').click();
       fixture.detectChanges();

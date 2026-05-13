@@ -99,7 +99,7 @@
   display: block;
   margin-top: 6px;
   font-size: 1rem;
-  color: #fff7f1;
+  color: var(--app-proxmox-strong-text);
 }
 
 .registration-form__loader,
@@ -150,10 +150,8 @@
   gap: 12px;
   padding: 0.95rem 1rem;
   border-radius: 14px;
-  border: 1px solid rgba(255, 143, 90, 0.22);
-  background:
-    linear-gradient(135deg, rgba(255, 143, 90, 0.12), rgba(242, 95, 92, 0.08)),
-    var(--app-surface);
+  border: 1px solid var(--app-proxmox-border-strong);
+  background: var(--app-proxmox-loader-bg);
 }
 
 .registration-form__spinner {
@@ -162,7 +160,7 @@
   width: 24px;
   height: 24px;
   background: url('/katana-logo-spinner.svg') center / contain no-repeat;
-  filter: drop-shadow(0 0 8px rgba(255, 143, 90, 0.34));
+  filter: drop-shadow(0 0 8px var(--app-proxmox-glow));
 }
 
 .registration-form__status--success {

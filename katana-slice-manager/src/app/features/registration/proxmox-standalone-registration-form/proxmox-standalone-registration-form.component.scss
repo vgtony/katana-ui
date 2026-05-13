@@ -47,7 +47,7 @@
 
 .registration-form__eyebrow {
   margin: 0;
-  color: #ff8f5a;
+  color: var(--app-proxmox-accent);
 }
 
 .registration-form__grid input,
@@ -80,20 +80,18 @@
   padding: 0.95rem 1.2rem;
   border: 0;
   border-radius: 14px;
-  background: linear-gradient(135deg, #ff8f5a 0%, #f25f5c 100%);
+  background: var(--app-proxmox-primary-bg);
   color: #fff6ef;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 18px 36px rgba(242, 95, 92, 0.22);
+  box-shadow: 0 18px 36px var(--app-proxmox-shadow);
 }
 
 .registration-form__loader {
   display: flex;
   align-items: center;
   gap: 12px;
-  background:
-    linear-gradient(135deg, rgba(255, 143, 90, 0.12), rgba(242, 95, 92, 0.08)),
-    var(--app-surface);
+  background: var(--app-proxmox-loader-bg);
 }
 
 .registration-form__spinner {
@@ -102,20 +100,16 @@
   width: 24px;
   height: 24px;
   background: url('/katana-logo-spinner.svg') center / contain no-repeat;
-  filter: drop-shadow(0 0 8px rgba(255, 143, 90, 0.34));
+  filter: drop-shadow(0 0 8px var(--app-proxmox-glow));
 }
 
 .registration-form__status--success {
-  background:
-    linear-gradient(135deg, rgba(94, 240, 210, 0.14), rgba(34, 197, 94, 0.08)),
-    var(--app-surface);
+  background: rgba(94, 240, 210, 0.1);
   border-color: rgba(94, 240, 210, 0.22);
 }
 
 .registration-form__status--error {
-  background:
-    linear-gradient(135deg, rgba(255, 125, 125, 0.14), rgba(255, 125, 125, 0.08)),
-    var(--app-surface);
+  background: var(--app-danger-soft-2);
   border-color: rgba(255, 125, 125, 0.22);
   color: var(--app-danger-strong);
 }
@@ -173,8 +167,8 @@
   width: fit-content;
   padding: 0.45rem 0.82rem;
   border-radius: 999px;
-  background: rgba(255, 143, 90, 0.14);
-  color: #ffb08d;
+  background: var(--app-proxmox-soft-strong);
+  color: var(--app-proxmox-text);
   font-size: 0.76rem;
   font-weight: 700;
 }
@@ -189,9 +183,9 @@
 .registration-form__chip {
   padding: 0.34rem 0.62rem;
   border-radius: 999px;
-  border: 1px solid rgba(255, 143, 90, 0.16);
-  background: rgba(255, 143, 90, 0.08);
-  color: #ffd0b8;
+  border: 1px solid var(--app-proxmox-border);
+  background: var(--app-proxmox-soft);
+  color: var(--app-proxmox-chip-text);
   letter-spacing: 0.08em;
 }
 
@@ -203,12 +197,6 @@
 .registration-form__hero-card {
   display: grid;
   gap: 18px;
-  // background:
-  //   radial-gradient(circle at top left, rgba(255, 143, 90, 0.16), transparent 34%),
-  //   radial-gradient(circle at top right, rgba(111, 211, 255, 0.14), transparent 32%),
-  //   linear-gradient(160deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)),
-  //   #151b24;
-  // border-color: rgba(255, 143, 90, 0.16);
 }
 
 .registration-form__hero-stats {
@@ -221,15 +209,15 @@
 .registration-form__hero-stats div {
   padding: 12px 14px;
   border-radius: 14px;
-  background: rgba(8, 14, 24, 0.34);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--app-proxmox-stat-bg);
+  border: 1px solid var(--app-proxmox-stat-border);
 }
 
 .registration-form__hero-stats strong {
   display: block;
   margin-top: 6px;
   font-size: 1.15rem;
-  color: #fff7f1;
+  color: var(--app-proxmox-strong-text);
 }
 
 .registration-form__resource-grid {
@@ -244,14 +232,14 @@
   min-height: 120px;
   padding: 18px;
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(8, 14, 24, 0.4);
+  border: 1px solid var(--app-proxmox-stat-border);
+  background: var(--app-proxmox-panel-bg);
 }
 
 .registration-form__resource-panel strong {
   font-size: 1rem;
   line-height: 1.45;
-  color: #fff7f1;
+  color: var(--app-proxmox-strong-text);
 }
 
 .registration-form__resource-panel--cpu {
@@ -281,9 +269,7 @@
   padding: 14px 16px;
   border-radius: 16px;
   border: 1px solid var(--app-border);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)),
-    var(--app-surface);
+  background: var(--app-surface);
 }
 
 .registration-form__cluster-pill strong {
@@ -293,9 +279,6 @@
 .registration-form__compact-section {
   display: grid;
   gap: 14px;
-  // background:
-  //   linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
-  //   var(--app-surface);
 }
 
 .registration-form__datacenter-list {
@@ -330,12 +313,12 @@
 }
 
 .registration-form__datacenter-card strong {
-  color: #fff7f1;
+  color: var(--app-proxmox-strong-text);
 }
 
 .registration-form__datacenter-card--selected {
   border-color: rgba(94, 240, 210, 0.32);
-  background: rgba(94, 240, 210, 0.05);
+  background: var(--app-proxmox-selected-datacenter-bg);
 }
 
 .registration-form__datacenter-card-button:disabled {
@@ -357,6 +340,7 @@
 .registration-form__server-table {
   gap: 0;
   overflow: hidden;
+  background: var(--app-proxmox-node-bg);
 }
 
 .registration-form__server-table--interactive {
@@ -366,7 +350,7 @@
 }
 
 .registration-form__server-table--interactive:hover {
-  background: rgba(255, 255, 255, 0.02);
+  background: color-mix(in srgb, var(--app-proxmox-node-bg) 88%, var(--app-proxmox-soft-strong));
 }
 
 .registration-form__server-table--interactive:focus-visible {
@@ -454,17 +438,17 @@
 .registration-form__server-table-row--storage
   .registration-form__server-storage-cell:nth-child(2)
   strong {
-  color: #5ef0d2;
+  color: var(--app-proxmox-free-text);
 }
 
 .registration-form__server-table-row--storage
   .registration-form__server-storage-cell:nth-child(3)
   strong {
-  color: #ffb08d;
+  color: var(--app-proxmox-text);
 }
 
 .registration-form__server-table-row--summary .registration-form__server-cell strong:first-of-type {
-  color: #fff7f1;
+  color: var(--app-proxmox-strong-text);
 }
 
 .registration-form__server-table-row--empty {
@@ -495,7 +479,7 @@
 .registration-form__server-selected-summary strong {
   display: block;
   margin-top: 6px;
-  color: #fff7f1;
+  color: var(--app-proxmox-strong-text);
 }
 
 .registration-form__server-change-button {
@@ -512,8 +496,9 @@
 }
 
 .registration-form__server-change-button--danger {
-  border-color: rgba(255, 125, 125, 0.28);
-  color: #ffb0b0;
+  border-color: var(--app-proxmox-deregister-border);
+  background: var(--app-proxmox-deregister-bg);
+  color: var(--app-proxmox-deregister-text);
 }
 
 .registration-form__button-icon {

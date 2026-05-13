@@ -195,11 +195,20 @@
                 Mark Everything as Done
               </button>
               <button
-                class="deployment-page__link deployment-page__link--subtle"
+                class="deployment-page__link deployment-page__link--subtle deployment-page__change-type-button"
                 type="button"
+                aria-label="Change deployment type"
+                title="Change deployment type"
                 (click)="returnToDeploymentChooser($event)"
               >
-                Change Type
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M10 6 5 11l5 5"></path>
+                  <path d="M5 11h11"></path>
+                  <path d="M18 6h1"></path>
+                  <path d="M15 6h.01"></path>
+                  <path d="M14 16h5"></path>
+                  <path d="M11 16h.01"></path>
+                </svg>
               </button>
             }
             <button
@@ -484,7 +493,7 @@
                 </div>
               }
 
-              <div class="deployment-page__actions">
+              <div class="deployment-page__actions deployment-page__actions--final">
                 <button
                   class="deployment-page__secondary"
                   type="button"
@@ -571,7 +580,7 @@
                 ></app-k8s-deploy-service-form>
               </div>
 
-              <div class="deployment-page__actions">
+              <div class="deployment-page__actions deployment-page__actions--final">
                 <button
                   class="deployment-page__secondary"
                   type="button"
