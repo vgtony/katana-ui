@@ -27,33 +27,11 @@
 }
 
 .layout-loading-logo {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: block;
   width: clamp(180px, 18vw, 280px);
-  aspect-ratio: 864 / 976;
+  aspect-ratio: 872 / 976;
+  background: url('/katana-logo-spinner.svg') center / contain no-repeat;
   filter: drop-shadow(0 0 22px color-mix(in srgb, var(--app-accent) 34%, transparent));
-}
-
-.layout-loading-logo__stripe {
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: contain;
-  opacity: 0;
-  animation: layout-loading-stripe-reveal 1.45s steps(1, end) infinite;
-}
-
-.layout-loading-logo__stripe--left {
-  background-image: url('/spinner-pieces/logo-stripe-right.svg');
-}
-
-.layout-loading-logo__stripe--middle {
-  background-image: url('/spinner-pieces/logo-stripe-middle.svg');
-  animation-delay: .18s;
-}
-
-.layout-loading-logo__stripe--right {
-  background-image: url('/spinner-pieces/logo-stripe-left.svg');
-  animation-delay: .36s;
 }
 
 .layout-loading-overlay__text {
@@ -105,23 +83,6 @@
 .layout-theme-toggle__icon {
   font-size: 1rem;
   line-height: 1;
-}
-
-@keyframes layout-loading-stripe-reveal {
-  0%,
-  12% {
-    opacity: 0;
-  }
-
-  13%,
-  82% {
-    opacity: 1;
-  }
-
-  83%,
-  100% {
-    opacity: 0;
-  }
 }
 
 @media (max-width: 960px) {
