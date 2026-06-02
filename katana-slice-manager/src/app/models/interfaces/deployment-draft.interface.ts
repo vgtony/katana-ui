@@ -9,7 +9,8 @@ export type DeploymentFormKey =
   | 'k8s-deploy'
   | 'proxmox-cluster'
   | 'proxmox-vm'
-  | 'proxmox-standalone';
+  | 'proxmox-standalone'
+  | 'amari-slice';
 
 export type DeploymentFormSnapshots = Partial<Record<DeploymentFormKey, unknown>>;
 

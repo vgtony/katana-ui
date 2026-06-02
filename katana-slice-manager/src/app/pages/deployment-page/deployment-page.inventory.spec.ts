@@ -4,6 +4,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 import {
+  AmarisoftSliceApiService,
   KubernetesApiService,
   SliceApiService
 } from '../../shared/services/api';
@@ -35,6 +36,12 @@ describe('DeploymentPageComponent inventory refresh', () => {
           provide: SliceApiService,
           useValue: {
             getSlices: () => sliceInventory$.asObservable()
+          }
+        },
+        {
+          provide: AmarisoftSliceApiService,
+          useValue: {
+            getSlices: () => new BehaviorSubject<unknown[]>([]).asObservable()
           }
         },
         {

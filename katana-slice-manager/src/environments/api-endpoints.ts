@@ -6,6 +6,14 @@ export interface KatanaApiEndpoints {
     delete: string;
     deploymentTime: string;
   };
+  amarisoftSlices: {
+    list: string;
+    create: string;
+    detail: string;
+    delete: string;
+    preview: string;
+    apply: string;
+  };
   vim: {
     list: string;
     create: string;
@@ -93,6 +101,14 @@ export function buildKatanaApiEndpoints(apiBase: string): KatanaApiEndpoints {
       detail: buildEndpoint(apiBase, 'slice/{slice_id}'),
       delete: buildEndpoint(apiBase, 'slice/{slice_id}'),
       deploymentTime: buildEndpoint(apiBase, 'slice/{slice_id}/time')
+    },
+    amarisoftSlices: {
+      list: buildEndpoint(apiBase, 'amarisoft-slices'),
+      create: buildEndpoint(apiBase, 'amarisoft-slices'),
+      detail: buildEndpoint(apiBase, 'amarisoft-slices/{slice_id}'),
+      delete: buildEndpoint(apiBase, 'amarisoft-slices/{slice_id}'),
+      preview: buildEndpoint(apiBase, 'amarisoft-slices/preview'),
+      apply: buildEndpoint(apiBase, 'amarisoft-slices/{slice_id}/apply')
     },
     vim: {
       list: buildEndpoint(apiBase, 'vim'),

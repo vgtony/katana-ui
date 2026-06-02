@@ -1,0 +1,172 @@
+<section class="amari-form">
+  <form class="amari-form__shell" [formGroup]="form">
+    @if (restoreMessage) {
+      <p class="amari-form__status" role="status">{{ restoreMessage }}</p>
+    }
+
+    <nav class="amari-form__steps" aria-label="Amari slice steps">
+      @for (step of steps; track step.id) {
+        <button
+          class="amari-form__step"
+          type="button"
+          [class.amari-form__step--active]="isStepActive(step.id)"
+          [class.amari-form__step--complete]="isStepComplete(step.id)"
+          [disabled]="!canAccessStep(step.id)"
+          (click)="selectStep(step.id)"
+        >
+          <span class="amari-form__step-marker" aria-hidden="true"></span>
+          <span>{{ step.label }}</span>
+        </button>
+      }
+    </nav>
+
+    @if (currentStep === 1) {
+      <div class="amari-form__grid">
+        <label>
+          <span>Name</span>
+          <input type="text" formControlName="name" placeholder="enterprise-video" />
+        </label>
+        <label class="amari-form__full">
+          <span>Description</span>
+          <input type="text" formControlName="description" />
+        </label>
+      </div>
+    }
+
+    @if (currentStep === 2) {
+      <div class="amari-form__grid">
+        <label>
+          <span>SST</span>
+          <input type="number" formControlName="sst" />
+        </label>
+        <label>
+          <span>SD</span>
+          <input type="text" formControlName="sd" placeholder="010203" />
+        </label>
+        <label>
+          <span>MCC</span>
+          <input type="text" formControlName="mcc" placeholder="001" />
+        </label>
+        <label>
+          <span>MNC</span>
+          <input type="text" formControlName="mnc" placeholder="01" />
+        </label>
+        <label class="amari-form__full">
+          <span>DNN</span>
+          <input type="text" formControlName="dnn" placeholder="internet" />
+        </label>
+      </div>
+    }
+
+    @if (currentStep === 3) {
+      <div class="amari-form__grid">
+        <label>
+          <span>5QI</span>
+          <input type="number" formControlName="fiveQi" />
+        </label>
+        <label>
+          <span>Isolation mode</span>
+          <select formControlName="isolationMode">
+            <option value="shared">Shared</option>
+            <option value="dedicated">Dedicated</option>
+          </select>
+        </label>
+        <label>
+          <span>Session AMBR UL</span>
+          <input type="text" formControlName="sessionAmbrUl" placeholder="100Mbps" />
+        </label>
+        <label>
+          <span>Session AMBR DL</span>
+          <input type="text" formControlName="sessionAmbrDl" placeholder="500Mbps" />
+        </label>
+        <label class="amari-form__full">
+          <span>Subscribers</span>
+          <textarea formControlName="subscribersText" rows="4"></textarea>
+        </label>
+      </div>
+    }
+
+    @if (currentStep === 4) {
+      <div class="amari-form__grid">
+        <label>
+          <span>Amari RAN EMS ID</span>
+          <input type="text" formControlName="ranEmsId" placeholder="amari-ran" />
+        </label>
+        <label>
+          <span>Amari RAN URL</span>
+          <input type="url" formControlName="ranUrl" placeholder="http://ran.example" />
+        </label>
+        <label>
+          <span>Amari CORE EMS ID</span>
+          <input type="text" formControlName="coreEmsId" placeholder="amari-core" />
+        </label>
+        <label>
+          <span>Amari CORE URL</span>
+          <input type="url" formControlName="coreUrl" placeholder="http://core.example" />
+        </label>
+        @if (isRanTargetMissing() || isCoreTargetMissing()) {
+          <p class="amari-form__status amari-form__status--error" role="alert">
+            RAN and CORE each need an EMS ID or URL.
+          </p>
+        }
+      </div>
+    }
+
+    @if (currentStep === 5) {
+      <div class="amari-form__review">
+        <div class="amari-form__review-actions">
+          <button class="amari-form__secondary" type="button" (click)="preview()">
+            {{ submittingPreview ? 'Previewing...' : 'Refresh Preview' }}
+          </button>
+        </div>
+
+        @if (submittingPreview) {
+          <p class="amari-form__status" role="status">Previewing Amari payloads...</p>
+        }
+
+        @if (previewPayload) {
+          <pre class="amari-form__preview">{{ formatPreviewPayload() }}</pre>
+        }
+      </div>
+    }
+
+    <div class="amari-form__actions">
+      @if (currentStep > 1) {
+        <button class="amari-form__secondary" type="button" (click)="back()">Back</button>
+      }
+
+      @if (currentStep < 5) {
+        <button class="amari-form__primary" type="button" (click)="next()">Next</button>
+      } @else {
+        <button
+          class="amari-form__secondary"
+          type="button"
+          [disabled]="form.invalid || submittingPlan"
+          (click)="savePlan()"
+        >
+          {{ submittingPlan ? 'Saving...' : 'Save Plan' }}
+        </button>
+        <button
+          class="amari-form__primary"
+          type="button"
+          [disabled]="!plannedSliceId || submittingApply"
+          (click)="applyPlan()"
+        >
+          {{ submittingApply ? 'Applying...' : 'Apply' }}
+        </button>
+      }
+    </div>
+
+    @if (submitMessage) {
+      <p class="amari-form__status amari-form__status--success" role="status">
+        {{ submitMessage }}
+      </p>
+    }
+    @if (submitError) {
+      <p class="amari-form__status amari-form__status--error" role="alert">
+        {{ submitError }}
+      </p>
+    }
+  </form>
+</section>
+

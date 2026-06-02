@@ -4,6 +4,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { BehaviorSubject, of } from 'rxjs';
 import {
+  AmarisoftSliceApiService,
   KubernetesApiService,
   ProxmoxApiService,
   SliceApiService
@@ -30,6 +31,12 @@ describe('DeploymentPageComponent mark everything done', () => {
         },
         {
           provide: SliceApiService,
+          useValue: {
+            getSlices: () => of([])
+          }
+        },
+        {
+          provide: AmarisoftSliceApiService,
           useValue: {
             getSlices: () => of([])
           }

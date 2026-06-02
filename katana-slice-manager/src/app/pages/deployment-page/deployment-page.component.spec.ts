@@ -8,6 +8,7 @@ import { vi } from 'vitest';
 import { K8sDeployServiceFormComponent } from '../../features/registration/k8s-deploy-service-form/k8s-deploy-service-form.component';
 import { ProxmoxStandaloneRegistrationFormComponent } from '../../features/registration/proxmox-standalone-registration-form/proxmox-standalone-registration-form.component';
 import {
+  AmarisoftSliceApiService,
   KubernetesApiService,
   SliceApiService
 } from '../../shared/services/api';
@@ -52,6 +53,21 @@ describe('DeploymentPageComponent', () => {
           }
         },
         {
+          provide: AmarisoftSliceApiService,
+          useValue: {
+            getSlices: () =>
+              of([
+                {
+                  name: 'enterprise-video',
+                  s_nssai: { sst: 1, sd: '010203' },
+                  plmn: { mcc: '001', mnc: '01' },
+                  dnn: 'internet',
+                  status: 'planned'
+                }
+              ])
+          }
+        },
+        {
           provide: KubernetesApiService,
           useValue: {
             getK8sClusters: () =>
@@ -66,7 +82,7 @@ describe('DeploymentPageComponent', () => {
   });
 
   function createComponentForOption(
-    option: 'slice' | 'k8s' | 'proxmox-standalone' | null
+    option: 'slice' | 'k8s' | 'proxmox-standalone' | 'amari' | null
   ): void {
     paramMap$ = new BehaviorSubject(convertToParamMap(option ? { option } : {}));
     queryParamMap$ = new BehaviorSubject(convertToParamMap({}));
@@ -128,12 +144,13 @@ describe('DeploymentPageComponent', () => {
       expect(getTextContent()).toContain('Slice / OpenStack');
       expect(getTextContent()).toContain('K8s Deploy');
       expect(getTextContent()).toContain('Proxmox');
+      expect(getTextContent()).toContain('Amari');
     });
 
     it('collapses and expands an inventory table independently', () => {
       const firstToggle = getButtonByText('Collapse');
 
-      expect(fixture.nativeElement.querySelectorAll('.deployment-page__table').length).toBe(2);
+      expect(fixture.nativeElement.querySelectorAll('.deployment-page__table').length).toBe(3);
 
       firstToggle.click();
       fixture.detectChanges();

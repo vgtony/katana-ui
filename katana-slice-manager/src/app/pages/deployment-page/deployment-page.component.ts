@@ -12,6 +12,7 @@ import { K8sDeployServiceFormComponent } from '../../features/registration/k8s-d
 import { ProxmoxStandaloneRegistrationFormComponent } from '../../features/registration/proxmox-standalone-registration-form/proxmox-standalone-registration-form.component';
 import { DeploymentAttemptEvent } from '../../features/registration/proxmox-vm-creation-form/proxmox-vm-creation-form.component';
 import { SliceRegistrationFormComponent } from '../../features/registration/slice-registration-form/slice-registration-form.component';
+import { AmarisoftSliceDeploymentFormComponent } from '../../features/registration/amarisoft-slice-deployment-form/amarisoft-slice-deployment-form.component';
 import {
   DeploymentFormKey,
   DeploymentFormState
@@ -20,13 +21,14 @@ import { DeploymentPack, DeploymentPackStatus } from '../../models/interfaces/de
 import { DeploymentOption } from '../../models/interfaces/deployment.interface';
 import {
   getApiErrorMessage,
+  AmarisoftSliceApiService,
   KubernetesApiService,
   SliceApiService
 } from '../../shared/services/api';
 import { DeploymentDraftService } from '../../shared/services/deployment-draft.service';
 import { DeploymentHistoryService } from '../../shared/services/deployment-history.service';
 
-type DeploymentInventoryKey = 'slice' | 'k8s';
+type DeploymentInventoryKey = 'slice' | 'k8s' | 'amari';
 type DeploymentStatusTone = 'success' | 'warning' | 'error' | 'neutral';
 
 interface DeploymentInventoryColumn {
@@ -67,8 +69,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     K8sClusterRegistrationFormComponent,
     K8sDeployServiceFormComponent,
     ProxmoxStandaloneRegistrationFormComponent,
-    SliceRegistrationFormComponent
-],
+    SliceRegistrationFormComponent,
+    AmarisoftSliceDeploymentFormComponent
+  ],
   templateUrl: './deployment-page.component.html',
   styleUrl: './deployment-page.component.scss'
 })
@@ -80,6 +83,7 @@ export class DeploymentPageComponent implements OnInit {
   private readonly deploymentHistoryService = inject(DeploymentHistoryService);
   private readonly deploymentDraftService = inject(DeploymentDraftService);
   private readonly sliceApiService = inject(SliceApiService);
+  private readonly amarisoftSliceApiService = inject(AmarisoftSliceApiService);
   private readonly kubernetesApiService = inject(KubernetesApiService);
   private restoredPackId: string | null = null;
   private keepModalOpenAfterRouteClear = false;
@@ -88,7 +92,8 @@ export class DeploymentPageComponent implements OnInit {
   protected deploymentStarted = false;
   protected expandedInventorySectionKeys = new Set<DeploymentInventoryKey>([
     'slice',
-    'k8s'
+    'k8s',
+    'amari'
   ]);
   protected expandedRequirementIds = new Set<string>();
   protected completedRequirementIds = new Set<string>();
@@ -189,6 +194,17 @@ export class DeploymentPageComponent implements OnInit {
       ],
       finalConfigurationLabel: 'Proxmox VM deployment',
       deployActionLabel: 'Deploy VMs'
+    },
+    {
+      id: 'amari',
+      label: 'Amari',
+      shortLabel: 'Amari',
+      description: 'Amarisoft RAN and CORE network slice deployment.',
+      requirementsTitle: 'Amari slice',
+      requirementsDescription: 'Create, preview, save, and apply an Amari slice.',
+      requirements: [],
+      finalConfigurationLabel: 'Amari slice configuration',
+      deployActionLabel: 'Apply Amari Slice'
     }
   ];
 
@@ -222,6 +238,22 @@ export class DeploymentPageComponent implements OnInit {
       ],
       rows: []
     },
+    {
+      key: 'amari',
+      title: 'Amari Network Slices',
+      emptyLabel: 'No Amari network slices have been created yet.',
+      loading: true,
+      error: null,
+      columns: [
+        { key: 'name', label: 'Name', valueKeys: ['name', 'slice_name', 'id', '_id', 'uuid', 'slice_id'] },
+        { key: 'sNssai', label: 'S-NSSAI', valueKeys: ['s_nssai', 'sNssai'] },
+        { key: 'plmn', label: 'PLMN', valueKeys: ['plmn'] },
+        { key: 'dnn', label: 'DNN', valueKeys: ['dnn'] },
+        { key: 'status', label: 'Status', valueKeys: ['status', 'state'] },
+        { key: 'updatedAt', label: 'Updated', valueKeys: ['updated_at', 'updatedAt', 'modified_at'] }
+      ],
+      rows: []
+    }
   ];
 
   protected selectedOption = this.deploymentOptions[0];
@@ -806,7 +838,7 @@ export class DeploymentPageComponent implements OnInit {
 
   private getRequirementDraftTarget(
     requirementId: string
-  ): { optionId: 'slice' | 'k8s' | 'proxmox' | 'proxmox-standalone'; formKey: DeploymentFormKey } | null {
+  ): { optionId: DeploymentOption['id']; formKey: DeploymentFormKey } | null {
     switch (requirementId) {
       case 'nfvo':
       case 'function':
@@ -944,6 +976,8 @@ export class DeploymentPageComponent implements OnInit {
         return this.deploymentDraftService.getFormState('k8s', 'k8s-deploy');
       case 'proxmox-standalone':
         return this.deploymentDraftService.getFormState('proxmox-standalone', 'proxmox-vm');
+      case 'amari':
+        return this.deploymentDraftService.getFormState('amari', 'amari-slice');
       default:
         return 'missing';
     }
@@ -951,8 +985,8 @@ export class DeploymentPageComponent implements OnInit {
 
   private getFinalConfigurationDraftTarget():
     | {
-        optionId: 'slice' | 'k8s' | 'proxmox' | 'proxmox-standalone';
-        formKey: 'slice' | 'k8s-deploy' | 'proxmox-vm' | 'proxmox-standalone';
+        optionId: DeploymentOption['id'];
+        formKey: DeploymentFormKey;
       }
     | null {
     switch (this.selectedOption.id) {
@@ -962,6 +996,8 @@ export class DeploymentPageComponent implements OnInit {
         return { optionId: 'k8s', formKey: 'k8s-deploy' };
       case 'proxmox-standalone':
         return { optionId: 'proxmox-standalone', formKey: 'proxmox-vm' };
+      case 'amari':
+        return { optionId: 'amari', formKey: 'amari-slice' };
       default:
         return null;
     }
@@ -994,6 +1030,14 @@ export class DeploymentPageComponent implements OnInit {
           'proxmox-vm'
         );
         const detail = this.combineContextValues(snapshot?.['vmName'], snapshot?.['clusterName']);
+        return this.formatContextTag(this.getFinalConfigurationState(), detail);
+      }
+      case 'amari': {
+        const snapshot = this.deploymentDraftService.getSavedFormSnapshot<Record<string, string>>(
+          'amari',
+          'amari-slice'
+        );
+        const detail = this.combineContextValues(snapshot?.['name'], snapshot?.['dnn']);
         return this.formatContextTag(this.getFinalConfigurationState(), detail);
       }
       default:
@@ -1030,6 +1074,10 @@ export class DeploymentPageComponent implements OnInit {
     this.loadInventorySection('slice', this.sliceApiService.getSlices(), {
       fallbackPrimaryValue: 'Created slice',
       columns: this.getInventorySection('slice').columns
+    });
+    this.loadInventorySection('amari', this.amarisoftSliceApiService.getSlices(), {
+      fallbackPrimaryValue: 'Amari network slice',
+      columns: this.getInventorySection('amari').columns
     });
     this.loadInventorySection('k8s', this.kubernetesApiService.getK8sClusters(), {
       fallbackPrimaryValue: 'Registered K8s cluster',
@@ -1161,7 +1209,7 @@ export class DeploymentPageComponent implements OnInit {
 
   private pickFirstValue(record: Record<string, unknown>, keys: string[]): string | null {
     for (const key of keys) {
-      const value = this.toDisplayValue(record[key]);
+      const value = this.toDisplayValue(this.getRecordValue(record, key));
 
       if (value) {
         return value;
@@ -1170,6 +1218,21 @@ export class DeploymentPageComponent implements OnInit {
 
     return null;
   }
+
+  private getRecordValue(record: Record<string, unknown>, key: string): unknown {
+    if (!key.includes('.')) {
+      return record[key];
+    }
+
+    return key.split('.').reduce<unknown>((value, segment) => {
+      if (!isRecord(value)) {
+        return undefined;
+      }
+
+      return value[segment];
+    }, record);
+  }
+
   private toDisplayValue(value: unknown): string | null {
     if (typeof value === 'string') {
       const trimmed = value.trim();
@@ -1186,6 +1249,21 @@ export class DeploymentPageComponent implements OnInit {
         .filter((entry): entry is string => Boolean(entry));
 
       return items.length ? items.join(', ') : null;
+    }
+
+    if (isRecord(value)) {
+      const sst = this.toDisplayValue(value['sst']);
+      const sd = this.toDisplayValue(value['sd']);
+      const mcc = this.toDisplayValue(value['mcc']);
+      const mnc = this.toDisplayValue(value['mnc']);
+
+      if (sst && sd) {
+        return `${sst}/${sd}`;
+      }
+
+      if (mcc && mnc) {
+        return `${mcc}-${mnc}`;
+      }
     }
 
     return null;

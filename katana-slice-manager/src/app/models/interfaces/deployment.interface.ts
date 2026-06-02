@@ -7,7 +7,7 @@ export interface DeploymentRequirement {
 }
 
 export interface DeploymentOption {
-  id: 'slice' | 'k8s' | 'proxmox' | 'proxmox-standalone';
+  id: 'slice' | 'k8s' | 'proxmox' | 'proxmox-standalone' | 'amari';
   label: string;
   shortLabel: string;
   description: string;

@@ -1,0 +1,177 @@
+.amari-form,
+.amari-form__shell {
+  display: grid;
+}
+
+.amari-form__shell {
+  gap: 18px;
+}
+
+.amari-form__steps {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.amari-form__step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 10px;
+  border: 1px solid var(--app-interactive-border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--app-text-muted);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.amari-form__step:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.amari-form__step--active,
+.amari-form__step--complete {
+  border-color: var(--app-border-accent);
+  color: var(--app-text);
+}
+
+.amari-form__step--complete .amari-form__step-marker {
+  background: var(--app-success);
+}
+
+.amari-form__step-marker {
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.amari-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.amari-form__grid label {
+  display: grid;
+  gap: 8px;
+}
+
+.amari-form__full,
+.amari-form__status,
+.amari-form__review,
+.amari-form__actions {
+  grid-column: 1 / -1;
+}
+
+.amari-form__grid span {
+  color: var(--app-text-muted);
+  font-size: 0.92rem;
+}
+
+.amari-form__grid input,
+.amari-form__grid select,
+.amari-form__grid textarea {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 14px;
+  background: var(--app-input-bg-strong);
+  color: var(--app-text);
+  font: inherit;
+}
+
+.amari-form__grid textarea {
+  resize: vertical;
+}
+
+.amari-form__review {
+  display: grid;
+  gap: 14px;
+}
+
+.amari-form__review-actions,
+.amari-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.amari-form__preview {
+  max-height: 360px;
+  margin: 0;
+  padding: 14px;
+  overflow: auto;
+  border: 1px solid var(--app-border-muted);
+  border-radius: 14px;
+  background: var(--app-input-bg-strong);
+  color: var(--app-text);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.amari-form__primary,
+.amari-form__secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.amari-form__primary {
+  border: 0;
+  background: var(--app-primary-gradient);
+  color: var(--app-accent-contrast);
+}
+
+.amari-form__secondary {
+  border: 1px solid var(--app-interactive-border);
+  background: transparent;
+  color: var(--app-text);
+}
+
+.amari-form__primary:disabled,
+.amari-form__secondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.amari-form__status {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.amari-form__status--success {
+  color: var(--app-success);
+}
+
+.amari-form__status--error {
+  color: var(--app-danger);
+}
+
+@media (max-width: 760px) {
+  .amari-form__steps,
+  .amari-form__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .amari-form__review-actions,
+  .amari-form__actions {
+    flex-direction: column;
+  }
+
+  .amari-form__primary,
+  .amari-form__secondary {
+    width: 100%;
+  }
+}
+

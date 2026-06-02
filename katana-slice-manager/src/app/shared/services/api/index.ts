@@ -1,4 +1,5 @@
 export * from './alert-api.service';
+export * from './amarisoft-slice-api.service';
 export * from './api-form.utils';
 export * from './bootstrap-api.service';
 export * from './catalog-api.service';
