@@ -13,9 +13,8 @@ export const initialAmarisoftSliceDeploymentFormModel: AmarisoftSliceDeploymentF
   sessionAmbrDl: '500Mbps',
   subscribersText: '001010000000001',
   isolationMode: 'shared',
-  ranEmsId: 'amari-ran',
-  ranUrl: '',
-  coreEmsId: 'amari-core',
-  coreUrl: ''
+  ranEmsId: '',
+  ranUrl: 'http://10.45.101.53:8081',
+  coreEmsId: '',
+  coreUrl: 'http://10.45.101.53:8082'
 };
-

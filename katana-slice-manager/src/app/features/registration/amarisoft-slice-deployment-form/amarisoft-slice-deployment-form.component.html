@@ -20,6 +20,11 @@
       }
     </nav>
 
+    <p class="amari-form__notice" role="status">
+      Amari config can be prepared by Katana, but live RAN/CORE reload is disabled on shared
+      amari-classic.
+    </p>
+
     @if (currentStep === 1) {
       <div class="amari-form__grid">
         <label>
@@ -94,7 +99,7 @@
         </label>
         <label>
           <span>Amari RAN URL</span>
-          <input type="url" formControlName="ranUrl" placeholder="http://ran.example" />
+          <input type="url" formControlName="ranUrl" placeholder="http://10.45.101.53:8081" />
         </label>
         <label>
           <span>Amari CORE EMS ID</span>
@@ -102,7 +107,7 @@
         </label>
         <label>
           <span>Amari CORE URL</span>
-          <input type="url" formControlName="coreUrl" placeholder="http://core.example" />
+          <input type="url" formControlName="coreUrl" placeholder="http://10.45.101.53:8082" />
         </label>
         @if (isRanTargetMissing() || isCoreTargetMissing()) {
           <p class="amari-form__status amari-form__status--error" role="alert">
@@ -169,4 +174,3 @@
     }
   </form>
 </section>
-

@@ -22,6 +22,9 @@ import { DeploymentAttemptEvent } from '../proxmox-vm-creation-form/proxmox-vm-c
 
 type AmariWizardStep = 1 | 2 | 3 | 4 | 5;
 
+const DEFAULT_AMARI_RAN_URL = 'http://10.45.101.53:8081';
+const DEFAULT_AMARI_CORE_URL = 'http://10.45.101.53:8082';
+
 interface AmariWizardStepMeta {
   id: AmariWizardStep;
   label: string;
@@ -73,10 +76,12 @@ export class AmarisoftSliceDeploymentFormComponent {
   protected submitError = '';
 
   protected readonly model: AmarisoftSliceDeploymentFormModel =
-    this.deploymentDraftService.getFormValue(
-      'amari',
-      'amari-slice',
-      initialAmarisoftSliceDeploymentFormModel
+    this.normalizeLegacyTargetDefaults(
+      this.deploymentDraftService.getFormValue(
+        'amari',
+        'amari-slice',
+        initialAmarisoftSliceDeploymentFormModel
+      )
     );
   protected readonly savedState = this.deploymentDraftService.getFormState(
     'amari',
@@ -387,7 +392,22 @@ export class AmarisoftSliceDeploymentFormComponent {
     const trimmedEmsId = emsId?.trim();
     const trimmedUrl = url?.trim();
 
-    return trimmedEmsId ? { ems_id: trimmedEmsId } : { url: trimmedUrl ?? '' };
+    return trimmedUrl ? { url: trimmedUrl } : { ems_id: trimmedEmsId ?? '' };
+  }
+
+  private normalizeLegacyTargetDefaults(
+    model: AmarisoftSliceDeploymentFormModel
+  ): AmarisoftSliceDeploymentFormModel {
+    const hasLegacyRanDefault = model.ranEmsId === 'amari-ran' && !model.ranUrl.trim();
+    const hasLegacyCoreDefault = model.coreEmsId === 'amari-core' && !model.coreUrl.trim();
+
+    return {
+      ...model,
+      ranEmsId: hasLegacyRanDefault ? '' : model.ranEmsId,
+      ranUrl: hasLegacyRanDefault ? DEFAULT_AMARI_RAN_URL : model.ranUrl,
+      coreEmsId: hasLegacyCoreDefault ? '' : model.coreEmsId,
+      coreUrl: hasLegacyCoreDefault ? DEFAULT_AMARI_CORE_URL : model.coreUrl
+    };
   }
 
   private parseSubscribers(value: string | null | undefined): string[] {
