@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { combineLatest, Observable } from 'rxjs';
+import { combineLatest, finalize, Observable } from 'rxjs';
 import { NfvoRegistrationFormComponent } from '../../features/registration/nfvo-registration-form/nfvo-registration-form.component';
 import { FunctionRegistrationFormComponent } from '../../features/registration/function-registration-form/function-registration-form.component';
 import { VimRegistrationFormComponent } from '../../features/registration/vim-registration-form/vim-registration-form.component';
@@ -30,6 +30,7 @@ import { DeploymentHistoryService } from '../../shared/services/deployment-histo
 
 type DeploymentInventoryKey = 'slice' | 'k8s' | 'amari';
 type DeploymentStatusTone = 'success' | 'warning' | 'error' | 'neutral';
+const INVENTORY_ROW_ID_KEY = '__inventoryRowId';
 
 interface DeploymentInventoryColumn {
   key: string;
@@ -42,6 +43,7 @@ type DeploymentInventoryRow = Record<string, string>;
 interface DeploymentInventoryTableConfig {
   fallbackPrimaryValue: string;
   columns: DeploymentInventoryColumn[];
+  identityValueKeys?: string[];
 }
 
 interface DeploymentInventorySection {
@@ -107,6 +109,10 @@ export class DeploymentPageComponent implements OnInit {
   protected isDeploymentChooserOpen = false;
   protected selectedRouteOptionId: DeploymentOption['id'] | null = null;
   protected proxmoxServerViewMode: 'compact' | 'detail' = 'compact';
+  protected selectedAmariSliceId: string | null = null;
+  protected confirmingAmariSliceId: string | null = null;
+  protected deletingAmariSliceId: string | null = null;
+  protected amariDeleteError = '';
 
   protected readonly deploymentOptions: DeploymentOption[] = [
     {
@@ -395,6 +401,94 @@ export class DeploymentPageComponent implements OnInit {
 
   protected isInventorySectionExpanded(key: DeploymentInventoryKey): boolean {
     return this.expandedInventorySectionKeys.has(key);
+  }
+
+  protected isAmariInventorySection(section: DeploymentInventorySection): boolean {
+    return section.key === 'amari';
+  }
+
+  protected getInventoryRowId(row: DeploymentInventoryRow): string {
+    return row[INVENTORY_ROW_ID_KEY] ?? '';
+  }
+
+  protected selectAmariInventoryRow(row: DeploymentInventoryRow): void {
+    const sliceId = this.getInventoryRowId(row);
+
+    if (!sliceId || this.deletingAmariSliceId === sliceId) {
+      return;
+    }
+
+    this.selectedAmariSliceId =
+      this.selectedAmariSliceId === sliceId ? null : sliceId;
+    this.confirmingAmariSliceId = null;
+    this.amariDeleteError = '';
+  }
+
+  protected isAmariInventoryRowSelected(row: DeploymentInventoryRow): boolean {
+    return this.selectedAmariSliceId === this.getInventoryRowId(row);
+  }
+
+  protected requestAmariSliceDelete(event: Event, row: DeploymentInventoryRow): void {
+    event.stopPropagation();
+
+    const sliceId = this.getInventoryRowId(row);
+
+    if (!sliceId || this.deletingAmariSliceId === sliceId) {
+      return;
+    }
+
+    this.selectedAmariSliceId = sliceId;
+    this.confirmingAmariSliceId = sliceId;
+    this.amariDeleteError = '';
+  }
+
+  protected cancelAmariSliceDelete(event: Event): void {
+    event.stopPropagation();
+    this.confirmingAmariSliceId = null;
+  }
+
+  protected isAmariSliceDeletePending(row: DeploymentInventoryRow): boolean {
+    return this.confirmingAmariSliceId === this.getInventoryRowId(row);
+  }
+
+  protected isAmariSliceDeleting(row: DeploymentInventoryRow): boolean {
+    return this.deletingAmariSliceId === this.getInventoryRowId(row);
+  }
+
+  protected confirmAmariSliceDelete(event: Event, row: DeploymentInventoryRow): void {
+    event.stopPropagation();
+
+    const sliceId = this.getInventoryRowId(row);
+
+    if (!sliceId || this.deletingAmariSliceId) {
+      return;
+    }
+
+    this.deletingAmariSliceId = sliceId;
+    this.amariDeleteError = '';
+
+    this.amarisoftSliceApiService
+      .deleteSlice(sliceId)
+      .pipe(
+        finalize(() => {
+          this.deletingAmariSliceId = null;
+          this.changeDetectorRef.markForCheck();
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: () => {
+          this.selectedAmariSliceId = null;
+          this.confirmingAmariSliceId = null;
+          this.loadAmariInventory();
+        },
+        error: (error: unknown) => {
+          this.amariDeleteError = getApiErrorMessage(
+            error,
+            `Unable to delete Amari slice ${sliceId}.`
+          );
+        }
+      });
   }
 
   protected isDeployWizardStep(step: number): boolean {
@@ -1075,13 +1169,18 @@ export class DeploymentPageComponent implements OnInit {
       fallbackPrimaryValue: 'Created slice',
       columns: this.getInventorySection('slice').columns
     });
-    this.loadInventorySection('amari', this.amarisoftSliceApiService.getSlices(), {
-      fallbackPrimaryValue: 'Amari network slice',
-      columns: this.getInventorySection('amari').columns
-    });
+    this.loadAmariInventory();
     this.loadInventorySection('k8s', this.kubernetesApiService.getK8sClusters(), {
       fallbackPrimaryValue: 'Registered K8s cluster',
       columns: this.getInventorySection('k8s').columns
+    });
+  }
+
+  private loadAmariInventory(): void {
+    this.loadInventorySection('amari', this.amarisoftSliceApiService.getSlices(), {
+      fallbackPrimaryValue: 'Amari network slice',
+      columns: this.getInventorySection('amari').columns,
+      identityValueKeys: ['slice_id', 'id', '_id', 'uuid', 'name']
     });
   }
 
@@ -1188,8 +1287,14 @@ export class DeploymentPageComponent implements OnInit {
 
     if (!isRecord(item)) {
       defaultRow[config.columns[0]?.key ?? 'name'] = this.toDisplayValue(item) ?? config.fallbackPrimaryValue;
+      defaultRow[INVENTORY_ROW_ID_KEY] = this.toDisplayValue(item) ?? '';
       return defaultRow;
     }
+
+    defaultRow[INVENTORY_ROW_ID_KEY] = this.pickFirstValue(
+      item,
+      config.identityValueKeys ?? ['id', '_id', 'uuid']
+    ) ?? '';
 
     for (const [index, column] of config.columns.entries()) {
       const value = this.pickFirstValue(item, column.valueKeys);

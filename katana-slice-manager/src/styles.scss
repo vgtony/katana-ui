@@ -394,6 +394,141 @@ textarea {
   background: color-mix(in srgb, var(--app-surface-2) 92%, var(--app-accent-soft-2) 8%);
 }
 
+.deployment-page__table-row--interactive {
+  cursor: pointer;
+  outline: none;
+}
+
+.deployment-page__table-row--interactive:focus-visible {
+  box-shadow: inset 3px 0 0 var(--app-accent);
+}
+
+.deployment-page__table-row--selected {
+  background: var(--app-row-hover);
+}
+
+.deployment-page__table-action-heading,
+.deployment-page__table-action-cell {
+  width: 56px;
+  min-width: 56px;
+}
+
+.deployment-page__table-action-cell {
+  position: relative;
+  overflow: visible;
+  padding-right: 0;
+}
+
+.deployment-page__row-action {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  transform: translateX(56px);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease;
+}
+
+.deployment-page__row-action--visible {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.deployment-page__delete-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--app-danger-border);
+  border-radius: 999px;
+  background: var(--app-danger-soft-2);
+  color: var(--app-danger);
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease;
+}
+
+.deployment-page__delete-icon-button:hover {
+  transform: translateY(-1px);
+  border-color: var(--app-danger);
+  background: color-mix(in srgb, var(--app-danger) 18%, transparent);
+}
+
+.deployment-page__delete-icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+.deployment-page__delete-icon-button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.deployment-page__delete-confirm {
+  position: absolute;
+  top: 50%;
+  right: 44px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 270px;
+  padding: 10px;
+  border: 1px solid var(--app-danger-border);
+  border-radius: 14px;
+  background: var(--app-surface-elevated);
+  box-shadow: var(--app-shadow);
+  color: var(--app-text);
+  transform: translateY(-50%);
+}
+
+.deployment-page__delete-confirm span {
+  flex: 1;
+  color: var(--app-text);
+  font-size: 0.86rem;
+  white-space: nowrap;
+}
+
+.deployment-page__delete-confirm-danger,
+.deployment-page__delete-confirm-cancel {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.deployment-page__delete-confirm-danger {
+  border: 0;
+  background: var(--app-danger);
+  color: var(--app-accent-contrast);
+}
+
+.deployment-page__delete-confirm-cancel {
+  border: 1px solid var(--app-interactive-border);
+  background: transparent;
+  color: var(--app-text);
+}
+
+.deployment-page__delete-confirm-danger:disabled,
+.deployment-page__delete-confirm-cancel:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 @media (max-width: 760px) {
   .deployment-page__option-card {
     width: 100%;
