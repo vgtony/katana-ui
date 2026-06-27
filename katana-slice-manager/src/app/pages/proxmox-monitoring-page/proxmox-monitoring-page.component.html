@@ -1,0 +1,256 @@
+<section class="proxmox-monitoring-page">
+  <header class="proxmox-monitoring-page__hero">
+    <div>
+      <p class="proxmox-monitoring-page__eyebrow">Proxmox</p>
+      <h2>Monitoring</h2>
+    </div>
+    <button type="button" class="proxmox-monitoring-page__button" (click)="refresh()">
+      Refresh
+    </button>
+  </header>
+
+  <section class="proxmox-monitoring-page__toolbar">
+    <label class="proxmox-monitoring-page__control">
+      <span>Cluster</span>
+      <select
+        [(ngModel)]="selectedClusterId"
+        (ngModelChange)="onClusterChange()"
+        [disabled]="loadingClusters || !clusters.length"
+      >
+        @for (cluster of clusters; track trackByCluster($index, cluster)) {
+          <option [ngValue]="cluster._id">{{ cluster.name || cluster.url }}</option>
+        }
+      </select>
+    </label>
+
+    @if (selectedClusterId) {
+      <div class="proxmox-monitoring-page__cluster-state">
+        <span
+          class="proxmox-monitoring-page__status"
+          [ngClass]="statusClass(selectedCluster?.status)"
+        >
+          {{ selectedCluster?.status || 'unknown' }}
+        </span>
+      </div>
+    }
+  </section>
+
+  @if (errorMessage) {
+    <section class="proxmox-monitoring-page__notice proxmox-monitoring-page__notice--error">
+      {{ errorMessage }}
+    </section>
+  }
+
+  @if (loadingClusters || loadingOverview) {
+    <section class="proxmox-monitoring-page__grid" aria-hidden="true">
+      @for (item of [1, 2, 3, 4, 5]; track item) {
+        <article class="proxmox-monitoring-page__card proxmox-monitoring-page__card--skeleton">
+          <span></span>
+          <strong></strong>
+          <small></small>
+        </article>
+      }
+    </section>
+  } @else if (!clusters.length) {
+    <section class="proxmox-monitoring-page__notice">
+      No registered Proxmox clusters were found.
+    </section>
+  } @else if (overview) {
+    <section class="proxmox-monitoring-page__grid">
+      @for (card of metricCards; track card.label) {
+        <article class="proxmox-monitoring-page__card">
+          <span>{{ card.label }}</span>
+          <strong>{{ card.value }}</strong>
+          <small>{{ card.detail }}</small>
+        </article>
+      }
+    </section>
+
+    <section class="proxmox-monitoring-page__section">
+      <div class="proxmox-monitoring-page__section-head">
+        <p class="proxmox-monitoring-page__eyebrow">Nodes</p>
+        <span>{{ servers.length }} rows</span>
+      </div>
+      @if (servers.length) {
+        <div class="proxmox-monitoring-page__table-shell">
+          <table class="proxmox-monitoring-page__table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Status</th>
+                <th>CPU</th>
+                <th>Memory</th>
+                <th>Disk</th>
+                <th>Uptime</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (server of servers; track trackByServer($index, server)) {
+                <tr>
+                  <td>{{ server.name }}</td>
+                  <td>
+                    <span class="proxmox-monitoring-page__status" [ngClass]="statusClass(server.status)">
+                      {{ server.status || 'unknown' }}
+                    </span>
+                  </td>
+                  <td>{{ formatPercent(server.usage.cpu.used_percent) }}</td>
+                  <td>{{ server.usage.memory.used_human }} / {{ server.usage.memory.total_human }}</td>
+                  <td>{{ server.usage.disk.used_human }} / {{ server.usage.disk.total_human }}</td>
+                  <td>{{ formatUptime(server.uptime_seconds) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="proxmox-monitoring-page__empty-row">No node data returned.</div>
+      }
+    </section>
+
+    <section class="proxmox-monitoring-page__section">
+      <div class="proxmox-monitoring-page__section-head">
+        <p class="proxmox-monitoring-page__eyebrow">Virtual Machines</p>
+        <span>{{ vms.length }} rows</span>
+      </div>
+      @if (vms.length) {
+        <div class="proxmox-monitoring-page__table-shell">
+          <table class="proxmox-monitoring-page__table">
+            <thead>
+              <tr>
+                <th>VMID</th>
+                <th>Name</th>
+                <th>Node</th>
+                <th>Status</th>
+                <th>CPU</th>
+                <th>Memory</th>
+                <th>Disk</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (vm of vms; track trackByVm($index, vm)) {
+                <tr>
+                  <td>{{ vm.vmid }}</td>
+                  <td>{{ vm.name || 'unnamed' }}</td>
+                  <td>{{ vm.node }}</td>
+                  <td>
+                    <span class="proxmox-monitoring-page__status" [ngClass]="statusClass(vm.status)">
+                      {{ vm.status || 'unknown' }}
+                    </span>
+                  </td>
+                  <td>{{ formatPercent(vm.usage.cpu.used_percent) }}</td>
+                  <td>{{ vm.usage.memory.used_human }} / {{ vm.usage.memory.total_human }}</td>
+                  <td>{{ vm.usage.disk.used_human }} / {{ vm.usage.disk.total_human }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="proxmox-monitoring-page__empty-row">No virtual machines were found.</div>
+      }
+    </section>
+
+    <section class="proxmox-monitoring-page__section">
+      <div class="proxmox-monitoring-page__section-head">
+        <p class="proxmox-monitoring-page__eyebrow">Storage</p>
+        <span>{{ storageOptions.length }} rows</span>
+      </div>
+      @if (storageOptions.length) {
+        <div class="proxmox-monitoring-page__table-shell">
+          <table class="proxmox-monitoring-page__table">
+            <thead>
+              <tr>
+                <th>Storage</th>
+                <th>Node</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Used</th>
+                <th>Remaining</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (storage of storageOptions; track trackByStorage($index, storage)) {
+                <tr>
+                  <td>{{ storage.storage }}</td>
+                  <td>{{ storage.node }}</td>
+                  <td>{{ storage.type || 'n/a' }}</td>
+                  <td>{{ storage.status || 'unknown' }}</td>
+                  <td>{{ storage.used_human || '0 B' }} ({{ formatPercent(storage.used_percent) }})</td>
+                  <td>{{ storage.remaining_human || '0 B' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="proxmox-monitoring-page__empty-row">No storage data returned.</div>
+      }
+    </section>
+
+    <section class="proxmox-monitoring-page__section">
+      <div class="proxmox-monitoring-page__section-head">
+        <p class="proxmox-monitoring-page__eyebrow">Tasks</p>
+        <span>{{ tasks.length }} rows</span>
+      </div>
+      @if (taskErrorMessage) {
+        <div class="proxmox-monitoring-page__empty-row">{{ taskErrorMessage }}</div>
+      } @else if (loadingTasks) {
+        <div class="proxmox-monitoring-page__empty-row">Loading task history.</div>
+      } @else if (tasks.length) {
+        <div class="proxmox-monitoring-page__table-shell">
+          <table class="proxmox-monitoring-page__table">
+            <thead>
+              <tr>
+                <th>Started</th>
+                <th>Node</th>
+                <th>Type</th>
+                <th>User</th>
+                <th>Status</th>
+                <th>Exit</th>
+                <th>Log</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (task of tasks; track trackByTask($index, task)) {
+                <tr>
+                  <td>{{ formatTime(task.starttime) }}</td>
+                  <td>{{ task.node }}</td>
+                  <td>{{ task.type || 'task' }}</td>
+                  <td>{{ task.user || 'n/a' }}</td>
+                  <td>{{ task.status || 'unknown' }}</td>
+                  <td>{{ task.exitstatus || 'n/a' }}</td>
+                  <td>
+                    <button
+                      type="button"
+                      class="proxmox-monitoring-page__inline-button"
+                      (click)="openTaskLog(task)"
+                    >
+                      {{ selectedTaskUpid === task.upid ? 'Hide' : 'View' }}
+                    </button>
+                  </td>
+                </tr>
+                @if (selectedTaskUpid === task.upid) {
+                  <tr>
+                    <td colspan="7">
+                      <div class="proxmox-monitoring-page__log">
+                        @if (loadingTaskLog) {
+                          <span>Loading task log.</span>
+                        } @else {
+                          @for (line of selectedTaskLog; track $index) {
+                            <code>{{ logLineText(line) }}</code>
+                          }
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="proxmox-monitoring-page__empty-row">No recent Proxmox tasks were found.</div>
+      }
+    </section>
+  }
+</section>

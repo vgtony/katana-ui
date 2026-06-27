@@ -13,6 +13,7 @@ export class SidebarComponent {
     { icon: 'overview', label: 'Overview', route: '/' },
     { icon: 'dashboard', label: 'Dashboard', route: '/dashboard' },
     { icon: 'history', label: 'History', route: '/history' },
+    { icon: 'proxmox', label: 'Proxmox', route: '/proxmox-monitoring' },
     { icon: 'deployment', label: 'Deployments', route: '/deployment' }
   ];
 }
