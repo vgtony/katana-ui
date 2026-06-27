@@ -2,7 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, of } from 'rxjs';
+import { vi } from 'vitest';
 import {
   AmarisoftSliceApiService,
   KubernetesApiService,
@@ -13,11 +14,24 @@ import { DeploymentPageComponent } from './deployment-page.component';
 describe('DeploymentPageComponent inventory refresh', () => {
   let fixture: ComponentFixture<DeploymentPageComponent>;
   let sliceInventory$: BehaviorSubject<unknown[]>;
+  let amariInventory$: BehaviorSubject<unknown[]>;
+  let deleteAmariSliceMock: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     sliceInventory$ = new BehaviorSubject<unknown[]>([
       { id: 'slice-1', status: 'running', coverage: ['group0_edge'] }
     ]);
+    amariInventory$ = new BehaviorSubject<unknown[]>([
+      {
+        slice_id: 'amari-slice-1',
+        name: 'enterprise-video',
+        s_nssai: { sst: 1, sd: '010203' },
+        plmn: { mcc: '001', mnc: '01' },
+        dnn: 'internet',
+        status: 'running'
+      }
+    ]);
+    deleteAmariSliceMock = vi.fn(() => of({}));
 
     await TestBed.configureTestingModule({
       imports: [DeploymentPageComponent],
@@ -41,7 +55,8 @@ describe('DeploymentPageComponent inventory refresh', () => {
         {
           provide: AmarisoftSliceApiService,
           useValue: {
-            getSlices: () => new BehaviorSubject<unknown[]>([]).asObservable()
+            getSlices: () => amariInventory$.asObservable(),
+            deleteSlice: deleteAmariSliceMock
           }
         },
         {
@@ -72,5 +87,44 @@ describe('DeploymentPageComponent inventory refresh', () => {
     expect(getTextContent()).toContain('slice-2');
     expect(getTextContent()).toContain('Athens');
     expect(getTextContent()).not.toContain('slice-1');
+  });
+
+  it('reveals and confirms Amari slice deletion from the inventory row', () => {
+    const row = Array.from<HTMLTableRowElement>(
+      fixture.nativeElement.querySelectorAll('tbody tr')
+    ).find((item) => item.textContent?.includes('enterprise-video') ?? false);
+
+    if (!row) {
+      throw new Error('Amari inventory row not found.');
+    }
+
+    row.click();
+    fixture.detectChanges();
+
+    const deleteButton = fixture.nativeElement.querySelector(
+      'button[aria-label="Delete Amari slice enterprise-video"]'
+    ) as HTMLButtonElement | null;
+
+    if (!deleteButton) {
+      throw new Error('Amari delete button not found.');
+    }
+
+    deleteButton.click();
+    fixture.detectChanges();
+
+    const confirmButton = Array.from<HTMLButtonElement>(
+      fixture.nativeElement.querySelectorAll('.deployment-page__delete-confirm-danger')
+    ).find((button) => button.textContent?.includes('Delete') ?? false);
+
+    if (!confirmButton) {
+      throw new Error('Amari delete confirmation button not found.');
+    }
+
+    amariInventory$.next([]);
+    confirmButton.click();
+    fixture.detectChanges();
+
+    expect(deleteAmariSliceMock).toHaveBeenCalledWith('amari-slice-1');
+    expect(getTextContent()).not.toContain('enterprise-video');
   });
 });

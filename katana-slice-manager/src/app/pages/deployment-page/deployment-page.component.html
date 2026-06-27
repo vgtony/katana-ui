@@ -68,17 +68,45 @@
                 <p class="deployment-page__error" role="alert">{{ section.error }}</p>
               } @else if (section.rows.length) {
                 <div class="deployment-page__table-shell">
+                  @if (section.key === 'amari' && amariDeleteError) {
+                    <p class="deployment-page__error" role="alert">{{ amariDeleteError }}</p>
+                  }
                   <table class="deployment-page__table">
                     <thead>
                       <tr>
                         @for (column of section.columns; track column.key) {
                           <th>{{ column.label }}</th>
                         }
+                        @if (isAmariInventorySection(section)) {
+                          <th class="deployment-page__table-action-heading" aria-label="Actions"></th>
+                        }
                       </tr>
                     </thead>
                     <tbody>
                       @for (row of section.rows; track $index) {
-                        <tr>
+                        <tr
+                          [class.deployment-page__table-row--interactive]="
+                            isAmariInventorySection(section)
+                          "
+                          [class.deployment-page__table-row--selected]="
+                            isAmariInventoryRowSelected(row)
+                          "
+                          [attr.tabindex]="isAmariInventorySection(section) ? 0 : null"
+                          [attr.aria-selected]="
+                            isAmariInventorySection(section)
+                              ? isAmariInventoryRowSelected(row)
+                              : null
+                          "
+                          (click)="
+                            isAmariInventorySection(section) && selectAmariInventoryRow(row)
+                          "
+                          (keydown.enter)="
+                            isAmariInventorySection(section) && selectAmariInventoryRow(row)
+                          "
+                          (keydown.space)="
+                            isAmariInventorySection(section) && selectAmariInventoryRow(row)
+                          "
+                        >
                           @for (column of section.columns; track column.key) {
                             <td>
                               @if (isStatusColumn(column.key)) {
@@ -99,6 +127,61 @@
                               } @else {
                                 {{ row[column.key] }}
                               }
+                            </td>
+                          }
+                          @if (isAmariInventorySection(section)) {
+                            <td class="deployment-page__table-action-cell">
+                              <div
+                                class="deployment-page__row-action"
+                                [class.deployment-page__row-action--visible]="
+                                  isAmariInventoryRowSelected(row)
+                                "
+                              >
+                                <button
+                                  class="deployment-page__delete-icon-button"
+                                  type="button"
+                                  [disabled]="isAmariSliceDeleting(row)"
+                                  [attr.tabindex]="isAmariInventoryRowSelected(row) ? 0 : -1"
+                                  [attr.aria-label]="'Delete Amari slice ' + row['name']"
+                                  title="Delete Amari slice"
+                                  (click)="requestAmariSliceDelete($event, row)"
+                                >
+                                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M3 6h18"></path>
+                                    <path d="M8 6V4h8v2"></path>
+                                    <path d="M19 6l-1 14H6L5 6"></path>
+                                    <path d="M10 11v5"></path>
+                                    <path d="M14 11v5"></path>
+                                  </svg>
+                                </button>
+
+                                @if (isAmariSliceDeletePending(row)) {
+                                  <div
+                                    class="deployment-page__delete-confirm"
+                                    role="alertdialog"
+                                    aria-modal="false"
+                                    (click)="$event.stopPropagation()"
+                                  >
+                                    <span>Delete this slice?</span>
+                                    <button
+                                      class="deployment-page__delete-confirm-danger"
+                                      type="button"
+                                      [disabled]="isAmariSliceDeleting(row)"
+                                      (click)="confirmAmariSliceDelete($event, row)"
+                                    >
+                                      {{ isAmariSliceDeleting(row) ? 'Deleting...' : 'Delete' }}
+                                    </button>
+                                    <button
+                                      class="deployment-page__delete-confirm-cancel"
+                                      type="button"
+                                      [disabled]="isAmariSliceDeleting(row)"
+                                      (click)="cancelAmariSliceDelete($event)"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                }
+                              </div>
                             </td>
                           }
                         </tr>
