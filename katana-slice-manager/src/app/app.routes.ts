@@ -32,6 +32,20 @@ export const routes: Routes = [
           )
       },
       {
+        path: 'monitoring',
+        loadComponent: () =>
+          import('./pages/monitoring-page/monitoring-page.component').then(
+            (m) => m.MonitoringPageComponent
+          )
+      },
+      {
+        path: 'monitoring/:sliceId',
+        loadComponent: () =>
+          import('./pages/monitoring-page/monitoring-page.component').then(
+            (m) => m.MonitoringPageComponent
+          )
+      },
+      {
         path: 'deployment',
         loadComponent: () =>
           import('./pages/deployment-page/deployment-page.component').then(

@@ -1,0 +1,272 @@
+<section class="monitoring-page">
+  <header class="monitoring-page__hero">
+    <div>
+      <p class="monitoring-page__eyebrow">Monitoring</p>
+      <h2>Slice Observability</h2>
+    </div>
+
+    @if (selectedSliceId) {
+      <a class="monitoring-page__back-link" routerLink="/monitoring">All slices</a>
+    }
+  </header>
+
+  @if (!selectedSliceId) {
+    <section class="monitoring-page__toolbar">
+      <label class="monitoring-page__control">
+        <span>Search</span>
+        <input
+          type="search"
+          [(ngModel)]="searchTerm"
+          placeholder="Search slices by name, id, or status"
+        />
+      </label>
+    </section>
+
+    @if (loadingOverview) {
+      <div class="monitoring-page__grid" aria-hidden="true">
+        @for (item of [1, 2, 3, 4]; track item) {
+          <article class="monitoring-card monitoring-card--skeleton">
+            <span class="monitoring-page__skeleton monitoring-page__skeleton--title"></span>
+            <span class="monitoring-page__skeleton monitoring-page__skeleton--line"></span>
+            <span class="monitoring-page__skeleton monitoring-page__skeleton--line"></span>
+          </article>
+        }
+      </div>
+    } @else if (overviewError) {
+      <div class="monitoring-page__notice monitoring-page__notice--error" role="alert">
+        {{ overviewError }}
+      </div>
+    } @else if (filteredCards.length) {
+      <div class="monitoring-page__grid">
+        @for (card of filteredCards; track trackBySlice($index, card)) {
+          <article class="monitoring-card">
+            <div class="monitoring-card__top">
+              <div>
+                <p>{{ getSliceId(card) || 'Slice' }}</p>
+                <h3>{{ card.name || getSliceId(card) || 'Unnamed slice' }}</h3>
+              </div>
+              <span class="monitoring-page__badge" [class.monitoring-page__badge--muted]="!card.monitoring?.configured">
+                {{ getMonitoringLabel(card) }}
+              </span>
+            </div>
+
+            <dl class="monitoring-card__meta">
+              <div>
+                <dt>Status</dt>
+                <dd>{{ card.status || 'Unknown' }}</dd>
+              </div>
+              <div>
+                <dt>Created</dt>
+                <dd>{{ getCreatedDate(card) }}</dd>
+              </div>
+              <div>
+                <dt>Queries</dt>
+                <dd>{{ getQueryCount(card) }}</dd>
+              </div>
+            </dl>
+
+            <a class="monitoring-card__action" [routerLink]="['/monitoring', getSliceId(card)]">
+              Open monitoring
+            </a>
+          </article>
+        }
+      </div>
+    } @else {
+      <div class="monitoring-page__notice">
+        No slice observability cards match the current search.
+      </div>
+    }
+  } @else {
+    @if (loadingDetail) {
+      <div class="monitoring-page__detail monitoring-page__detail--loading" aria-live="polite">
+        <span class="monitoring-page__skeleton monitoring-page__skeleton--title"></span>
+        <span class="monitoring-page__skeleton monitoring-page__skeleton--line"></span>
+      </div>
+    } @else if (detailError) {
+      <div class="monitoring-page__notice monitoring-page__notice--error" role="alert">
+        {{ detailError }}
+      </div>
+    } @else if (selectedCard && summary) {
+      <section class="monitoring-page__detail">
+        <div class="monitoring-page__summary">
+          <div>
+            <p class="monitoring-page__section-label">{{ selectedSliceId }}</p>
+            <h3>{{ selectedCard.name || selectedSliceId }}</h3>
+          </div>
+          <span class="monitoring-page__status">{{ statusLabel }}</span>
+        </div>
+
+        @if (!summary.monitoring?.configured && !selectedCard.monitoring?.configured) {
+          <div class="monitoring-page__notice">
+            Monitoring is not configured for this slice.
+          </div>
+        } @else {
+          @if (unavailableQueries.length) {
+            <section class="monitoring-panel monitoring-panel--warning">
+              <div class="monitoring-panel__top">
+                <h3>Unavailable Prometheus Queries</h3>
+              </div>
+              <ul class="monitoring-page__list">
+                @for (query of unavailableQueries; track trackByKey($index, query)) {
+                  <li>{{ query }}</li>
+                }
+              </ul>
+            </section>
+          }
+
+          <section class="monitoring-panel">
+            <div class="monitoring-panel__top">
+              <h3>Time Series</h3>
+              @if (metricKeys.length) {
+                <div class="monitoring-panel__controls">
+                  <label>
+                    <span>Metric</span>
+                    <select [(ngModel)]="selectedMetric" (ngModelChange)="updateMetric()">
+                      @for (metric of metricKeys; track metric) {
+                        <option [ngValue]="metric">{{ metric }}</option>
+                      }
+                    </select>
+                  </label>
+                  <label>
+                    <span>Range</span>
+                    <select [(ngModel)]="selectedRangeHours" (ngModelChange)="updateRange()">
+                      @for (range of rangeOptions; track range.value) {
+                        <option [ngValue]="range.value">{{ range.label }}</option>
+                      }
+                    </select>
+                  </label>
+                </div>
+              }
+            </div>
+
+            @if (!metricKeys.length) {
+              <div class="monitoring-page__empty">No Prometheus query keys were returned for this slice.</div>
+            } @else if (loadingChart) {
+              <div class="monitoring-page__empty">Loading chart data…</div>
+            } @else if (chartError) {
+              <div class="monitoring-page__notice monitoring-page__notice--error" role="alert">
+                {{ chartError }}
+              </div>
+            } @else if (hasChartData) {
+              <div class="monitoring-chart">
+                <svg viewBox="0 0 720 220" role="img" [attr.aria-label]="selectedMetric + ' chart'">
+                  <line x1="18" y1="202" x2="702" y2="202"></line>
+                  <line x1="18" y1="18" x2="18" y2="202"></line>
+                  @for (series of chartSeries; track series.label) {
+                    <polyline [attr.points]="series.svgPoints"></polyline>
+                  }
+                </svg>
+                <div class="monitoring-chart__meta">
+                  <span>Min {{ formatValue(chartMin) }}</span>
+                  <span>Max {{ formatValue(chartMax) }}</span>
+                  <span>{{ chartSeries.length }} series</span>
+                </div>
+              </div>
+            } @else {
+              <div class="monitoring-page__empty">No range samples were returned for this metric.</div>
+            }
+          </section>
+
+          <section class="monitoring-panel">
+            <div class="monitoring-panel__top">
+              <h3>Network Services</h3>
+            </div>
+
+            @if (networkServiceRows.length) {
+              <div class="monitoring-page__table-shell">
+                <table class="monitoring-page__table">
+                  <thead>
+                    <tr>
+                      @for (column of networkServiceColumns; track column) {
+                        <th>{{ formatColumnLabel(column) }}</th>
+                      }
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of networkServiceRows; track trackByRow($index)) {
+                      <tr>
+                        @for (column of networkServiceColumns; track column) {
+                          <td>{{ formatValue(row[column]) }}</td>
+                        }
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <div class="monitoring-page__empty">No network service metrics were returned.</div>
+            }
+          </section>
+
+          <section class="monitoring-page__metric-grid">
+            <article class="monitoring-panel">
+              <div class="monitoring-panel__top">
+                <h3>WIM Flows Per Second</h3>
+              </div>
+              @if (wimFlowCards.length) {
+                <div class="monitoring-page__mini-grid">
+                  @for (card of wimFlowCards; track trackByCard($index, card)) {
+                    <div class="monitoring-page__metric">
+                      <span>{{ formatColumnLabel(card.label) }}</span>
+                      <strong>{{ formatValue(card.value) }}</strong>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="monitoring-page__empty">No WIM flow metrics were returned.</div>
+              }
+            </article>
+
+            <article class="monitoring-panel">
+              <div class="monitoring-panel__top">
+                <h3>Infrastructure</h3>
+              </div>
+              @if (infrastructureCards.length) {
+                <div class="monitoring-page__mini-grid">
+                  @for (card of infrastructureCards; track trackByCard($index, card)) {
+                    <div class="monitoring-page__metric">
+                      <span>{{ formatColumnLabel(card.label) }}</span>
+                      <strong>{{ formatValue(card.value) }}</strong>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="monitoring-page__empty">No infrastructure metrics were returned.</div>
+              }
+            </article>
+          </section>
+        }
+
+        <section class="monitoring-panel">
+          <div class="monitoring-panel__top">
+            <h3>Logs</h3>
+            <button type="button" (click)="loadLogs()" [disabled]="!logsAvailable || loadingLogs">
+              {{ loadingLogs ? 'Loading…' : 'Load logs' }}
+            </button>
+          </div>
+
+          @if (logsError) {
+            <div class="monitoring-page__notice monitoring-page__notice--error" role="alert">
+              {{ logsError }}
+            </div>
+          } @else if (logsText) {
+            <pre class="monitoring-page__code">{{ logsText }}</pre>
+          } @else {
+            <div class="monitoring-page__empty">Logs will appear here after loading them from Katana NBI.</div>
+          }
+        </section>
+
+        <section class="monitoring-panel">
+          <div class="monitoring-panel__top">
+            <h3>Diagnostics</h3>
+          </div>
+          @if (diagnosticsText) {
+            <pre class="monitoring-page__code">{{ diagnosticsText }}</pre>
+          } @else {
+            <div class="monitoring-page__empty">No monitoring diagnostics were returned.</div>
+          }
+        </section>
+      </section>
+    }
+  }
+</section>

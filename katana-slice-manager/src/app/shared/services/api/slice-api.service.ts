@@ -37,6 +37,42 @@ export interface CreateSliceRequest {
   gst: SliceRegistrationFormModel;
 }
 
+export interface SliceObservabilityCard {
+  _id?: string;
+  id?: string;
+  name?: string;
+  status?: string;
+  created_at?: string;
+  monitoring?: {
+    configured?: boolean;
+    details?: unknown;
+    prometheus?: {
+      queries?: Record<string, unknown>;
+      unavailable?: unknown;
+    };
+  };
+  links?: Record<string, string>;
+}
+
+export interface SliceMonitoringSummary {
+  monitoring?: {
+    configured?: boolean;
+    prometheus?: {
+      queries?: Record<string, unknown>;
+      unavailable?: unknown;
+    };
+  };
+  metrics?: {
+    slice_status?: {
+      label?: string;
+      value?: unknown;
+    };
+    network_services?: unknown;
+    wim_flows_per_second?: unknown;
+    infrastructure?: unknown;
+  };
+}
+
 function toApiPayload(payload: SliceRegistrationFormModel): SliceApiPayload {
   return {
     base_slice_descriptor: {
@@ -101,5 +137,76 @@ export class SliceApiService extends KatanaApiBaseService {
 
   getSliceErrors(sliceId: string): Observable<unknown> {
     return this.http.get(this.buildApiUrl('slice', sliceId, 'errors'));
+  }
+
+  getSliceObservabilityCards(): Observable<SliceObservabilityCard[]> {
+    return this.http.get<SliceObservabilityCard[]>(this.buildApiUrl('slice', 'observability'));
+  }
+
+  getSliceObservability(sliceId: string): Observable<SliceObservabilityCard> {
+    return this.http.get<SliceObservabilityCard>(
+      this.buildApiUrl('slice', sliceId, 'observability')
+    );
+  }
+
+  getSliceMonitoringMetadata(sliceId: string): Observable<unknown> {
+    return this.http.get(this.buildApiUrl('slice', sliceId, 'monitoring'));
+  }
+
+  getSliceMonitoringSummary(sliceId: string): Observable<SliceMonitoringSummary> {
+    return this.http.get<SliceMonitoringSummary>(
+      this.buildApiUrl('slice', sliceId, 'monitoring', 'summary')
+    );
+  }
+
+  getSliceMonitoringRange(
+    sliceId: string,
+    metric: string,
+    start: number,
+    end: number,
+    step = '30s'
+  ): Observable<unknown> {
+    const params = new HttpParams()
+      .set('metric', metric)
+      .set('start', String(start))
+      .set('end', String(end))
+      .set('step', step);
+
+    return this.http.get(this.buildApiUrl('slice', sliceId, 'monitoring', 'range'), { params });
+  }
+
+  getSliceLogs(sliceId: string, logsLink?: string): Observable<string> {
+    const url = this.getKatanaApiLink(logsLink) ?? this.buildApiUrl('slice', sliceId, 'logs');
+
+    return this.http.get(url, { responseType: 'text' });
+  }
+
+  private getKatanaApiLink(link?: string): string | null {
+    const trimmedLink = link?.trim();
+
+    if (!trimmedLink) {
+      return null;
+    }
+
+    if (trimmedLink.startsWith('/')) {
+      return `${this.apiRoot}${trimmedLink}`;
+    }
+
+    if (trimmedLink.startsWith('api/')) {
+      return `${this.apiRoot}/${trimmedLink}`;
+    }
+
+    try {
+      const url = new URL(trimmedLink);
+      const apiRootUrl = new URL(this.apiRoot);
+
+      if (url.origin === apiRootUrl.origin && url.pathname.startsWith('/api/')) {
+        return url.toString();
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
   }
 }

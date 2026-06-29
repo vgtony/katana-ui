@@ -1,9 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { convertToParamMap, ActivatedRoute, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { DashboardPageComponent } from './dashboard-page/dashboard-page.component';
 import { HistoryPageComponent } from './history-page/history-page.component';
+import { MonitoringPageComponent } from './monitoring-page/monitoring-page.component';
 import { DashboardDataService } from '../shared/services/dashboard-data.service';
 import { DeploymentHistoryService } from '../shared/services/deployment-history.service';
+import { SliceApiService } from '../shared/services/api/slice-api.service';
 
 describe('Workspace pages', () => {
   describe('DashboardPageComponent', () => {
@@ -100,6 +103,128 @@ describe('Workspace pages', () => {
       expect(fixture.nativeElement.textContent).toContain('Proxmox VM');
       expect(fixture.nativeElement.textContent).toContain('Internal Server Error');
       expect(fixture.nativeElement.textContent).toContain('NFVO');
+    });
+  });
+
+  describe('MonitoringPageComponent', () => {
+    it('renders slice observability cards from the Katana NBI API', async () => {
+      await TestBed.configureTestingModule({
+        imports: [MonitoringPageComponent],
+        providers: [
+          provideRouter([]),
+          {
+            provide: ActivatedRoute,
+            useValue: {
+              paramMap: of(convertToParamMap({}))
+            }
+          },
+          {
+            provide: SliceApiService,
+            useValue: {
+              getSliceObservabilityCards: () =>
+                of([
+                  {
+                    _id: 'slice-1',
+                    name: 'Edge Slice',
+                    status: 'running',
+                    created_at: '2026-06-29T08:00:00.000Z',
+                    monitoring: {
+                      configured: true,
+                      prometheus: {
+                        queries: {
+                          slice_status: 'query'
+                        }
+                      }
+                    }
+                  }
+                ])
+            }
+          }
+        ]
+      }).compileComponents();
+
+      const fixture = TestBed.createComponent(MonitoringPageComponent);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).toContain('Slice Observability');
+      expect(fixture.nativeElement.textContent).toContain('Edge Slice');
+      expect(fixture.nativeElement.textContent).toContain('Configured');
+    });
+
+    it('renders selected slice monitoring summary and local chart data', async () => {
+      await TestBed.configureTestingModule({
+        imports: [MonitoringPageComponent],
+        providers: [
+          provideRouter([]),
+          {
+            provide: ActivatedRoute,
+            useValue: {
+              paramMap: of(convertToParamMap({ sliceId: 'slice-1' }))
+            }
+          },
+          {
+            provide: SliceApiService,
+            useValue: {
+              getSliceObservabilityCards: () => of([]),
+              getSliceObservability: () =>
+                of({
+                  _id: 'slice-1',
+                  name: 'Edge Slice',
+                  monitoring: {
+                    configured: true,
+                    prometheus: {
+                      queries: {
+                        slice_status: 'query'
+                      }
+                    }
+                  }
+                }),
+              getSliceMonitoringSummary: () =>
+                of({
+                  monitoring: {
+                    configured: true,
+                    prometheus: {
+                      queries: {
+                        slice_status: 'query'
+                      },
+                      unavailable: ['openstack_vm_memory_usage']
+                    }
+                  },
+                  metrics: {
+                    slice_status: { label: 'Active' },
+                    network_services: [{ name: 'ns-1', status: 'running' }],
+                    wim_flows_per_second: { ingress: 4 },
+                    infrastructure: { cpu: { value: 41, unit: '%' } }
+                  }
+                }),
+              getSliceMonitoringMetadata: () => of({ prometheus: { base_url: 'metadata-only' } }),
+              getSliceMonitoringRange: () =>
+                of({
+                  data: {
+                    result: [
+                      {
+                        metric: { instance: 'vm-1' },
+                        values: [
+                          [1000, '1'],
+                          [1030, '2']
+                        ]
+                      }
+                    ]
+                  }
+                }),
+              getSliceLogs: () => of('logs')
+            }
+          }
+        ]
+      }).compileComponents();
+
+      const fixture = TestBed.createComponent(MonitoringPageComponent);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).toContain('Edge Slice');
+      expect(fixture.nativeElement.textContent).toContain('Active');
+      expect(fixture.nativeElement.textContent).toContain('Network Services');
+      expect(fixture.nativeElement.querySelector('polyline')).not.toBeNull();
     });
   });
 
