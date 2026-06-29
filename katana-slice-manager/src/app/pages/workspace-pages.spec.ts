@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { convertToParamMap, ActivatedRoute, provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { DashboardPageComponent } from './dashboard-page/dashboard-page.component';
 import { HistoryPageComponent } from './history-page/history-page.component';
 import { MonitoringPageComponent } from './monitoring-page/monitoring-page.component';
@@ -149,6 +150,42 @@ describe('Workspace pages', () => {
       expect(fixture.nativeElement.textContent).toContain('Slice Observability');
       expect(fixture.nativeElement.textContent).toContain('Edge Slice');
       expect(fixture.nativeElement.textContent).toContain('Configured');
+    });
+
+    it('falls back to the slice inventory when observability cards are unavailable', async () => {
+      await TestBed.configureTestingModule({
+        imports: [MonitoringPageComponent],
+        providers: [
+          provideRouter([]),
+          {
+            provide: ActivatedRoute,
+            useValue: {
+              paramMap: of(convertToParamMap({}))
+            }
+          },
+          {
+            provide: SliceApiService,
+            useValue: {
+              getSliceObservabilityCards: () =>
+                throwError(() => new HttpErrorResponse({ status: 404 })),
+              getSlices: () =>
+                of([
+                  {
+                    id: 'slice-legacy',
+                    name: 'Legacy Slice',
+                    status: 'running'
+                  }
+                ])
+            }
+          }
+        ]
+      }).compileComponents();
+
+      const fixture = TestBed.createComponent(MonitoringPageComponent);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).toContain('Legacy Slice');
+      expect(fixture.nativeElement.textContent).toContain('Not configured');
     });
 
     it('renders selected slice monitoring summary and local chart data', async () => {

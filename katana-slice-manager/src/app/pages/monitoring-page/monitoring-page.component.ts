@@ -1,7 +1,7 @@
 import { Component, DestroyRef, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { catchError, forkJoin, of, switchMap } from 'rxjs';
+import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   SliceApiService,
@@ -92,7 +92,16 @@ export class MonitoringPageComponent {
           return forkJoin({
             bundle: this.sliceApi
               .getSliceObservability(sliceId)
-              .pipe(catchError((error) => of({ error }))),
+              .pipe(
+                catchError(() =>
+                  this.sliceApi
+                    .getSlice(sliceId)
+                    .pipe(
+                      map((slice) => this.toObservabilityCard(slice, sliceId)),
+                      catchError((error) => of({ error }))
+                    )
+                )
+              ),
             summary: this.sliceApi
               .getSliceMonitoringSummary(sliceId)
               .pipe(catchError((error) => of({ error }))),
@@ -279,10 +288,17 @@ export class MonitoringPageComponent {
     this.sliceApi
       .getSliceObservabilityCards()
       .pipe(
-        catchError(() => {
-          this.overviewError = 'Unable to load slice observability cards.';
-          return of([]);
-        }),
+        catchError(() =>
+          this.sliceApi.getSlices().pipe(
+            map((slices) =>
+              slices.map((slice, index) => this.toObservabilityCard(slice, String(index + 1)))
+            ),
+            catchError(() => {
+              this.overviewError = 'Unable to load slice observability cards.';
+              return of([]);
+            })
+          )
+        ),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe((cards) => {
@@ -345,6 +361,48 @@ export class MonitoringPageComponent {
     return Object.keys(
       summary.monitoring?.prometheus?.queries ?? bundle.monitoring?.prometheus?.queries ?? {}
     );
+  }
+
+  private toObservabilityCard(value: unknown, fallbackId: string): SliceObservabilityCard {
+    if (!value || typeof value !== 'object') {
+      return { _id: fallbackId, name: fallbackId, monitoring: { configured: false } };
+    }
+
+    const record = value as Record<string, unknown>;
+    const id = this.getFirstString(record, ['_id', 'id', 'uuid', 'slice_id', 'nsi_id']) ?? fallbackId;
+    const name =
+      this.getFirstString(record, ['name', 'ns_name', 'slice_name', 'sliceName']) ?? id;
+    const status = this.getFirstString(record, ['status', 'state']);
+    const createdAt = this.getFirstString(record, ['created_at', 'createdAt', 'creation_time']);
+    const monitoring =
+      record['monitoring'] && typeof record['monitoring'] === 'object'
+        ? (record['monitoring'] as SliceObservabilityCard['monitoring'])
+        : { configured: false };
+    const links =
+      record['links'] && typeof record['links'] === 'object'
+        ? (record['links'] as Record<string, string>)
+        : undefined;
+
+    return {
+      _id: id,
+      name,
+      status,
+      created_at: createdAt,
+      monitoring,
+      links
+    };
+  }
+
+  private getFirstString(record: Record<string, unknown>, keys: string[]): string | undefined {
+    for (const key of keys) {
+      const value = record[key];
+
+      if (value !== null && value !== undefined && value !== '') {
+        return String(value);
+      }
+    }
+
+    return undefined;
   }
 
   private pickMetric(currentMetric: string, metricKeys: string[]): string {
