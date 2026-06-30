@@ -254,6 +254,62 @@ describe('Registration form components', () => {
     });
   });
 
+  describe('K8sClusterRegistrationFormComponent submission', () => {
+    let fixture: ComponentFixture<K8sClusterRegistrationFormComponent>;
+    let httpTestingController: HttpTestingController;
+
+    beforeEach(async () => {
+      await TestBed.configureTestingModule({
+        imports: [K8sClusterRegistrationFormComponent],
+        providers: [provideHttpClient(), provideHttpClientTesting()]
+      }).compileComponents();
+
+      fixture = TestBed.createComponent(K8sClusterRegistrationFormComponent);
+      httpTestingController = TestBed.inject(HttpTestingController);
+      fixture.detectChanges();
+    });
+
+    afterEach(() => {
+      httpTestingController.verify();
+    });
+
+    it('submits a blank optional K8s network as null', () => {
+      const component = fixture.componentInstance as any;
+      component.form.setValue({
+        schemaVersion: '1.0',
+        credentials: 'creds.yaml',
+        schemaType: 'k8scluster',
+        name: 'microk8s-lab',
+        description: 'Lab Kubernetes cluster',
+        vimAccount: 'vim-lab',
+        nfvoIp: 'nbi.10.0.0.1.nip.io',
+        nfvoUsername: 'admin',
+        nfvoPassword: 'admin',
+        k8sVersion: 'v1.30.7',
+        k8sNet1: '',
+        namespace: 'default',
+        jujuBundle: true,
+        helmChartV3: true
+      });
+
+      fixture.detectChanges();
+
+      const submitButton = fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement;
+      submitButton.click();
+      fixture.detectChanges();
+
+      const request = httpTestingController.expectOne((req) => req.url.includes('/k8s'));
+      expect(request.request.method).toBe('POST');
+      expect(request.request.body.nets.k8s_net1).toBeNull();
+      request.flush({ message: 'Kubernetes cluster registered', id: 'k8s-1' });
+    });
+
+    it('labels the K8s network field as optional', () => {
+      expect(fixture.nativeElement.textContent).toContain('K8s network (optional)');
+      expect(fixture.nativeElement.textContent).not.toContain('k8s_net1 *');
+    });
+  });
+
   describe('LocationRegistrationFormComponent submission state', () => {
     let fixture: ComponentFixture<LocationRegistrationFormComponent>;
     let httpTestingController: HttpTestingController;
