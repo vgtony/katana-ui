@@ -73,6 +73,10 @@
   font-size: 0.92rem;
 }
 
+.registration-form__status:empty {
+  display: none;
+}
+
 .registration-form__status--success {
   color: var(--app-success);
 }

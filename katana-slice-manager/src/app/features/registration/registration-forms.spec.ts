@@ -352,6 +352,152 @@ describe('Registration form components', () => {
     });
   });
 
+  describe('FunctionRegistrationFormComponent mapper defaults', () => {
+    let fixture: ComponentFixture<FunctionRegistrationFormComponent>;
+    let httpTestingController: HttpTestingController;
+
+    beforeEach(async () => {
+      localStorage.clear();
+      localStorage.setItem(
+        'katana-slice-manager.deployment-drafts',
+        JSON.stringify({
+          slice: {
+            location: {
+              state: 'active',
+              value: {
+                id: 'core1234',
+                description: 'Coverage location'
+              }
+            },
+            slice: {
+              state: 'draft',
+              value: {
+                coverage: 'core1234',
+                networkDlGuaranteed: 1500000,
+                nsdId: 'selected-nsd-id',
+                nsName: 'selected-ns-name'
+              }
+            }
+          }
+        })
+      );
+
+      await TestBed.configureTestingModule({
+        imports: [FunctionRegistrationFormComponent],
+        providers: [provideHttpClient(), provideHttpClientTesting()]
+      }).compileComponents();
+
+      fixture = TestBed.createComponent(FunctionRegistrationFormComponent);
+      httpTestingController = TestBed.inject(HttpTestingController);
+      fixture.detectChanges();
+    });
+
+    afterEach(() => {
+      httpTestingController.verify();
+      localStorage.clear();
+    });
+
+    it('creates the required radio function for the saved coverage location', () => {
+      const component = fixture.componentInstance as any;
+
+      expect(component.form.value).toMatchObject({
+        id: 'core1234-radio-function-id',
+        name: 'core1234-radio-function-id',
+        gen: 5,
+        func: 1,
+        location: 'core1234',
+        nsdId: 'selected-nsd-id',
+        nsName: 'selected-ns-name',
+        placement: 1
+      });
+
+      const submitButton = fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement;
+      submitButton.click();
+      fixture.detectChanges();
+
+      const request = httpTestingController.expectOne((req) => req.url.includes('/function'));
+      expect(request.request.method).toBe('POST');
+      expect(request.request.body).toEqual({
+        id: 'core1234-radio-function-id',
+        name: 'core1234-radio-function-id',
+        gen: 5,
+        func: 1,
+        shared: { availability: false },
+        type: 0,
+        location: 'core1234',
+        pnf_list: [],
+        ns_list: [
+          {
+            'nsd-id': 'selected-nsd-id',
+            'ns-name': 'selected-ns-name',
+            placement: 1,
+            optional: false
+          }
+        ]
+      });
+      request.flush('core1234-radio-function-id');
+    });
+  });
+
+  describe('SliceRegistrationFormComponent submission', () => {
+    let fixture: ComponentFixture<SliceRegistrationFormComponent>;
+    let httpTestingController: HttpTestingController;
+
+    beforeEach(async () => {
+      localStorage.clear();
+
+      await TestBed.configureTestingModule({
+        imports: [SliceRegistrationFormComponent],
+        providers: [provideHttpClient(), provideHttpClientTesting()]
+      }).compileComponents();
+
+      fixture = TestBed.createComponent(SliceRegistrationFormComponent);
+      httpTestingController = TestBed.inject(HttpTestingController);
+      fixture.detectChanges();
+    });
+
+    afterEach(() => {
+      httpTestingController.verify();
+      localStorage.clear();
+    });
+
+    function fillEmbbSliceForm(): void {
+      const component = fixture.componentInstance as any;
+      component.form.setValue({
+        baseSliceDesId: 'slice-1',
+        coverage: 'core1234',
+        delayTolerance: true,
+        networkDlGuaranteed: 1500000,
+        ueDlGuaranteed: 1500000,
+        networkUlGuaranteed: 50000,
+        ueUlGuaranteed: 60000,
+        mtu: 1500,
+        nsdId: 'selected-nsd-id',
+        nsName: 'selected-ns-name',
+        placement: 1,
+        optional: false
+      });
+      fixture.detectChanges();
+    }
+
+    it('sends only the slice payload when creating a slice', () => {
+      fillEmbbSliceForm();
+      const component = fixture.componentInstance as any;
+
+      component.submit();
+
+      const sliceRequest = httpTestingController.expectOne((req) => req.url.includes('/slice'));
+      expect(sliceRequest.request.method).toBe('POST');
+      expect(sliceRequest.request.body.base_slice_descriptor).toMatchObject({
+        coverage: ['core1234'],
+        delay_tolerance: true,
+        network_DL_throughput: { guaranteed: 1500000 }
+      });
+      httpTestingController.expectNone((req) => req.url.includes('/function'));
+      sliceRequest.flush('slice-1');
+    });
+  });
+
   describe('ProxmoxClusterRegistrationFormComponent submission state', () => {
     let fixture: ComponentFixture<ProxmoxClusterRegistrationFormComponent>;
     let httpTestingController: HttpTestingController;

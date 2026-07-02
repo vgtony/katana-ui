@@ -49,15 +49,11 @@
         <span>Creating slice…</span>
       </div>
     }
-    @if (submitMessage) {
-      <p class="registration-form__status registration-form__status--success" role="status">
-        {{ submitMessage }}
-      </p>
-    }
-    @if (submitError) {
-      <p class="registration-form__status registration-form__status--error" role="alert">
-        {{ submitError }}
-      </p>
-    }
+    <p class="registration-form__status registration-form__status--success" role="status">
+      {{ submitMessage }}
+    </p>
+    <p class="registration-form__status registration-form__status--error" role="alert">
+      {{ submitError }}
+    </p>
   </form>
 </section>

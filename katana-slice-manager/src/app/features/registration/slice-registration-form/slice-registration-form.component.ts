@@ -1,4 +1,4 @@
-import { Component, NgZone, inject, output } from '@angular/core';
+import { Component, inject, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
@@ -15,7 +15,6 @@ import { DeploymentDraftService } from '../../../shared/services/deployment-draf
 })
 export class SliceRegistrationFormComponent {
   private readonly formBuilder = inject(FormBuilder);
-  private readonly ngZone = inject(NgZone);
   private readonly sliceApi = inject(SliceApiService);
   private readonly deploymentDraftService = inject(DeploymentDraftService);
   readonly created = output<void>();
@@ -61,6 +60,19 @@ export class SliceRegistrationFormComponent {
     });
   }
 
+  private setSubmitStatus(message: string, error = ''): void {
+    setTimeout(() => {
+      this.submitMessage = message;
+      this.submitError = error;
+    });
+  }
+
+  private setSubmitting(submitting: boolean): void {
+    setTimeout(() => {
+      this.submitting = submitting;
+    });
+  }
+
   protected submit(): void {
     this.submitMessage = '';
     this.submitError = '';
@@ -70,38 +82,31 @@ export class SliceRegistrationFormComponent {
       return;
     }
 
-    const payload: CreateSliceRequest = {
-      gst: this.form.getRawValue() as SliceRegistrationFormModel
-    };
+    const gst = this.form.getRawValue() as SliceRegistrationFormModel;
+    const payload: CreateSliceRequest = { gst };
 
     this.submitting = true;
 
     this.sliceApi
       .createSlice(payload)
       .pipe(
-        finalize(() =>
-          this.ngZone.run(() => {
-            this.submitting = false;
-          })
-        )
+        finalize(() => {
+          this.setSubmitting(false);
+        })
       )
       .subscribe({
         next: (id) => {
-          this.ngZone.run(() => {
-            this.deploymentDraftService.saveFormValue(
-              'slice',
-              'slice',
-              this.form.getRawValue() as SliceRegistrationFormModel,
-              'active'
-            );
-            this.submitMessage = `Slice created successfully with id ${id}.`;
-            this.created.emit();
-          });
+          this.deploymentDraftService.saveFormValue(
+            'slice',
+            'slice',
+            this.form.getRawValue() as SliceRegistrationFormModel,
+            'active'
+          );
+          this.setSubmitStatus(`Slice created successfully with id ${id}.`);
+          this.created.emit();
         },
         error: (error: unknown) => {
-          this.ngZone.run(() => {
-            this.submitError = getApiErrorMessage(error, 'Unable to create slice.');
-          });
+          this.setSubmitStatus('', getApiErrorMessage(error, 'Unable to create slice.'));
         }
       });
   }

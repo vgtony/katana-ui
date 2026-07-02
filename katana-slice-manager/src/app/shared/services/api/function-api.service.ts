@@ -14,6 +14,7 @@ interface FunctionApiPayload {
   };
   type: number;
   location: string;
+  pnf_list: unknown[];
   ns_list: Array<{
     'nsd-id': string;
     'ns-name': string;
@@ -33,6 +34,7 @@ function toApiPayload(payload: FunctionRegistrationFormModel): FunctionApiPayloa
     },
     type: payload.type,
     location: payload.location,
+    pnf_list: [],
     ns_list: [
       {
         'nsd-id': payload.nsdId,
