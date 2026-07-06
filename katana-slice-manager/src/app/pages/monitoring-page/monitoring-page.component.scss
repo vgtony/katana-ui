@@ -189,6 +189,15 @@
   word-break: break-word;
 }
 
+.monitoring-card__meta-label--hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .monitoring-card__name {
   color: var(--app-text);
   font-size: 1.12rem;
