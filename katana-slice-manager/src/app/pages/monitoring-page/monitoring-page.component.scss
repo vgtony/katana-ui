@@ -137,6 +137,7 @@
 
 .monitoring-card__top {
   align-items: flex-start;
+  justify-content: flex-end;
 }
 
 .monitoring-card__top p {
@@ -174,8 +175,7 @@
 
 .monitoring-card__meta {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
 .monitoring-card__meta div {
@@ -187,6 +187,12 @@
 .monitoring-card__meta dd {
   color: var(--app-text-muted);
   word-break: break-word;
+}
+
+.monitoring-card__name {
+  color: var(--app-text);
+  font-size: 1.12rem;
+  font-weight: 800;
 }
 
 .monitoring-card__action {

@@ -41,16 +41,20 @@
         @for (card of filteredCards; track trackBySlice($index, card)) {
           <article class="monitoring-card">
             <div class="monitoring-card__top">
-              <div>
-                <p>{{ getSliceId(card) || 'Slice' }}</p>
-                <h3>{{ card.name || getSliceId(card) || 'Unnamed slice' }}</h3>
-              </div>
               <span class="monitoring-page__badge" [class.monitoring-page__badge--muted]="!card.monitoring?.configured">
                 {{ getMonitoringLabel(card) }}
               </span>
             </div>
 
             <dl class="monitoring-card__meta">
+              <div>
+                <dt>ID</dt>
+                <dd>{{ getSliceId(card) || 'Unknown' }}</dd>
+              </div>
+              <div>
+                <dt>Name</dt>
+                <dd class="monitoring-card__name">{{ card.name || getSliceId(card) || 'Unnamed slice' }}</dd>
+              </div>
               <div>
                 <dt>Status</dt>
                 <dd>{{ card.status || 'Unknown' }}</dd>
