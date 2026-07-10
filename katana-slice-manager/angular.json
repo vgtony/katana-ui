@@ -60,6 +60,17 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "local-network": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.local-network.ts"
+                }
+              ],
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
             }
           },
           "defaultConfiguration": "production"
@@ -73,6 +84,9 @@
             "development": {
               "buildTarget": "katana-slice-manager:build:development",
               "proxyConfig": "proxy.conf.json"
+            },
+            "local-network": {
+              "buildTarget": "katana-slice-manager:build:local-network"
             }
           },
           "defaultConfiguration": "development"
