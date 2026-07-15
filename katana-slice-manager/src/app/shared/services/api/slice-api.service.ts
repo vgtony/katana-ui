@@ -1,8 +1,9 @@
-import { HttpParams } from '@angular/common/http';
+import { HttpContext, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { SliceRegistrationFormModel } from '../../../models/interfaces/slice-registration-form.interface';
 import { KatanaApiBaseService } from './katana-api-base.service';
+import { SKIP_HTTP_ACTIVITY } from '../../interceptors/http-activity.interceptor';
 
 interface SliceApiPayload {
   base_slice_descriptor: {
@@ -36,6 +37,8 @@ interface SliceApiPayload {
 export interface CreateSliceRequest {
   gst: SliceRegistrationFormModel;
 }
+
+export type UnifiedSliceRequest = Record<string, unknown>;
 
 export interface SliceObservabilityCard {
   _id?: string;
@@ -116,8 +119,18 @@ export class SliceApiService extends KatanaApiBaseService {
     return this.postText(this.buildApiUrl('slice'), toApiPayload(payload.gst));
   }
 
+  createUnifiedSlice(payload: UnifiedSliceRequest): Observable<string> {
+    return this.postText(this.buildApiUrl('slice'), payload);
+  }
+
   getSlice(sliceId: string): Observable<unknown> {
     return this.http.get(this.buildApiUrl('slice', sliceId));
+  }
+
+  pollSlice(sliceId: string): Observable<unknown> {
+    return this.http.get(this.buildApiUrl('slice', sliceId), {
+      context: new HttpContext().set(SKIP_HTTP_ACTIVITY, true)
+    });
   }
 
   deleteSlice(sliceId: string, force?: boolean): Observable<unknown> {

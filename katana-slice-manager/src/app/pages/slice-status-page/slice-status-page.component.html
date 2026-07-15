@@ -1,0 +1,71 @@
+<section class="slice-status-page">
+  <header class="slice-status-page__hero">
+    <div>
+      <p class="slice-status-page__eyebrow">Slice deployment</p>
+      <h2>{{ sliceId }}</h2>
+    </div>
+    <span class="slice-status-page__status" [class.slice-status-page__status--failed]="failed">{{ status }}</span>
+  </header>
+
+  <section class="slice-status-card" aria-live="polite">
+    <div class="slice-status-card__heading">
+      <div><h3>Deployment progress</h3><p>{{ pollMessage }}</p></div>
+      @if (polling) { <span class="slice-status-page__polling">Polling every 2 seconds</span> }
+    </div>
+
+    <ol class="slice-progress">
+      @for (stage of stages; track stage; let index = $index) {
+        <li
+          class="slice-progress__step"
+          [class.slice-progress__step--current]="stageClass(index) === 'slice-progress__step--current'"
+          [class.slice-progress__step--complete]="stageClass(index) === 'slice-progress__step--complete'"
+          [class.slice-progress__step--failed]="stageClass(index) === 'slice-progress__step--failed'"
+        >
+          <span>{{ index + 1 }}</span><strong>{{ stage }}</strong>
+        </li>
+      }
+    </ol>
+
+    @if (pollError) { <p class="slice-status-page__notice slice-status-page__notice--error" role="alert">{{ pollError }}</p> }
+  </section>
+
+  <div class="slice-status-page__grid">
+    <section class="slice-status-card">
+      <div class="slice-status-card__heading"><h3>Slice details</h3></div>
+      @if (sliceDetails) { <pre>{{ sliceDetails }}</pre> } @else { <p>No slice details are available yet.</p> }
+    </section>
+
+    <section class="slice-status-card">
+      <div class="slice-status-card__heading"><h3>Deployment times</h3></div>
+      @if (deploymentTimeText) { <pre>{{ deploymentTimeText }}</pre> } @else { <p>Timing data is not available yet.</p> }
+    </section>
+  </div>
+
+  <section class="slice-status-card">
+    <div class="slice-status-card__heading">
+      <h3>Errors and logs</h3>
+      <div class="slice-status-page__actions">
+        <button type="button" (click)="loadErrors()" [disabled]="loadingErrors">{{ loadingErrors ? 'Loading…' : 'Load errors' }}</button>
+        <button type="button" (click)="loadLogs()" [disabled]="loadingLogs">{{ loadingLogs ? 'Loading…' : 'Load logs' }}</button>
+      </div>
+    </div>
+    @if (diagnosticsError) { <p class="slice-status-page__notice slice-status-page__notice--error" role="alert">{{ diagnosticsError }}</p> }
+    @if (runtimeErrorsText) { <h4>Runtime errors</h4><pre>{{ runtimeErrorsText }}</pre> }
+    @if (logs) { <h4>Logs and events</h4><pre>{{ logs }}</pre> }
+    @if (!runtimeErrorsText && !logs) { <p>Load runtime errors or logs when you need deployment diagnostics.</p> }
+  </section>
+
+  <section class="slice-status-card slice-status-page__footer">
+    <a class="slice-status-page__primary" [routerLink]="['/monitoring', sliceId]">Open monitoring</a>
+    @if (!deleteConfirmation) {
+      <button type="button" class="slice-status-page__danger" (click)="deleteConfirmation = true">Delete slice</button>
+    } @else {
+      <div class="slice-status-page__confirm" role="group" aria-label="Confirm slice deletion">
+        <span>Delete this slice?</span>
+        <button type="button" class="slice-status-page__danger" (click)="deleteSlice()" [disabled]="deleting">{{ deleting ? 'Deleting…' : 'Confirm delete' }}</button>
+        <button type="button" (click)="deleteConfirmation = false" [disabled]="deleting">Cancel</button>
+      </div>
+    }
+    @if (deleteError) { <p class="slice-status-page__notice slice-status-page__notice--error" role="alert">{{ deleteError }}</p> }
+  </section>
+</section>

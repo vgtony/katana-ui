@@ -46,6 +46,20 @@ export const routes: Routes = [
           )
       },
       {
+        path: 'slices/create',
+        loadComponent: () =>
+          import('./pages/create-slice-page/create-slice-page.component').then(
+            (m) => m.CreateSlicePageComponent
+          )
+      },
+      {
+        path: 'slices/:sliceId',
+        loadComponent: () =>
+          import('./pages/slice-status-page/slice-status-page.component').then(
+            (m) => m.SliceStatusPageComponent
+          )
+      },
+      {
         path: 'deployment',
         loadComponent: () =>
           import('./pages/deployment-page/deployment-page.component').then(
