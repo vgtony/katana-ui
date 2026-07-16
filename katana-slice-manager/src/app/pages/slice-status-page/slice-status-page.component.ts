@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, DestroyRef, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subject, catchError, exhaustMap, map, of, takeUntil, timer } from 'rxjs';
@@ -21,6 +21,7 @@ export class SliceStatusPageComponent {
   private readonly router = inject(Router);
   private readonly sliceApi = inject(SliceApiService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly pollingStopped = new Subject<void>();
   private readonly pollingStartedAt = Date.now();
   private consecutiveFailures = 0;
@@ -156,6 +157,7 @@ export class SliceStatusPageComponent {
   private handlePollResult(result: PollResult): void {
     if (result.kind === 'failure') {
       this.handlePollFailure(result.error);
+      this.changeDetectorRef.markForCheck();
       return;
     }
 
@@ -173,6 +175,8 @@ export class SliceStatusPageComponent {
       this.stopPolling();
       if (this.failed) this.loadErrors();
     }
+
+    this.changeDetectorRef.markForCheck();
   }
 
   private handlePollFailure(error: unknown): void {
@@ -212,7 +216,9 @@ export class SliceStatusPageComponent {
     if (typeof value === 'string' && value.trim()) return value.trim();
     if (!isNestRecord(value)) return 'Accepted';
     const status = value['status'] ?? value['state'];
-    return status === null || status === undefined || status === '' ? 'Accepted' : String(status);
+    return status === null || status === undefined || status === ''
+      ? 'Accepted'
+      : String(status).trim();
   }
 
   private formatJson(value: unknown): string {

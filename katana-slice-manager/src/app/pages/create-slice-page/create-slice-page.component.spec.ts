@@ -5,6 +5,28 @@ import { CreateSlicePageComponent } from './create-slice-page.component';
 import { SliceApiService } from '../../shared/services/api';
 
 describe('CreateSlicePageComponent', () => {
+  it('marks the view for refresh after asynchronously reading a dropped NEST', async () => {
+    await TestBed.configureTestingModule({
+      imports: [CreateSlicePageComponent],
+      providers: [
+        provideRouter([]),
+        { provide: SliceApiService, useValue: { createUnifiedSlice: vi.fn() } }
+      ]
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(CreateSlicePageComponent);
+    const component = fixture.componentInstance as any;
+    const markForCheck = vi.spyOn(component.changeDetectorRef, 'markForCheck');
+
+    await component.loadNest({
+      name: 'slice.yaml',
+      text: async () => 'name: edge-slice\nbase_slice_descriptor:\n  coverage: [edge]'
+    });
+
+    expect(component.summary.sliceName).toBe('edge-slice');
+    expect(markForCheck).toHaveBeenCalled();
+  });
+
   it('replaces credentials_file with parsed credentials before deployment', async () => {
     const createUnifiedSlice = vi.fn(() => of('{"uuid":"slice-123"}'));
 

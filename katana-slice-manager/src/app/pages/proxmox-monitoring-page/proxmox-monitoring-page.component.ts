@@ -1,6 +1,7 @@
 import { NgClass } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { asyncScheduler, observeOn } from 'rxjs';
 import {
   ProxmoxClusterResponse,
   ProxmoxOverviewResponse,
@@ -8,7 +9,7 @@ import {
   ProxmoxOverviewVm,
   ProxmoxResourceBlock,
   ProxmoxStorageOption,
-  ProxmoxTask
+  ProxmoxTask,
 } from '../../models/interfaces/proxmox.interface';
 import { ProxmoxApiService } from '../../shared/services/api';
 
@@ -22,10 +23,11 @@ interface MetricCard {
   selector: 'app-proxmox-monitoring-page',
   imports: [FormsModule, NgClass],
   templateUrl: './proxmox-monitoring-page.component.html',
-  styleUrl: './proxmox-monitoring-page.component.scss'
+  styleUrl: './proxmox-monitoring-page.component.scss',
 })
 export class ProxmoxMonitoringPageComponent implements OnInit {
   private readonly proxmoxApi = inject(ProxmoxApiService);
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
 
   protected clusters: ProxmoxClusterResponse[] = [];
   protected selectedClusterId = '';
@@ -56,28 +58,28 @@ export class ProxmoxMonitoringPageComponent implements OnInit {
       {
         label: 'Nodes',
         value: `${summary.online_node_count ?? 0}/${summary.node_count ?? 0}`,
-        detail: 'online'
+        detail: 'online',
       },
       {
         label: 'VMs',
         value: `${summary.running_vm_count ?? 0}/${summary.vm_count ?? 0}`,
-        detail: 'running'
+        detail: 'running',
       },
       {
         label: 'CPU',
         value: this.formatPercent(physical?.cpu?.used_percent),
-        detail: this.formatCores(physical?.cpu)
+        detail: this.formatCores(physical?.cpu),
       },
       {
         label: 'Memory',
         value: this.formatPercent(physical?.memory?.used_percent),
-        detail: `${physical?.memory?.used_human ?? '0 B'} used`
+        detail: `${physical?.memory?.used_human ?? '0 B'} used`,
       },
       {
         label: 'Disk',
         value: this.formatPercent(physical?.disk?.used_percent),
-        detail: `${physical?.disk?.used_human ?? '0 B'} used`
-      }
+        detail: `${physical?.disk?.used_human ?? '0 B'} used`,
+      },
     ];
   }
 
@@ -96,34 +98,41 @@ export class ProxmoxMonitoringPageComponent implements OnInit {
     }
 
     const seen = new Set<string>();
-    return this.servers.flatMap((server) => server.storage_options ?? []).filter((storage) => {
-      const key = `${storage.node}:${storage.storage}`;
-      if (seen.has(key)) {
-        return false;
-      }
-      seen.add(key);
-      return true;
-    });
+    return this.servers
+      .flatMap((server) => server.storage_options ?? [])
+      .filter((storage) => {
+        const key = `${storage.node}:${storage.storage}`;
+        if (seen.has(key)) {
+          return false;
+        }
+        seen.add(key);
+        return true;
+      });
   }
 
   protected loadClusters(): void {
     this.loadingClusters = true;
     this.errorMessage = '';
 
-    this.proxmoxApi.getClusters().subscribe({
-      next: (clusters) => {
-        this.clusters = clusters;
-        this.loadingClusters = false;
-        if (!this.selectedClusterId && clusters.length) {
-          this.selectedClusterId = clusters[0]._id;
-          this.loadOverview();
-        }
-      },
-      error: () => {
-        this.loadingClusters = false;
-        this.errorMessage = 'Unable to load Proxmox clusters.';
-      }
-    });
+    this.proxmoxApi
+      .getClusters()
+      .pipe(observeOn(asyncScheduler))
+      .subscribe({
+        next: (clusters) => {
+          this.clusters = clusters;
+          this.loadingClusters = false;
+          if (!this.selectedClusterId && clusters.length) {
+            this.selectedClusterId = clusters[0]._id;
+            this.loadOverview();
+          }
+          this.changeDetectorRef.markForCheck();
+        },
+        error: () => {
+          this.loadingClusters = false;
+          this.errorMessage = 'Unable to load Proxmox clusters.';
+          this.changeDetectorRef.markForCheck();
+        },
+      });
   }
 
   protected loadOverview(): void {
@@ -138,18 +147,23 @@ export class ProxmoxMonitoringPageComponent implements OnInit {
     this.selectedTaskUpid = '';
     this.selectedTaskLog = [];
 
-    this.proxmoxApi.getOverview({ cluster_id: this.selectedClusterId }).subscribe({
-      next: (overview) => {
-        this.overview = overview;
-        this.loadingOverview = false;
-        this.loadTasks();
-      },
-      error: () => {
-        this.overview = null;
-        this.loadingOverview = false;
-        this.errorMessage = 'Unable to load Proxmox monitoring data.';
-      }
-    });
+    this.proxmoxApi
+      .getOverview({ cluster_id: this.selectedClusterId })
+      .pipe(observeOn(asyncScheduler))
+      .subscribe({
+        next: (overview) => {
+          this.overview = overview;
+          this.loadingOverview = false;
+          this.loadTasks();
+          this.changeDetectorRef.markForCheck();
+        },
+        error: () => {
+          this.overview = null;
+          this.loadingOverview = false;
+          this.errorMessage = 'Unable to load Proxmox monitoring data.';
+          this.changeDetectorRef.markForCheck();
+        },
+      });
   }
 
   protected onClusterChange(): void {
@@ -173,17 +187,22 @@ export class ProxmoxMonitoringPageComponent implements OnInit {
     this.loadingTasks = true;
     this.taskErrorMessage = '';
 
-    this.proxmoxApi.getTasks({ cluster_id: this.selectedClusterId, limit: 20 }).subscribe({
-      next: (response) => {
-        this.tasks = response.tasks;
-        this.loadingTasks = false;
-      },
-      error: () => {
-        this.tasks = [];
-        this.loadingTasks = false;
-        this.taskErrorMessage = 'Unable to load Proxmox task history.';
-      }
-    });
+    this.proxmoxApi
+      .getTasks({ cluster_id: this.selectedClusterId, limit: 20 })
+      .pipe(observeOn(asyncScheduler))
+      .subscribe({
+        next: (response) => {
+          this.tasks = response.tasks;
+          this.loadingTasks = false;
+          this.changeDetectorRef.markForCheck();
+        },
+        error: () => {
+          this.tasks = [];
+          this.loadingTasks = false;
+          this.taskErrorMessage = 'Unable to load Proxmox task history.';
+          this.changeDetectorRef.markForCheck();
+        },
+      });
   }
 
   protected openTaskLog(task: ProxmoxTask): void {
@@ -205,17 +224,20 @@ export class ProxmoxMonitoringPageComponent implements OnInit {
       .getTaskLog({
         cluster_id: this.selectedClusterId,
         node: task.node,
-        upid: task.upid
+        upid: task.upid,
       })
+      .pipe(observeOn(asyncScheduler))
       .subscribe({
         next: (response) => {
           this.selectedTaskLog = response.log;
           this.loadingTaskLog = false;
+          this.changeDetectorRef.markForCheck();
         },
         error: () => {
           this.selectedTaskLog = ['Unable to load task log.'];
           this.loadingTaskLog = false;
-        }
+          this.changeDetectorRef.markForCheck();
+        },
       });
   }
 

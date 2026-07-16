@@ -29,14 +29,14 @@ describe('Workspace pages', () => {
                     columns: ['id', 'description'],
                     rows: [
                       { id: 'group0_edge', description: 'Group 0 Edge' },
-                      { id: 'group1_core', description: 'Group 1 Core' }
+                      { id: 'group1_core', description: 'Group 1 Core' },
                     ],
-                    error: null
-                  }
-                ])
-            }
-          }
-        ]
+                    error: null,
+                  },
+                ]),
+            },
+          },
+        ],
       }).compileComponents();
 
       fixture = TestBed.createComponent(DashboardPageComponent);
@@ -72,8 +72,8 @@ describe('Workspace pages', () => {
                   finalConfigurationLabel: 'Slice configuration',
                   requirements: [
                     { id: 'nfvo', label: 'NFVO', status: 'done' },
-                    { id: 'vim', label: 'VIM', status: 'done' }
-                  ]
+                    { id: 'vim', label: 'VIM', status: 'done' },
+                  ],
                 },
                 {
                   id: 'pack-2',
@@ -85,13 +85,15 @@ describe('Workspace pages', () => {
                   errorType: 'Internal Server Error',
                   completedAt: '2026-04-01T09:00:00.000Z',
                   finalConfigurationLabel: 'Proxmox VM configuration',
-                  requirements: [{ id: 'proxmox-cluster', label: 'Proxmox Cluster', status: 'done' }]
-                }
+                  requirements: [
+                    { id: 'proxmox-cluster', label: 'Proxmox Cluster', status: 'done' },
+                  ],
+                },
               ]),
-              clearPacks: () => undefined
-            }
-          }
-        ]
+              clearPacks: () => undefined,
+            },
+          },
+        ],
       }).compileComponents();
 
       fixture = TestBed.createComponent(HistoryPageComponent);
@@ -116,8 +118,8 @@ describe('Workspace pages', () => {
           {
             provide: ActivatedRoute,
             useValue: {
-              paramMap: of(convertToParamMap({}))
-            }
+              paramMap: of(convertToParamMap({})),
+            },
           },
           {
             provide: SliceApiService,
@@ -128,28 +130,32 @@ describe('Workspace pages', () => {
                     _id: 'slice-1',
                     name: 'Edge Slice',
                     status: 'running',
-                    created_at: '2026-06-29T08:00:00.000Z',
+                    created_at: '1775558333.5288908',
                     monitoring: {
                       configured: true,
                       prometheus: {
                         queries: {
-                          slice_status: 'query'
-                        }
-                      }
-                    }
-                  }
-                ])
-            }
-          }
-        ]
+                          slice_status: 'query',
+                        },
+                      },
+                    },
+                  },
+                ]),
+            },
+          },
+        ],
       }).compileComponents();
 
       const fixture = TestBed.createComponent(MonitoringPageComponent);
+      fixture.detectChanges();
+      await new Promise((resolve) => setTimeout(resolve));
       fixture.detectChanges();
 
       expect(fixture.nativeElement.textContent).toContain('Slice Observability');
       expect(fixture.nativeElement.textContent).toContain('Edge Slice');
       expect(fixture.nativeElement.textContent).toContain('Configured');
+      expect(fixture.nativeElement.textContent).toContain('2026');
+      expect(fixture.nativeElement.textContent).not.toContain('1775558333.5288908');
     });
 
     it('falls back to the slice inventory when observability cards are unavailable', async () => {
@@ -160,8 +166,8 @@ describe('Workspace pages', () => {
           {
             provide: ActivatedRoute,
             useValue: {
-              paramMap: of(convertToParamMap({}))
-            }
+              paramMap: of(convertToParamMap({})),
+            },
           },
           {
             provide: SliceApiService,
@@ -173,15 +179,17 @@ describe('Workspace pages', () => {
                   {
                     id: 'slice-legacy',
                     name: 'Legacy Slice',
-                    status: 'running'
-                  }
-                ])
-            }
-          }
-        ]
+                    status: 'running',
+                  },
+                ]),
+            },
+          },
+        ],
       }).compileComponents();
 
       const fixture = TestBed.createComponent(MonitoringPageComponent);
+      fixture.detectChanges();
+      await new Promise((resolve) => setTimeout(resolve));
       fixture.detectChanges();
 
       expect(fixture.nativeElement.textContent).toContain('Legacy Slice');
@@ -196,8 +204,9 @@ describe('Workspace pages', () => {
           {
             provide: ActivatedRoute,
             useValue: {
-              paramMap: of(convertToParamMap({ sliceId: 'slice-1' }))
-            }
+              snapshot: { paramMap: convertToParamMap({ sliceId: 'slice-1' }) },
+              paramMap: of(convertToParamMap({ sliceId: 'slice-1' })),
+            },
           },
           {
             provide: SliceApiService,
@@ -211,10 +220,10 @@ describe('Workspace pages', () => {
                     configured: true,
                     prometheus: {
                       queries: {
-                        slice_status: 'query'
-                      }
-                    }
-                  }
+                        slice_status: 'query',
+                      },
+                    },
+                  },
                 }),
               getSliceMonitoringSummary: () =>
                 of({
@@ -222,17 +231,17 @@ describe('Workspace pages', () => {
                     configured: true,
                     prometheus: {
                       queries: {
-                        slice_status: 'query'
+                        slice_status: 'query',
                       },
-                      unavailable: ['openstack_vm_memory_usage']
-                    }
+                      unavailable: ['openstack_vm_memory_usage'],
+                    },
                   },
                   metrics: {
                     slice_status: { label: 'Active' },
                     network_services: [{ name: 'ns-1', status: 'running' }],
                     wim_flows_per_second: { ingress: 4 },
-                    infrastructure: { cpu: { value: 41, unit: '%' } }
-                  }
+                    infrastructure: { cpu: { value: 41, unit: '%' } },
+                  },
                 }),
               getSliceMonitoringMetadata: () => of({ prometheus: { base_url: 'metadata-only' } }),
               getSliceMonitoringRange: () =>
@@ -243,19 +252,21 @@ describe('Workspace pages', () => {
                         metric: { instance: 'vm-1' },
                         values: [
                           [1000, '1'],
-                          [1030, '2']
-                        ]
-                      }
-                    ]
-                  }
+                          [1030, '2'],
+                        ],
+                      },
+                    ],
+                  },
                 }),
-              getSliceLogs: () => of('logs')
-            }
-          }
-        ]
+              getSliceLogs: () => of('logs'),
+            },
+          },
+        ],
       }).compileComponents();
 
       const fixture = TestBed.createComponent(MonitoringPageComponent);
+      fixture.detectChanges();
+      await new Promise((resolve) => setTimeout(resolve, 10));
       fixture.detectChanges();
 
       expect(fixture.nativeElement.textContent).toContain('Edge Slice');
@@ -264,5 +275,4 @@ describe('Workspace pages', () => {
       expect(fixture.nativeElement.querySelector('polyline')).not.toBeNull();
     });
   });
-
 });

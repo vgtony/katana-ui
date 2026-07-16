@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
@@ -26,6 +26,7 @@ export class CreateSlicePageComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly sliceApi = inject(SliceApiService);
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
 
   protected nestFileName = '';
   protected nestDocument: NestRecord | null = null;
@@ -137,6 +138,8 @@ export class CreateSlicePageComponent {
     } catch (error) {
       this.credentialError =
         error instanceof Error ? error.message : 'Unable to parse the credential file.';
+    } finally {
+      this.changeDetectorRef.markForCheck();
     }
   }
 
@@ -187,6 +190,8 @@ export class CreateSlicePageComponent {
       this.patchInfrastructure(summary.infrastructure);
     } catch (error) {
       this.nestError = error instanceof Error ? error.message : 'Unable to parse the NEST file.';
+    } finally {
+      this.changeDetectorRef.markForCheck();
     }
   }
 

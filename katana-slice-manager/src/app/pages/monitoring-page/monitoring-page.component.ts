@@ -1,12 +1,12 @@
-import { Component, DestroyRef, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { catchError, forkJoin, map, of, switchMap } from 'rxjs';
+import { asyncScheduler, catchError, forkJoin, map, observeOn, of, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   SliceApiService,
   SliceMonitoringSummary,
-  SliceObservabilityCard
+  SliceObservabilityCard,
 } from '../../shared/services/api/slice-api.service';
 
 type MetricValue = string | number | boolean | null | undefined;
@@ -36,12 +36,13 @@ interface ChartSeries {
   selector: 'app-monitoring-page',
   imports: [FormsModule, RouterLink],
   templateUrl: './monitoring-page.component.html',
-  styleUrl: './monitoring-page.component.scss'
+  styleUrl: './monitoring-page.component.scss',
 })
 export class MonitoringPageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly sliceApi = inject(SliceApiService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly chartWidth = 720;
   private readonly chartHeight = 220;
   private readonly chartPadding = 18;
@@ -71,14 +72,17 @@ export class MonitoringPageComponent {
   protected readonly rangeOptions = [
     { label: '1h', value: 1 },
     { label: '6h', value: 6 },
-    { label: '24h', value: 24 }
+    { label: '24h', value: 24 },
   ];
 
   constructor() {
+    this.selectedSliceId = this.route.snapshot?.paramMap.get('sliceId') ?? '';
+    this.loadingDetail = !!this.selectedSliceId;
     this.loadOverview();
 
     this.route.paramMap
       .pipe(
+        observeOn(asyncScheduler),
         switchMap((paramMap) => {
           const sliceId = paramMap.get('sliceId') ?? '';
           this.selectedSliceId = sliceId;
@@ -90,30 +94,27 @@ export class MonitoringPageComponent {
 
           this.loadingDetail = true;
           return forkJoin({
-            bundle: this.sliceApi
-              .getSliceObservability(sliceId)
-              .pipe(
-                catchError(() =>
-                  this.sliceApi
-                    .getSlice(sliceId)
-                    .pipe(
-                      map((slice) => this.toObservabilityCard(slice, sliceId)),
-                      catchError((error) => of({ error }))
-                    )
-                )
+            bundle: this.sliceApi.getSliceObservability(sliceId).pipe(
+              catchError(() =>
+                this.sliceApi.getSlice(sliceId).pipe(
+                  map((slice) => this.toObservabilityCard(slice, sliceId)),
+                  catchError((error) => of({ error })),
+                ),
               ),
+            ),
             summary: this.sliceApi
               .getSliceMonitoringSummary(sliceId)
               .pipe(catchError((error) => of({ error }))),
             metadata: this.sliceApi
               .getSliceMonitoringMetadata(sliceId)
-              .pipe(catchError((error) => of({ error })))
+              .pipe(catchError((error) => of({ error }))),
           });
         }),
-        takeUntilDestroyed(this.destroyRef)
+        takeUntilDestroyed(this.destroyRef),
       )
       .subscribe((result) => {
         if (!result) {
+          this.changeDetectorRef.markForCheck();
           return;
         }
 
@@ -121,6 +122,7 @@ export class MonitoringPageComponent {
 
         if (this.isErrorResult(result.bundle) || this.isErrorResult(result.summary)) {
           this.detailError = 'Unable to load monitoring data for this slice.';
+          this.changeDetectorRef.markForCheck();
           return;
         }
 
@@ -136,6 +138,8 @@ export class MonitoringPageComponent {
         if (this.isMonitoringConfigured() && this.selectedMetric) {
           this.loadChart();
         }
+
+        this.changeDetectorRef.markForCheck();
       });
   }
 
@@ -147,8 +151,11 @@ export class MonitoringPageComponent {
     }
 
     return this.cards.filter((card) =>
-      [this.getSliceId(card), card.name, card.status, card.created_at]
-        .some((value) => String(value ?? '').toLowerCase().includes(query))
+      [this.getSliceId(card), card.name, card.status, card.created_at].some((value) =>
+        String(value ?? '')
+          .toLowerCase()
+          .includes(query),
+      ),
     );
   }
 
@@ -180,7 +187,9 @@ export class MonitoringPageComponent {
     }
 
     if (unavailable && typeof unavailable === 'object') {
-      return Object.entries(unavailable).map(([key, value]) => `${key}: ${this.formatValue(value)}`);
+      return Object.entries(unavailable).map(
+        ([key, value]) => `${key}: ${this.formatValue(value)}`,
+      );
     }
 
     return [];
@@ -191,7 +200,9 @@ export class MonitoringPageComponent {
   }
 
   protected get diagnosticsText(): string {
-    return this.formatJson(this.monitoringMetadata ?? this.selectedCard?.monitoring?.details ?? null);
+    return this.formatJson(
+      this.monitoringMetadata ?? this.selectedCard?.monitoring?.details ?? null,
+    );
   }
 
   protected get logsAvailable(): boolean {
@@ -211,7 +222,16 @@ export class MonitoringPageComponent {
   }
 
   protected getCreatedDate(card: SliceObservabilityCard): string {
-    return card.created_at ? new Date(card.created_at).toLocaleString() : 'Unknown';
+    if (!card.created_at) {
+      return 'Unknown';
+    }
+
+    const numericTimestamp = Number(card.created_at);
+    const date = Number.isFinite(numericTimestamp)
+      ? new Date(numericTimestamp < 1_000_000_000_000 ? numericTimestamp * 1000 : numericTimestamp)
+      : new Date(card.created_at);
+
+    return Number.isNaN(date.getTime()) ? 'Unknown' : date.toLocaleString();
   }
 
   protected trackBySlice(_: number, card: SliceObservabilityCard): string {
@@ -243,7 +263,9 @@ export class MonitoringPageComponent {
     }
 
     if (typeof value === 'number') {
-      return Number.isFinite(value) ? value.toLocaleString(undefined, { maximumFractionDigits: 3 }) : '-';
+      return Number.isFinite(value)
+        ? value.toLocaleString(undefined, { maximumFractionDigits: 3 })
+        : '-';
     }
 
     if (typeof value === 'object') {
@@ -276,11 +298,13 @@ export class MonitoringPageComponent {
           this.logsError = 'Unable to load logs for this slice.';
           return of('');
         }),
-        takeUntilDestroyed(this.destroyRef)
+        observeOn(asyncScheduler),
+        takeUntilDestroyed(this.destroyRef),
       )
       .subscribe((logs) => {
         this.logsText = logs;
         this.loadingLogs = false;
+        this.changeDetectorRef.markForCheck();
       });
   }
 
@@ -291,19 +315,21 @@ export class MonitoringPageComponent {
         catchError(() =>
           this.sliceApi.getSlices().pipe(
             map((slices) =>
-              slices.map((slice, index) => this.toObservabilityCard(slice, String(index + 1)))
+              slices.map((slice, index) => this.toObservabilityCard(slice, String(index + 1))),
             ),
             catchError(() => {
               this.overviewError = 'Unable to load slice observability cards.';
               return of([]);
-            })
-          )
+            }),
+          ),
         ),
-        takeUntilDestroyed(this.destroyRef)
+        observeOn(asyncScheduler),
+        takeUntilDestroyed(this.destroyRef),
       )
       .subscribe((cards) => {
         this.cards = cards;
         this.loadingOverview = false;
+        this.changeDetectorRef.markForCheck();
       });
   }
 
@@ -326,11 +352,13 @@ export class MonitoringPageComponent {
           this.chartError = 'Unable to load time-series data for this metric.';
           return of(null);
         }),
-        takeUntilDestroyed(this.destroyRef)
+        observeOn(asyncScheduler),
+        takeUntilDestroyed(this.destroyRef),
       )
       .subscribe((response) => {
         this.chartSeries = this.buildChartSeries(response);
         this.loadingChart = false;
+        this.changeDetectorRef.markForCheck();
       });
   }
 
@@ -354,12 +382,9 @@ export class MonitoringPageComponent {
     return !!(this.summary?.monitoring?.configured ?? this.selectedCard?.monitoring?.configured);
   }
 
-  private getQueryKeys(
-    summary: SliceMonitoringSummary,
-    bundle: SliceObservabilityCard
-  ): string[] {
+  private getQueryKeys(summary: SliceMonitoringSummary, bundle: SliceObservabilityCard): string[] {
     return Object.keys(
-      summary.monitoring?.prometheus?.queries ?? bundle.monitoring?.prometheus?.queries ?? {}
+      summary.monitoring?.prometheus?.queries ?? bundle.monitoring?.prometheus?.queries ?? {},
     );
   }
 
@@ -369,9 +394,9 @@ export class MonitoringPageComponent {
     }
 
     const record = value as Record<string, unknown>;
-    const id = this.getFirstString(record, ['_id', 'id', 'uuid', 'slice_id', 'nsi_id']) ?? fallbackId;
-    const name =
-      this.getFirstString(record, ['name', 'ns_name', 'slice_name', 'sliceName']) ?? id;
+    const id =
+      this.getFirstString(record, ['_id', 'id', 'uuid', 'slice_id', 'nsi_id']) ?? fallbackId;
+    const name = this.getFirstString(record, ['name', 'ns_name', 'slice_name', 'sliceName']) ?? id;
     const status = this.getFirstString(record, ['status', 'state']);
     const createdAt = this.getFirstString(record, ['created_at', 'createdAt', 'creation_time']);
     const monitoring =
@@ -389,7 +414,7 @@ export class MonitoringPageComponent {
       status,
       created_at: createdAt,
       monitoring,
-      links
+      links,
     };
   }
 
@@ -416,8 +441,10 @@ export class MonitoringPageComponent {
         'network_services',
         'wim_flows_per_second',
         'openstack_vm_cpu_overall_cpu_usage',
-        'openstack_vm_memory_usage'
-      ].find((metric) => metricKeys.includes(metric)) ?? metricKeys[0] ?? ''
+        'openstack_vm_memory_usage',
+      ].find((metric) => metricKeys.includes(metric)) ??
+      metricKeys[0] ??
+      ''
     );
   }
 
@@ -442,9 +469,9 @@ export class MonitoringPageComponent {
       return Object.entries(value).reduce<MonitoringRow>(
         (row, [key, item]) => ({
           ...row,
-          [key]: this.toMetricValue(item)
+          [key]: this.toMetricValue(item),
         }),
-        { name: fallbackName }
+        { name: fallbackName },
       );
     }
 
@@ -474,7 +501,8 @@ export class MonitoringPageComponent {
   private toMetricCard(label: string, value: unknown): MetricCard {
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       const record = value as Record<string, unknown>;
-      const primaryValue = record['value'] ?? record['current'] ?? record['label'] ?? record['status'];
+      const primaryValue =
+        record['value'] ?? record['current'] ?? record['label'] ?? record['status'];
       const unit = record['unit'] ? ` ${record['unit']}` : '';
 
       return {
@@ -483,7 +511,7 @@ export class MonitoringPageComponent {
           primaryValue === undefined
             ? this.formatValue(record)
             : `${this.formatValue(primaryValue)}${unit}`,
-        details: this.formatJson(record)
+        details: this.formatJson(record),
       };
     }
 
@@ -512,7 +540,7 @@ export class MonitoringPageComponent {
 
     return series.map((item) => ({
       ...item,
-      svgPoints: this.buildPolyline(item.points)
+      svgPoints: this.buildPolyline(item.points),
     }));
   }
 
@@ -532,7 +560,7 @@ export class MonitoringPageComponent {
         label: this.getSeriesLabel(metric, index),
         points: values
           .map((point) => this.toChartPoint(point))
-          .filter((point): point is ChartPoint => point !== null)
+          .filter((point): point is ChartPoint => point !== null),
       };
     });
   }
