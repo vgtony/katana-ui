@@ -1,0 +1,754 @@
+.deployment-page {
+  position: relative;
+  display: grid;
+  gap: 26px;
+  color: var(--app-text);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.deployment-page__inventory-shell,
+.deployment-page__panel,
+.deployment-page__modal {
+  display: grid;
+  // gap: 24px;
+}
+
+.deployment-page__hero {
+  display: grid;
+  gap: 12px;
+  padding: 4px 0 0;
+}
+
+.deployment-page__hero h2,
+.deployment-page__hero p,
+.deployment-page__panel-header h3,
+.deployment-page__panel-header p,
+.deployment-page__inventory-header h3,
+.deployment-page__inventory-header p,
+.deployment-page__modal-header h3,
+.deployment-page__modal-header p {
+  margin: 0;
+}
+
+.deployment-page__eyebrow,
+.deployment-page__kicker,
+.deployment-page__requirement-type,
+.deployment-page__review-label {
+  color: var(--app-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.deployment-page__eyebrow,
+.deployment-page__kicker,
+.deployment-page__review-label {
+  font-size: 0.72rem;
+}
+
+.deployment-page__hero h2 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.05;
+}
+
+.deployment-page__hero p:last-child,
+.deployment-page__inventory-header p,
+.deployment-page__panel-header p:last-child,
+.deployment-page__modal-header p:last-child {
+  color: var(--app-text-muted);
+  line-height: 1.7;
+}
+
+.deployment-page__inventory-shell {
+  gap: 0;
+}
+
+.deployment-page__panel {
+  padding: 28px;
+  border-radius: 24px;
+  background: var(--app-surface);
+}
+
+.deployment-page__modal {
+  border-radius: 24px;
+  background: var(--app-surface-elevated);
+  box-shadow: var(--app-shadow);
+}
+
+.deployment-page__inventory-header,
+.deployment-page__modal-header,
+.deployment-page__modal-actions,
+.deployment-page__deactivation-actions,
+.deployment-page__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.deployment-page__inventory-header,
+.deployment-page__modal-header {
+  justify-content: space-between;
+}
+
+.deployment-page__inventory-header {
+  padding-bottom: 18px;
+}
+
+.deployment-page__modal-title,
+.deployment-page__modal-section,
+.deployment-page__modal-section-header {
+  display: grid;
+}
+
+.deployment-page__modal-title,
+.deployment-page__modal-section {
+  gap: 14px;
+}
+
+.deployment-page__modal-section-header h4 {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.deployment-page__inventory-grid,
+.deployment-page__option-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.deployment-page__inventory-grid {
+  grid-template-columns: 1fr;
+}
+
+.deployment-page__inventory-card {
+  display: grid;
+  gap: 18px;
+  padding: 24px 0 0;
+  border-top: 1px solid var(--app-border);
+}
+
+.deployment-page__inventory-card:first-child {
+  padding-top: 12px;
+  border-top: 0;
+}
+
+.deployment-page__inventory-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.deployment-page__inventory-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.deployment-page__inventory-card h4,
+.deployment-page__requirement-card h4,
+.deployment-page__option-card strong {
+  margin: 0;
+  font-size: 1.2rem;
+  letter-spacing: -0.03em;
+}
+
+.deployment-page__inventory-empty {
+  color: var(--app-text-muted);
+}
+
+.deployment-page__inventory-skeleton {
+  display: grid;
+  gap: 14px;
+}
+
+.deployment-page__inventory-skeleton-head,
+.deployment-page__inventory-skeleton-row {
+  display: grid;
+  gap: 12px;
+}
+
+.deployment-page__inventory-skeleton-head {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.deployment-page__inventory-skeleton-row {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.deployment-page__inventory-skeleton-line,
+.deployment-page__inventory-skeleton-copy {
+  display: block;
+  border-radius: 999px;
+  background: var(--app-skeleton);
+  background-size: 200% 100%;
+  animation: deployment-page-skeleton-shimmer 1.15s linear infinite;
+}
+
+.deployment-page__inventory-skeleton-line {
+  height: 0.95rem;
+}
+
+.deployment-page__inventory-skeleton-line--title {
+  width: 32%;
+  height: 1.2rem;
+}
+
+.deployment-page__inventory-skeleton-line--pill {
+  width: 94px;
+  height: 1.9rem;
+}
+
+.deployment-page__inventory-skeleton-copy {
+  width: 190px;
+  height: 0.9rem;
+}
+
+.deployment-page__inventory-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 240ms ease,
+    opacity 220ms ease;
+}
+
+.deployment-page__inventory-body--expanded {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.deployment-page__inventory-body-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.deployment-page__inventory-count,
+.deployment-page__requirement-context-tag,
+.deployment-page__requirement-status {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: var(--app-accent-soft-3);
+  border: 1px solid var(--app-border-accent);
+  color: var(--app-accent-pill-text);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.deployment-page__inventory-count {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--app-text-muted);
+}
+
+.deployment-page__table-shell {
+  overflow-x: auto;
+}
+
+.deployment-page__table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+}
+
+.deployment-page__table th,
+.deployment-page__table td {
+  padding: 0.9rem 0.4rem;
+  border-bottom: 1px solid var(--app-border-muted);
+  text-align: left;
+  vertical-align: top;
+}
+
+.deployment-page__table th:first-child,
+.deployment-page__table td:first-child {
+  padding-left: 0;
+}
+
+.deployment-page__table th:last-child,
+.deployment-page__table td:last-child {
+  padding-right: 0;
+}
+
+.deployment-page__table th {
+  color: var(--app-accent-heading);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+
+.deployment-page__table td {
+  color: var(--app-text);
+}
+
+.deployment-page__table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.deployment-page__table tbody tr:hover {
+  background: var(--app-row-hover);
+}
+
+@keyframes deployment-page-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.deployment-page__option-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+// .deployment-page__requirement-card,
+.deployment-page__option-card {
+  border-radius: 20px;
+  border: 1px solid var(--app-border-muted);
+  background: transparent;
+}
+
+.deployment-page__requirement-card {
+  padding: 20px;
+}
+
+.deployment-page__option-card {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 0 20px;
+  background: var(--app-option-card-bg);
+  color: var(--app-text);
+  text-align: center;
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.deployment-page__option-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  color: var(--app-accent-heading);
+}
+
+.deployment-page__option-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.deployment-page__option-card:hover,
+.deployment-page__step:hover,
+.deployment-page__link:hover,
+.deployment-page__primary:hover,
+.deployment-page__secondary:hover {
+  transform: translateY(-2px);
+}
+
+.deployment-page__option-card:hover {
+  border-color: var(--app-button-primary-border);
+  background: var(--app-accent-soft-2);
+}
+
+.deployment-page__modal-backdrop {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: var(--layout-sidebar-width, 280px);
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: var(--layout-content-padding, 28px);
+  background: var(--app-overlay);
+  backdrop-filter: blur(8px);
+}
+
+.deployment-page__modal {
+  width: min(760px, calc(100vw - var(--layout-sidebar-width, 280px) - 96px));
+  max-width: 100%;
+  max-height: calc(100dvh - 96px);
+  padding: 0;
+  overflow-y: auto;
+  --deployment-modal-sticky-offset: 84px;
+}
+
+.deployment-page__modal--chooser {
+  width: min(520px, calc(100vw - var(--layout-sidebar-width, 280px) - 96px));
+}
+
+.deployment-page__modal-header,
+.deployment-page__modal-section,
+.deployment-page__panel--modal {
+  padding-inline: 24px;
+}
+
+.deployment-page__modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-top: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--app-border);
+  background: var(--app-modal-header-bg);
+}
+
+.deployment-page__modal-section--steps {
+  position: sticky;
+  top: var(--deployment-modal-sticky-offset);
+  z-index: 1;
+  padding-top: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--app-border-muted);
+  background: var(--app-modal-header-bg);
+}
+
+.deployment-page__panel--modal {
+  padding-top: 0;
+  padding-bottom: 24px;
+  border: 0;
+  border-radius: 0 0 28px 28px;
+  background: transparent;
+}
+
+.deployment-page__panel-header {
+  display: grid;
+  gap: 10px;
+}
+
+.deployment-page__requirement-card {
+  display: grid;
+  gap: 16px;
+  align-self: start;
+}
+
+.deployment-page__requirement-card--expanded {
+  border-color: var(--app-border-accent);
+  background: transparent;
+}
+
+.deployment-page__requirement-card p {
+  margin: 0;
+  color: var(--app-text-muted);
+  line-height: 1.6;
+}
+
+.deployment-page__notice,
+.deployment-page__deactivation-notice,
+.deployment-page__success,
+.deployment-page__error {
+  padding: 12px 0 0 14px;
+  border-radius: 0;
+  border: 0;
+  border-left: 2px solid var(--app-border);
+  background: transparent;
+}
+
+.deployment-page__notice,
+.deployment-page__deactivation-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+}
+
+.deployment-page__notice,
+.deployment-page__success {
+  color: var(--app-text);
+}
+
+.deployment-page__error {
+  color: var(--app-danger);
+}
+
+.deployment-page__requirement-heading {
+  display: grid;
+  gap: 10px;
+}
+
+.deployment-page__requirement-meta,
+.deployment-page__requirement-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.deployment-page__requirement-status {
+  background: var(--app-pill-bg);
+  border-color: transparent;
+  color: var(--app-text-muted);
+}
+
+.deployment-page__requirement-status--complete {
+  background: var(--app-accent-soft);
+  color: var(--app-accent-pill-text);
+}
+
+.deployment-page__requirement-status--error {
+  background: var(--app-danger-soft-2);
+  border-color: var(--app-danger-border);
+  color: var(--app-danger-strong);
+}
+
+.deployment-page__requirement-context-tag--interactive {
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.deployment-page__requirement-context-tag--interactive:hover {
+  transform: translateY(-1px);
+  border-color: var(--app-border-accent-strong);
+  background: var(--app-accent-soft);
+}
+
+.deployment-page__deactivation-notice {
+  border-left-color: var(--app-warning);
+}
+
+.deployment-page__notice-action {
+  border: 0;
+  background: transparent;
+  color: var(--app-accent);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+.deployment-page__notice-action:hover {
+  text-decoration: underline;
+}
+
+.deployment-page__requirement-title-row h4 {
+  flex: 1;
+}
+
+.deployment-page__requirement-body {
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  gap: 16px;
+  padding-top: 0;
+  opacity: 0;
+}
+
+.deployment-page__requirement-body--visible {
+  padding-top: 4px;
+  opacity: 1;
+}
+
+.deployment-page__embedded-form {
+  padding-top: 8px;
+}
+
+.deployment-page__link,
+.deployment-page__primary,
+.deployment-page__secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 14px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.deployment-page__link--subtle {
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--app-text-muted);
+}
+
+.deployment-page__link--subtle:hover {
+  color: var(--app-text);
+}
+
+.deployment-page__change-type-button {
+  width: 42px;
+  min-height: 34px;
+  padding: 0;
+  border-radius: 999px;
+}
+
+.deployment-page__change-type-button svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.deployment-page__view-toggle {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 3px;
+  border: 1px solid var(--app-interactive-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+}
+
+.deployment-page__view-toggle-option {
+  display: inline-flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--app-text-muted);
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.deployment-page__view-toggle-option:hover {
+  color: var(--app-text);
+}
+
+.deployment-page__view-toggle-option--active {
+  background: var(--app-proxmox-soft-strong);
+  color: var(--app-text);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.deployment-page__view-toggle-option:first-child {
+  border-radius: 999px 0 0 999px;
+}
+
+.deployment-page__view-toggle-option:last-child {
+  border-radius: 0 999px 999px 0;
+}
+
+.deployment-page__view-toggle-option svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  pointer-events: none;
+}
+
+.deployment-page__icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--app-interactive-border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--app-text);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.deployment-page__icon-button:hover {
+  transform: translateY(-1px);
+  border-color: var(--app-button-primary-border);
+  background: var(--app-accent-soft-2);
+}
+
+.deployment-page__link,
+.deployment-page__secondary {
+  border: 1px solid var(--app-interactive-border);
+  background: transparent;
+  color: var(--app-text);
+}
+
+.deployment-page__primary {
+  border: 0;
+  background: var(--app-primary-gradient);
+  color: var(--app-accent-contrast);
+}
+
+.deployment-page__primary--disabled,
+.deployment-page__primary--disabled:hover,
+.deployment-page__primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  transform: none;
+}
+
+.deployment-page__actions {
+  justify-content: flex-end;
+}
+
+.deployment-page__actions--final {
+  gap: 18px;
+  margin-top: 18px;
+}
+
+@media (max-width: 1100px) {
+  .deployment-page__inventory-grid,
+  .deployment-page__option-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .deployment-page__panel,
+  .deployment-page__modal {
+    padding: 20px;
+  }
+
+  .deployment-page__inventory-header,
+  .deployment-page__modal-header,
+  .deployment-page__actions,
+  .deployment-page__inventory-card-top,
+  .deployment-page__inventory-card-actions,
+  .deployment-page__requirement-meta,
+  .deployment-page__requirement-title-row,
+  .deployment-page__notice,
+  .deployment-page__deactivation-notice {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .deployment-page__modal-backdrop {
+    padding: 12px;
+    left: 0;
+  }
+
+  .deployment-page__modal {
+    width: min(100%, calc(100vw - 24px));
+    max-height: calc(100dvh - 24px);
+  }
+
+  .deployment-page__primary,
+  .deployment-page__secondary {
+    width: 100%;
+  }
+}

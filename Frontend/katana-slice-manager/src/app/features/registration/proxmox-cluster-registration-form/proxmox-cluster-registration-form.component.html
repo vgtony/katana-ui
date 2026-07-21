@@ -1,0 +1,42 @@
+<section class="registration-form">
+  <div class="registration-form__header">
+    <!-- <h3>Register a Proxmox cluster</h3>
+    <p>Models `katana proxmox add -f proxmox_cluster.yaml` using the YAML fields you shared.</p> -->
+  </div>
+
+  <form class="registration-form__grid" [formGroup]="form" (ngSubmit)="submit()">
+    @if (restoreMessage) {
+      <p class="registration-form__status" role="status">{{ restoreMessage }}</p>
+    }
+    <label><span>URL</span><input type="text" formControlName="url" /></label>
+    <label><span>Username</span><input type="text" formControlName="username" /></label>
+    <label><span>Password</span><input type="password" formControlName="password" /></label>
+    <button type="submit" [disabled]="form.invalid || submitting">
+      {{
+        submitting
+          ? 'Registering cluster...'
+          : isUsingLoadedActiveCluster()
+            ? 'Use Active Proxmox Cluster'
+            : submitSucceeded
+            ? 'Registered'
+            : 'Register Proxmox Cluster'
+      }}
+    </button>
+    @if (submitting) {
+      <div class="registration-form__loader" role="status" aria-live="polite">
+        <span class="registration-form__spinner" aria-hidden="true"></span>
+        <span>Registering cluster…</span>
+      </div>
+    }
+    @if (submitMessage) {
+      <p class="registration-form__status registration-form__status--success" role="status">
+        {{ submitMessage }}
+      </p>
+    }
+    @if (submitError) {
+      <p class="registration-form__status registration-form__status--error" role="alert">
+        {{ submitError }}
+      </p>
+    }
+  </form>
+</section>

@@ -1,0 +1,38 @@
+<section class="registration-form">
+  <div class="registration-form__header">
+    <!-- <h3>Deploy a service to a cluster</h3>
+    <p>Models `katana k8s deploy -f service.json` for NS deployment requests.</p> -->
+  </div>
+
+  <form class="registration-form__grid" [formGroup]="form" (ngSubmit)="submit()">
+    @if (restoreMessage) {
+      <p class="registration-form__status" role="status">{{ restoreMessage }}</p>
+    }
+    <label><span>NFVO ID</span><input type="text" formControlName="nfvoId" /></label>
+    <label><span>NSD ID</span><input type="text" formControlName="nsdId" /></label>
+    <label><span>NS name</span><input type="text" formControlName="nsName" /></label>
+    <label><span>VIM account ID</span><input type="text" formControlName="vimAccountId" /></label>
+    <label class="registration-form__full"
+      ><span>NS description</span><input type="text" formControlName="nsDescription"
+    /></label>
+    <button type="submit" [disabled]="form.invalid || submitting">
+      {{ submitting ? 'Deploying to K8s...' : 'Deploy To K8s' }}
+    </button>
+    @if (submitting) {
+      <div class="registration-form__loader" role="status" aria-live="polite">
+        <span class="registration-form__spinner" aria-hidden="true"></span>
+        <span>Deploying to K8s…</span>
+      </div>
+    }
+    @if (submitMessage) {
+      <p class="registration-form__status registration-form__status--success" role="status">
+        {{ submitMessage }}
+      </p>
+    }
+    @if (submitError) {
+      <p class="registration-form__status registration-form__status--error" role="alert">
+        {{ submitError }}
+      </p>
+    }
+  </form>
+</section>

@@ -1,0 +1,82 @@
+
+
+.registration-form__header h3,
+.registration-form__header p,
+.registration-form__eyebrow {
+  margin: 0;
+}
+
+.registration-form__eyebrow {
+  margin-bottom: 10px;
+  color: var(--app-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.72rem;
+}
+
+.registration-form__header p:last-child {
+  margin-top: 10px;
+  color: var(--app-text-muted);
+}
+
+.registration-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.registration-form__grid label {
+  display: grid;
+  gap: 8px;
+}
+
+.registration-form__grid span {
+  color: var(--app-text-muted);
+  font-size: 0.92rem;
+}
+
+.registration-form__grid input {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--app-border-strong);
+  background: var(--app-input-bg-strong);
+  color: var(--app-text);
+}
+
+.registration-form__grid button {
+  grid-column: 1 / -1;
+  padding: 0.95rem 1.2rem;
+  border: 0;
+  border-radius: 14px;
+  background: var(--app-primary-gradient);
+  color: var(--app-accent-contrast);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.registration-form__grid button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.registration-form__status {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.registration-form__status--success {
+  color: var(--app-success);
+}
+
+.registration-form__status--error {
+  color: var(--app-danger);
+}
+
+@media (max-width: 760px) {
+  .registration-form__grid {
+    grid-template-columns: 1fr;
+  }
+}

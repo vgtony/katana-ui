@@ -1,0 +1,101 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+  --layout-sidebar-width: 280px;
+  --layout-content-padding: 28px;
+  background: var(--app-shell-bg);
+}
+
+.layout-shell {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  min-height: 100dvh;
+}
+
+.layout-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 16px;
+  background: color-mix(in srgb, var(--app-shell-bg) 74%, transparent);
+  color: var(--app-text);
+  pointer-events: auto;
+  backdrop-filter: blur(10px);
+}
+
+.layout-loading-logo {
+  display: block;
+  width: clamp(180px, 18vw, 280px);
+  aspect-ratio: 872 / 976;
+  background: url('/katana-logo-spinner.svg') center / contain no-repeat;
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--app-accent) 34%, transparent));
+}
+
+.layout-loading-overlay__text {
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .28em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--app-muted);
+}
+
+.layout-content {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  padding: var(--layout-content-padding);
+}
+
+.layout-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.layout-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--app-border-strong);
+  background: var(--app-surface-2);
+  color: var(--app-text);
+  box-shadow: var(--app-shadow);
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease;
+}
+
+.layout-theme-toggle:hover {
+  transform: translateY(-1px);
+  border-color: var(--app-border-accent);
+  background: var(--app-accent-soft);
+}
+
+.layout-theme-toggle__icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+@media (max-width: 960px) {
+  .layout-shell {
+    grid-template-columns: 1fr;
+  }
+
+  :host {
+    --layout-sidebar-width: 0px;
+    --layout-content-padding: 18px;
+  }
+
+  .layout-content {
+    padding: var(--layout-content-padding);
+  }
+}

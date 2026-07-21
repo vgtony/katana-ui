@@ -1,0 +1,414 @@
+.monitoring-page {
+  display: grid;
+  gap: 16px;
+  color: var(--app-text);
+}
+
+.monitoring-page__hero,
+.monitoring-page__toolbar,
+.monitoring-page__detail,
+.monitoring-card,
+.monitoring-panel,
+.monitoring-page__notice {
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.monitoring-page__hero,
+.monitoring-page__toolbar,
+.monitoring-page__detail,
+.monitoring-card,
+.monitoring-panel,
+.monitoring-page__notice {
+  border-radius: 10px;
+}
+
+.monitoring-page__hero,
+.monitoring-page__toolbar,
+.monitoring-page__detail,
+.monitoring-card,
+.monitoring-panel {
+  padding: 22px;
+}
+
+.monitoring-page__hero,
+.monitoring-card__top,
+.monitoring-page__summary,
+.monitoring-panel__top,
+.monitoring-chart__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.monitoring-page__hero h2,
+.monitoring-page__hero p,
+.monitoring-card h3,
+.monitoring-card p,
+.monitoring-card dl,
+.monitoring-card dd,
+.monitoring-panel h3,
+.monitoring-page__summary h3,
+.monitoring-page__section-label {
+  margin: 0;
+}
+
+.monitoring-page__eyebrow,
+.monitoring-page__section-label,
+.monitoring-page__control span,
+.monitoring-panel__controls span,
+.monitoring-card__meta dt,
+.monitoring-page__metric span {
+  color: var(--app-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.monitoring-page__eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.monitoring-page__hero h2 {
+  font-size: 2rem;
+}
+
+.monitoring-page__section-label,
+.monitoring-page__control span,
+.monitoring-panel__controls span,
+.monitoring-card__meta dt,
+.monitoring-page__metric span {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.monitoring-page__back-link,
+.monitoring-card__action,
+.monitoring-panel__top button {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--app-border-strong);
+  background: var(--app-input-bg);
+  color: var(--app-text);
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.monitoring-panel__top button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.monitoring-page__toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr);
+}
+
+.monitoring-page__control,
+.monitoring-panel__controls label {
+  display: grid;
+  gap: 8px;
+}
+
+.monitoring-page__control input,
+.monitoring-panel__controls select {
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--app-border-strong);
+  background: var(--app-input-bg);
+  color: var(--app-text);
+}
+
+.monitoring-page__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.monitoring-card {
+  display: grid;
+  gap: 18px;
+}
+
+.monitoring-card__top {
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+
+.monitoring-card__top p {
+  color: var(--app-text-subtle);
+  font-size: 0.76rem;
+  word-break: break-word;
+}
+
+.monitoring-card h3,
+.monitoring-page__summary h3,
+.monitoring-panel h3 {
+  font-size: 1.12rem;
+}
+
+.monitoring-page__badge,
+.monitoring-page__status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--app-border-accent);
+  background: var(--app-accent-soft);
+  color: var(--app-accent-pill-text);
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.monitoring-page__badge--muted {
+  border-color: var(--app-border-strong);
+  background: var(--app-pill-bg);
+  color: var(--app-text-muted);
+}
+
+.monitoring-card__meta {
+  display: grid;
+  gap: 14px;
+}
+
+.monitoring-card__meta div {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.monitoring-card__meta dd {
+  color: var(--app-text-muted);
+  word-break: break-word;
+}
+
+.monitoring-card__meta-label--hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.monitoring-card__name {
+  color: var(--app-text);
+  font-size: 1.12rem;
+  font-weight: 800;
+}
+
+.monitoring-card__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+}
+
+.monitoring-page__detail {
+  display: grid;
+  gap: 16px;
+}
+
+.monitoring-page__detail--loading {
+  min-height: 120px;
+}
+
+.monitoring-panel {
+  display: grid;
+  gap: 16px;
+  background: var(--app-surface-2);
+}
+
+.monitoring-panel--warning {
+  border-color: var(--app-warning-border);
+  background: var(--app-warning-soft);
+}
+
+.monitoring-panel__controls {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.monitoring-page__notice,
+.monitoring-page__empty {
+  padding: 14px 16px;
+  color: var(--app-text-muted);
+}
+
+.monitoring-page__notice--error {
+  color: var(--app-danger);
+}
+
+.monitoring-page__list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--app-text-muted);
+}
+
+.monitoring-page__table-shell {
+  overflow-x: auto;
+}
+
+.monitoring-page__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.monitoring-page__table th,
+.monitoring-page__table td {
+  padding: 0.85rem 0.9rem;
+  border-bottom: 1px solid var(--app-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.monitoring-page__table th {
+  color: var(--app-accent-heading);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.monitoring-page__table td {
+  color: var(--app-text-muted);
+}
+
+.monitoring-chart {
+  display: grid;
+  gap: 10px;
+}
+
+.monitoring-chart svg {
+  width: 100%;
+  min-height: 220px;
+  border-radius: 10px;
+  background: var(--app-input-bg);
+}
+
+.monitoring-chart line {
+  stroke: var(--app-border-strong);
+  stroke-width: 1;
+}
+
+.monitoring-chart polyline {
+  fill: none;
+  stroke: var(--app-accent-secondary);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.monitoring-chart polyline:nth-of-type(2n) {
+  stroke: var(--app-success);
+}
+
+.monitoring-chart polyline:nth-of-type(3n) {
+  stroke: var(--app-warning);
+}
+
+.monitoring-chart__meta {
+  color: var(--app-text-muted);
+  font-size: 0.82rem;
+}
+
+.monitoring-page__metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.monitoring-page__mini-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.monitoring-page__metric {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--app-border);
+  background: var(--app-input-bg);
+}
+
+.monitoring-page__metric strong {
+  color: var(--app-text);
+  font-size: 1.1rem;
+  overflow-wrap: anywhere;
+}
+
+.monitoring-page__code {
+  max-height: 360px;
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  border-radius: 10px;
+  border: 1px solid var(--app-border);
+  background: var(--app-input-bg);
+  color: var(--app-text-muted);
+  font-size: 0.84rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.monitoring-page__skeleton {
+  display: block;
+  border-radius: 999px;
+  background: var(--app-skeleton);
+  background-size: 220% 100%;
+  animation: monitoring-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.monitoring-page__skeleton--title {
+  width: min(280px, 70%);
+  height: 1.35rem;
+}
+
+.monitoring-page__skeleton--line {
+  width: 100%;
+  height: 0.95rem;
+}
+
+@keyframes monitoring-skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .monitoring-page__hero,
+  .monitoring-card__top,
+  .monitoring-page__summary,
+  .monitoring-panel__top,
+  .monitoring-chart__meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .monitoring-card__meta,
+  .monitoring-page__metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .monitoring-page__back-link,
+  .monitoring-card__action {
+    width: 100%;
+  }
+}
