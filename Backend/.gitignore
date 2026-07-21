@@ -1,0 +1,9 @@
+# Ignore private scripts folder
+PrivateerScripts/
+ScriptsForRemoteTargetsBesu/
+katana-pqc-kpi/
+katana-pqc-return/
+agents.md
+amari.md
+PROXMOX_MONITORING_WORKFLOW.md
+proxmox_monitoring.md
