@@ -6,7 +6,7 @@ import { NavigationItem } from '../../models/interfaces/navigation.interface';
   selector: 'app-sidebar',
   imports: [RouterLink, RouterLinkActive],
   templateUrl: './sidebar.component.html',
-  styleUrl: './sidebar.component.scss'
+  styleUrl: './sidebar.component.scss',
 })
 export class SidebarComponent {
   protected readonly navigationItems: NavigationItem[] = [
@@ -16,6 +16,13 @@ export class SidebarComponent {
     { icon: 'history', label: 'History', route: '/history' },
     { icon: 'proxmox', label: 'Proxmox', route: '/proxmox-monitoring' },
     { icon: 'deployment', label: 'Create Slice', route: '/slices/create' },
-    { icon: 'deployment', label: 'Deployments', route: '/deployment' }
+    { icon: 'deployment', label: 'Deployments', route: '/deployment' },
+    { icon: 'infrastructure', label: 'Infrastructure', route: '/infrastructure' },
+    {
+      icon: 'infrastructure',
+      label: 'Time-0 Setup',
+      route: '/admin/infrastructure/bootstrap',
+      administrative: true,
+    },
   ];
 }

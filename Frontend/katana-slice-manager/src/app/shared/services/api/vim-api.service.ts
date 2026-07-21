@@ -1,7 +1,9 @@
 import { Injectable } from '@angular/core';
+import { HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { VimRegistrationFormModel } from '../../../models/interfaces/vim-registration-form.interface';
+import { VimSummary } from '../../../models/interfaces/infrastructure.interface';
 import { KatanaApiBaseService } from './katana-api-base.service';
 
 interface VimApiPayload {
@@ -32,11 +34,13 @@ function toApiPayload(payload: VimRegistrationFormModel): VimApiPayload {
     version: payload.version,
     description: payload.description,
     infrastructure_monitoring: payload.infrastructureMonitoring,
-    security_groups: payload.securityGroups
+    security_groups: payload.securityGroups,
   };
 }
 
-function fromApiPayload(payload: Partial<VimApiPayload> & Record<string, unknown>): VimRegistrationFormModel {
+function fromApiPayload(
+  payload: Partial<VimApiPayload> & Record<string, unknown>,
+): VimRegistrationFormModel {
   return {
     id: String(payload.id ?? ''),
     name: String(payload.name ?? ''),
@@ -49,14 +53,15 @@ function fromApiPayload(payload: Partial<VimApiPayload> & Record<string, unknown
     version: String(payload.version ?? ''),
     description: String(payload.description ?? ''),
     infrastructureMonitoring: String(payload.infrastructure_monitoring ?? ''),
-    securityGroups: String(payload.security_groups ?? '')
+    securityGroups: String(payload.security_groups ?? ''),
   };
 }
 
 @Injectable({ providedIn: 'root' })
 export class VimApiService extends KatanaApiBaseService {
-  getVims(): Observable<unknown[]> {
-    return this.http.get<unknown[]>(this.buildApiUrl('vim'));
+  getVims(nfvoId?: string): Observable<VimSummary[]> {
+    const params = nfvoId ? new HttpParams().set('nfvo_id', nfvoId) : undefined;
+    return this.http.get<VimSummary[]>(this.buildApiUrl('vim'), { params });
   }
 
   createVim(payload: VimRegistrationFormModel): Observable<string> {

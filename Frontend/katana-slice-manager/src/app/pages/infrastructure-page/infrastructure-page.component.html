@@ -1,0 +1,104 @@
+<section class="infrastructure-page">
+  <header class="infrastructure-page__hero">
+    <div>
+      <p class="infrastructure-page__eyebrow">Infrastructure</p>
+      <h2>NFVO and VIM inventory</h2>
+      <p>Deployment targets are registered and linked by administrators during Time-0 setup.</p>
+    </div>
+    <div class="infrastructure-page__actions">
+      <button type="button" (click)="refresh()" [disabled]="loading">Refresh</button>
+      <a routerLink="/admin/infrastructure/bootstrap">Administrator setup</a>
+    </div>
+  </header>
+
+  @if (error) {
+    <p class="infrastructure-page__notice infrastructure-page__notice--error" role="alert">
+      {{ error }}
+    </p>
+  }
+
+  @if (loading) {
+    <section
+      class="infrastructure-card infrastructure-page__skeleton"
+      role="status"
+      aria-live="polite"
+    >
+      <span></span><span></span><span></span>
+      <p>Loading infrastructure inventory…</p>
+    </section>
+  } @else {
+    <section class="infrastructure-card">
+      <div class="infrastructure-card__heading">
+        <h3>NFVOs</h3>
+        <span>{{ nfvos.length }}</span>
+      </div>
+      @if (nfvos.length) {
+        <div class="infrastructure-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">NFVO ID</th>
+                <th scope="col">Type</th>
+                <th scope="col">Registered</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (nfvo of nfvos; track nfvo._id) {
+                <tr>
+                  <td>{{ nfvo.nfvo_id }}</td>
+                  <td>{{ nfvo.type }}</td>
+                  <td>{{ nfvo.created_at * 1000 | date: 'medium' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p>No NFVOs are registered.</p>
+      }
+    </section>
+
+    <section class="infrastructure-card">
+      <div class="infrastructure-card__heading">
+        <h3>OpenStack VIMs</h3>
+        <span>{{ vims.length }}</span>
+      </div>
+      @if (vims.length) {
+        <div class="infrastructure-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">VIM ID</th>
+                <th scope="col">Name</th>
+                <th scope="col">Type</th>
+                <th scope="col">Location</th>
+                <th scope="col">Linked NFVO IDs</th>
+                <th scope="col">Availability</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (vim of vims; track vim._id) {
+                <tr>
+                  <td>{{ vim.vim_id }}</td>
+                  <td>{{ vim.name }}</td>
+                  <td>{{ vim.type }}</td>
+                  <td>{{ vim.location }}</td>
+                  <td>{{ vim.nfvo_ids.join(', ') || 'None' }}</td>
+                  <td>
+                    <span
+                      class="infrastructure-page__pill"
+                      [class.infrastructure-page__pill--warning]="!vim.nfvo_ids.length"
+                      >{{ vim.nfvo_ids.length ? 'Available' : 'Unavailable for deployment' }}</span
+                    >
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p>No OpenStack VIMs are registered.</p>
+      }
+    </section>
+  }
+</section>

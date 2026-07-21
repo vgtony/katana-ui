@@ -1,0 +1,264 @@
+<section class="bootstrap-page">
+  <header class="bootstrap-page__hero">
+    <div>
+      <p class="bootstrap-page__eyebrow">Administration · Time-0</p>
+      <h2>Infrastructure bootstrap</h2>
+      <p>Reconcile OSM NFVOs, OpenStack VIMs, and their persistent links before creating slices.</p>
+    </div>
+    <a routerLink="/infrastructure">View inventory</a>
+  </header>
+
+  <p class="bootstrap-page__notice" role="note">
+    Katana currently exposes no user-role contract. Protect this route and
+    <code>/api/bootstrap</code> with deployment-level administrator access.
+  </p>
+
+  <section class="bootstrap-card" aria-live="polite">
+    <div class="bootstrap-card__heading">
+      <div>
+        <h3>Latest reconciliation</h3>
+        <p>Stored status never contains credentials.</p>
+      </div>
+      <button
+        type="button"
+        (click)="infrastructureStatus.refresh()"
+        [disabled]="infrastructureStatus.loading()"
+      >
+        Refresh
+      </button>
+    </div>
+    @if (infrastructureStatus.loading() && !infrastructureStatus.status()) {
+      <div class="bootstrap-page__loading" role="status">
+        <span class="registration-form__spinner" aria-hidden="true"></span>Loading bootstrap status…
+      </div>
+    } @else if (infrastructureStatus.status(); as status) {
+      <div class="bootstrap-status" [class.bootstrap-status--failed]="status.status === 'failed'">
+        <strong>{{ status.status === 'never_run' ? 'Never run' : status.status }}</strong>
+        @if (status.started_at) {
+          <span>Started {{ status.started_at * 1000 | date: 'medium' }}</span>
+        }
+        @if (status.finished_at) {
+          <span>Finished {{ status.finished_at * 1000 | date: 'medium' }}</span>
+        }
+      </div>
+      @if (status.error) {
+        <p class="bootstrap-page__notice bootstrap-page__notice--error" role="alert">
+          {{ status.error }}
+        </p>
+      }
+      @if (status.results?.length) {
+        <div class="bootstrap-results" aria-label="Reconciliation resource actions">
+          @for (result of status.results; track result.kind + result.id) {
+            <div>
+              <span>{{ result.kind }}</span
+              ><strong>{{ result.id }}</strong
+              ><em>{{ result.action }}</em>
+            </div>
+          }
+        </div>
+      } @else if (status.status === 'never_run') {
+        <p>Katana has not reconciled Time-0 infrastructure yet.</p>
+      }
+    }
+    @if (infrastructureStatus.error()) {
+      <p class="bootstrap-page__notice bootstrap-page__notice--error" role="alert">
+        {{ infrastructureStatus.error() }}
+      </p>
+    }
+  </section>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="bootstrap-form" novalidate>
+    <section class="bootstrap-card" formArrayName="nfvos">
+      <div class="bootstrap-card__heading">
+        <div>
+          <p class="bootstrap-page__step">1</p>
+          <h3>OSM NFVOs</h3>
+        </div>
+        <button type="button" (click)="addNfvo()">Add NFVO</button>
+      </div>
+      @for (nfvo of nfvos.controls; track $index; let nfvoIndex = $index) {
+        <article class="bootstrap-resource" [formGroupName]="nfvoIndex">
+          <div class="bootstrap-resource__heading">
+            <h4>NFVO {{ nfvoIndex + 1 }}</h4>
+            <button type="button" (click)="removeNfvo(nfvoIndex)" [disabled]="nfvos.length === 1">
+              Remove
+            </button>
+          </div>
+          <div class="bootstrap-grid">
+            <label
+              ><span>ID *</span><input type="text" formControlName="id" autocomplete="off"
+            /></label>
+            <label
+              ><span>Name</span><input type="text" formControlName="name" autocomplete="off"
+            /></label>
+            <label
+              ><span>OSM endpoint *</span
+              ><input type="text" formControlName="endpoint" autocomplete="url"
+            /></label>
+            <label
+              ><span>Project *</span
+              ><input type="text" formControlName="project" autocomplete="off"
+            /></label>
+            <label
+              ><span>Username *</span
+              ><input type="text" formControlName="username" autocomplete="username"
+            /></label>
+            <label
+              ><span>Password *</span
+              ><input type="password" formControlName="password" autocomplete="new-password"
+            /></label>
+            <label class="bootstrap-checkbox"
+              ><input type="checkbox" formControlName="tlsVerify" /><span
+                >Verify OSM TLS certificates</span
+              ></label
+            >
+          </div>
+          @if (resourceError(nfvo.get('id')?.value); as error) {
+            <p class="bootstrap-page__notice bootstrap-page__notice--error" role="alert">
+              {{ error }}
+            </p>
+          }
+        </article>
+      }
+    </section>
+
+    <section class="bootstrap-card" formArrayName="vims">
+      <div class="bootstrap-card__heading">
+        <div>
+          <p class="bootstrap-page__step">2</p>
+          <h3>OpenStack VIMs and NFVO links</h3>
+        </div>
+        <button type="button" (click)="addVim()">Add VIM</button>
+      </div>
+      @for (vim of vims.controls; track $index; let vimIndex = $index) {
+        <article class="bootstrap-resource" [formGroupName]="vimIndex">
+          <div class="bootstrap-resource__heading">
+            <h4>VIM {{ vimIndex + 1 }}</h4>
+            <button type="button" (click)="removeVim(vimIndex)" [disabled]="vims.length === 1">
+              Remove
+            </button>
+          </div>
+          <div class="bootstrap-grid">
+            <label
+              ><span>ID *</span><input type="text" formControlName="id" autocomplete="off"
+            /></label>
+            <label
+              ><span>Name</span><input type="text" formControlName="name" autocomplete="off"
+            /></label>
+            <label
+              ><span>Location *</span
+              ><input type="text" formControlName="location" autocomplete="off"
+            /></label>
+            <label
+              ><span>Auth URL *</span
+              ><input type="url" formControlName="authUrl" autocomplete="url"
+            /></label>
+            <label
+              ><span>Admin project *</span
+              ><input type="text" formControlName="project" autocomplete="off"
+            /></label>
+            <label
+              ><span>Username *</span
+              ><input type="text" formControlName="username" autocomplete="username"
+            /></label>
+            <label
+              ><span>Password *</span
+              ><input type="password" formControlName="password" autocomplete="new-password"
+            /></label>
+            <label class="bootstrap-checkbox"
+              ><input type="checkbox" formControlName="verify" /><span
+                >Verify OpenStack TLS certificates</span
+              ></label
+            >
+          </div>
+          <div class="bootstrap-links" formArrayName="links">
+            <div class="bootstrap-links__heading">
+              <h5>NFVO links</h5>
+              <button type="button" (click)="addLink(vimIndex)">Add link</button>
+            </div>
+            @for (link of linksFor(vimIndex).controls; track $index; let linkIndex = $index) {
+              <div class="bootstrap-link" [formGroupName]="linkIndex">
+                <label
+                  ><span>NFVO *</span
+                  ><select formControlName="id">
+                    <option value="">Select NFVO</option>
+                    @for (nfvo of nfvos.controls; track $index) {
+                      @if (nfvo.get('id')?.value) {
+                        <option [value]="nfvo.get('id')?.value">{{ nfvo.get('id')?.value }}</option>
+                      }
+                    }
+                  </select></label
+                >
+                <label
+                  ><span>Account name</span
+                  ><input type="text" formControlName="accountName" autocomplete="off"
+                /></label>
+                <label class="bootstrap-link__config"
+                  ><span>Link config (JSON object) *</span
+                  ><textarea rows="3" formControlName="config" spellcheck="false"></textarea>
+                  @if (link.get('config')?.hasError('jsonObject') && link.get('config')?.touched) {
+                    <small class="bootstrap-field-error" role="alert">
+                      Enter a valid JSON object.
+                    </small>
+                  }
+                </label>
+                <button
+                  type="button"
+                  class="bootstrap-link__remove"
+                  (click)="removeLink(vimIndex, linkIndex)"
+                >
+                  Remove link
+                </button>
+              </div>
+            } @empty {
+              <p>No NFVO links yet. Every VIM requires at least one.</p>
+            }
+          </div>
+          @if (resourceError(vim.get('id')?.value); as error) {
+            <p class="bootstrap-page__notice bootstrap-page__notice--error" role="alert">
+              {{ error }}
+            </p>
+          }
+        </article>
+      }
+    </section>
+
+    <section class="bootstrap-card">
+      <div class="bootstrap-card__heading">
+        <div>
+          <p class="bootstrap-page__step">3</p>
+          <h3>Review and reconcile</h3>
+          <p>Passwords are sent once over the API and cleared from this form after the request.</p>
+        </div>
+      </div>
+      <p class="bootstrap-page__notice">
+        Custom CA files cannot be submitted safely by a browser with the current API. Verification
+        can only be enabled or disabled here.
+      </p>
+      @if (draftError) {
+        <p class="bootstrap-page__notice bootstrap-page__notice--error" role="alert">
+          {{ draftError }}
+        </p>
+      }
+      @if (submitError) {
+        <p class="bootstrap-page__notice bootstrap-page__notice--error" role="alert">
+          {{ submitError }}
+        </p>
+      }
+      @if (submitMessage) {
+        <p class="bootstrap-page__notice bootstrap-page__notice--success" role="status">
+          {{ submitMessage }}
+        </p>
+      }
+      <button class="bootstrap-page__primary" type="submit" [disabled]="submitting">
+        {{ submitting ? 'Reconciling…' : 'Reconcile infrastructure' }}
+      </button>
+      @if (submitting) {
+        <div class="bootstrap-page__loading" role="status" aria-live="polite">
+          <span class="registration-form__spinner" aria-hidden="true"></span>Validating OSM and
+          OpenStack…
+        </div>
+      }
+    </section>
+  </form>
+</section>

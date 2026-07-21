@@ -35,9 +35,9 @@
 }
 
 .layout-loading-overlay__text {
-  font-size: .72rem;
+  font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: .28em;
+  letter-spacing: 0.28em;
   line-height: 1;
   text-transform: uppercase;
   color: var(--app-muted);
@@ -53,6 +53,30 @@
 .layout-toolbar {
   display: flex;
   justify-content: flex-end;
+}
+
+.layout-bootstrap-warning {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--app-warning-border);
+  border-radius: 12px;
+  background: var(--app-warning-soft);
+  color: var(--app-warning);
+}
+
+.layout-bootstrap-warning > div {
+  display: grid;
+  gap: 4px;
+}
+.layout-bootstrap-warning span {
+  color: var(--app-text-muted);
+}
+.layout-bootstrap-warning a {
+  color: var(--app-text);
+  font-weight: 800;
 }
 
 .layout-theme-toggle {

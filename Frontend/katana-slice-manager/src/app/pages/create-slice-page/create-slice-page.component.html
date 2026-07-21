@@ -2,7 +2,9 @@
   <header class="create-slice-page__hero">
     <p class="create-slice-page__eyebrow">Slices</p>
     <h2>Create Slice</h2>
-    <p>Upload one NEST file. Katana will use a compatible registered target unless the file defines infrastructure.</p>
+    <p>
+      Upload a NEST, then explicitly place every network service on existing Time-0 infrastructure.
+    </p>
   </header>
 
   <section class="create-slice-card">
@@ -10,134 +12,172 @@
       <span class="create-slice-page__step">1</span>
       <div>
         <h3>Upload NEST</h3>
-        <p>YAML and JSON are parsed in this browser.</p>
+        <p>
+          YAML and JSON are parsed in this browser. Infrastructure declarations and credentials are
+          never submitted.
+        </p>
       </div>
     </div>
-
     <label
       class="create-slice-dropzone"
       (dragover)="onNestDragOver($event)"
       (drop)="onNestDrop($event)"
+      ><input
+        type="file"
+        accept=".yaml,.yml,.json,application/json"
+        (change)="onNestSelected($event)"
+      /><strong>{{ nestFileName || 'Drop a NEST here or choose a file' }}</strong
+      ><span>The file stays local until you deploy.</span></label
     >
-      <input type="file" accept=".yaml,.yml,.json,application/json" (change)="onNestSelected($event)" />
-      <strong>{{ nestFileName || 'Drop a NEST here or choose a file' }}</strong>
-      <span>The file stays local until you deploy.</span>
-    </label>
-
     @if (nestError) {
-      <p class="create-slice-page__notice create-slice-page__notice--error" role="alert">{{ nestError }}</p>
+      <p class="create-slice-page__notice create-slice-page__notice--error" role="alert">
+        {{ nestError }}
+      </p>
     }
-
     @if (summary) {
       <dl class="create-slice-summary">
-        <div><dt>Slice name</dt><dd>{{ summary.sliceName }}</dd></div>
-        <div><dt>Coverage/location</dt><dd>{{ summary.coverage.join(', ') || 'Not specified' }}</dd></div>
-        <div><dt>Referenced NSDs</dt><dd>{{ summary.nsdReferences.join(', ') || 'None detected' }}</dd></div>
-        <div><dt>Infrastructure</dt><dd>{{ summary.infrastructure ? 'Defined in NEST' : 'Automatic' }}</dd></div>
-      </dl>
-
-      @if (!summary.infrastructure) {
-        <div class="create-slice-page__automatic">
-          <div>
-            <strong>Infrastructure: Automatic</strong>
-            <p>Katana will select the single compatible registered target.</p>
-          </div>
-          <button type="button" class="create-slice-page__secondary" (click)="registerInfrastructure()">
-            Register infrastructure
-          </button>
+        <div>
+          <dt>Slice name</dt>
+          <dd>{{ summary.sliceName }}</dd>
         </div>
+        <div>
+          <dt>Coverage/location</dt>
+          <dd>{{ summary.coverage.join(', ') || 'Not specified' }}</dd>
+        </div>
+        <div>
+          <dt>Referenced NSDs</dt>
+          <dd>{{ summary.nsdReferences.join(', ') || 'Select below' }}</dd>
+        </div>
+        <div>
+          <dt>Infrastructure in NEST</dt>
+          <dd>
+            {{
+              summary.infrastructure ? 'Ignored — select existing targets below' : 'Not included'
+            }}
+          </dd>
+        </div>
+      </dl>
+      @if (summary.infrastructure) {
+        <p class="create-slice-page__notice">
+          This NEST contains legacy infrastructure input. Katana will omit it and use only the
+          existing targets selected below.
+        </p>
       }
     }
   </section>
 
-  @if (showInfrastructure) {
-    <section class="create-slice-card" [formGroup]="infrastructureForm">
-      <div class="create-slice-card__heading">
-        <span class="create-slice-page__step">2</span>
-        <div>
-          <h3>Infrastructure</h3>
-          <p>{{ needsInfrastructureRegistration ? 'Confirm the target and select its credentials.' : 'Existing infrastructure referenced by this NEST.' }}</p>
+  @if (summary) {
+    <section class="create-slice-card" [formGroup]="serviceForm">
+      <div class="create-slice-card__heading create-slice-card__heading--between">
+        <div class="create-slice-card__heading">
+          <span class="create-slice-page__step">2</span>
+          <div>
+            <h3>Network services</h3>
+            <p>Select NSD, owning NFVO, placement, and linked VIM for every row.</p>
+          </div>
         </div>
+        <button type="button" class="create-slice-page__secondary" (click)="addService()">
+          Add service
+        </button>
       </div>
-
-      <div class="create-slice-form">
-        <label><span>Infrastructure ID</span><input type="text" formControlName="id" /></label>
-        <label>
-          <span>Type</span>
-          <select formControlName="type" (change)="infrastructureTypeChanged()">
-            <option value="kubernetes">Kubernetes</option>
-            <option value="openstack">OpenStack</option>
-          </select>
-        </label>
-        <label><span>Location</span><input type="text" formControlName="location" /></label>
-        <label><span>NFVO</span><input type="text" formControlName="nfvoId" /></label>
-
-        @if (infrastructureType === 'kubernetes') {
-          <label><span>Kubernetes version</span><input type="text" formControlName="k8sVersion" placeholder="v1.30.7" /></label>
-          <label><span>Namespace</span><input type="text" formControlName="namespace" /></label>
-        }
-
-        @if (needsInfrastructureRegistration) {
-          <label class="create-slice-form__full">
-            <span>{{ infrastructureType === 'kubernetes' ? 'Kubeconfig' : 'clouds.yaml' }}</span>
-            <input type="file" accept=".yaml,.yml,.json" (change)="onCredentialSelected($event)" />
-          </label>
-
-          @if (credentialReference && !credentialsSelected) {
-            <p class="create-slice-page__notice create-slice-form__full">
-              This NEST references {{ credentialReference }}. Select that file to continue.
-            </p>
-          }
-
-          @if (infrastructureType === 'openstack' && cloudNames.length) {
-            <label class="create-slice-form__full">
-              <span>Cloud</span>
-              <select formControlName="cloud">
-                @for (cloud of cloudNames; track cloud) { <option [value]="cloud">{{ cloud }}</option> }
-              </select>
-            </label>
-          }
-
-          @if (credentialFileName) {
-            <p class="create-slice-page__success create-slice-form__full" role="status">
-              Credentials selected ✓ {{ credentialFileName }}
-            </p>
-          }
-          @if (credentialError) {
-            <p class="create-slice-page__notice create-slice-page__notice--error create-slice-form__full" role="alert">{{ credentialError }}</p>
-          }
+      @if (loadingCatalog) {
+        <div class="registration-form__loader" role="status">
+          <span class="registration-form__spinner" aria-hidden="true"></span>Loading NSD catalog…
+        </div>
+      }
+      @if (catalogError) {
+        <p class="create-slice-page__notice create-slice-page__notice--error" role="alert">
+          {{ catalogError }}
+        </p>
+      }
+      <div formArrayName="rows" class="create-slice-services">
+        @for (row of rows.controls; track row; let index = $index) {
+          <article class="create-slice-service" [formGroupName]="index">
+            <div class="create-slice-service__heading">
+              <h4>Network service {{ index + 1 }}</h4>
+              <button type="button" (click)="removeService(index)" [disabled]="rows.length === 1">
+                Remove
+              </button>
+            </div>
+            <div class="create-slice-form">
+              <label
+                ><span>NSD *</span
+                ><select formControlName="nsdId" (change)="nsdChanged(row)">
+                  <option value="">Select NSD</option>
+                  @for (nsd of nsds; track nsd._id || catalogNsdId(nsd)) {
+                    <option [value]="catalogNsdId(nsd)">{{ nsdLabel(nsd) }}</option>
+                  }
+                </select></label
+              >
+              <label><span>NS name *</span><input type="text" formControlName="nsName" /></label>
+              <label
+                ><span>Owning NFVO *</span
+                ><input type="text" formControlName="nfvoId" readonly aria-readonly="true"
+              /></label>
+              <label
+                ><span>Placement *</span
+                ><select formControlName="placement" (change)="placementChanged(row)">
+                  <option value="">Select placement</option>
+                  @for (location of placementOptions(row); track location) {
+                    <option [value]="location">{{ location }}</option>
+                  }
+                </select></label
+              >
+              <label
+                ><span>Target VIM *</span
+                ><select formControlName="target">
+                  <option value="">Select target</option>
+                  @for (vim of targetsFor(row); track vim.vim_id) {
+                    <option [value]="vim.vim_id">{{ vim.name }} · {{ vim.vim_id }}</option>
+                  }
+                </select></label
+              >
+              <label class="create-slice-form__checkbox"
+                ><input type="checkbox" formControlName="optional" /><span
+                  >Optional service</span
+                ></label
+              >
+            </div>
+            @if (isLoadingTargets(row)) {
+              <p class="create-slice-page__notice" role="status">
+                Loading VIMs linked to this NFVO…
+              </p>
+            }
+            @if (rowError(row); as error) {
+              <p class="create-slice-page__notice create-slice-page__notice--error" role="alert">
+                {{ error }}
+                @if (error.includes('No linked')) {
+                  <a routerLink="/infrastructure">Open infrastructure inventory</a>
+                }
+              </p>
+            }
+          </article>
         }
       </div>
     </section>
-  }
 
-  @if (summary) {
     <section class="create-slice-card">
       <div class="create-slice-card__heading">
-        <span class="create-slice-page__step">{{ showInfrastructure ? 3 : 2 }}</span>
-        <div><h3>Review and deploy</h3><p>Credential contents are intentionally excluded.</p></div>
+        <span class="create-slice-page__step">3</span>
+        <div>
+          <h3>Review and deploy</h3>
+          <p>
+            Only existing NFVO and VIM IDs are submitted. Targets are never selected automatically.
+          </p>
+        </div>
       </div>
-
-      <dl class="create-slice-review">
-        <div><dt>Infrastructure</dt><dd>{{ showInfrastructure ? (infrastructureForm.controls.id.value || 'Not specified') : 'Automatic' }}</dd></div>
-        @if (showInfrastructure) {
-          <div><dt>Type</dt><dd>{{ infrastructureType === 'kubernetes' ? 'Kubernetes' : 'OpenStack' }}</dd></div>
-          <div><dt>Location</dt><dd>{{ infrastructureForm.controls.location.value || 'Not specified' }}</dd></div>
-          <div><dt>NFVO</dt><dd>{{ infrastructureForm.controls.nfvoId.value || 'Not specified' }}</dd></div>
-          @if (needsInfrastructureRegistration) {
-            <div><dt>Credentials</dt><dd>{{ credentialsSelected ? 'Selected ✓' : 'Required' }}</dd></div>
-          }
-        }
-        <div><dt>Slice</dt><dd>{{ summary.sliceName }}</dd></div>
-        <div><dt>NSD</dt><dd>{{ summary.nsdReferences.join(', ') || 'None detected' }}</dd></div>
-      </dl>
-
       @if (submitError) {
-        <p class="create-slice-page__notice create-slice-page__notice--error" role="alert">{{ submitError }}</p>
+        <p class="create-slice-page__notice create-slice-page__notice--error" role="alert">
+          {{ submitError }}
+        </p>
       }
-
-      <button type="button" class="create-slice-page__primary" [disabled]="!canDeploy" (click)="deploy()">
-        {{ submitting ? 'Submitting…' : (needsInfrastructureRegistration ? 'Register infrastructure and deploy' : 'Deploy slice') }}
+      <button
+        type="button"
+        class="create-slice-page__primary"
+        [disabled]="!canDeploy"
+        (click)="deploy()"
+      >
+        {{ submitting ? 'Submitting…' : 'Deploy slice' }}
       </button>
     </section>
   }

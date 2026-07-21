@@ -76,13 +76,9 @@ describe('DeploymentPageComponent mark everything done', () => {
     return match;
   }
 
-  it('moves the slice flow to the deploy step and enables deploy', () => {
-    getButtonByText('Mark Everything as Done').click();
-    fixture.detectChanges();
-
-    expect(component['canAccessStepTwo']()).toBe(true);
-    expect(component['currentStep']).toBe(5);
-    expect(component['isSliceConfigurationComplete']()).toBe(true);
-    expect(getButtonByText('Deploy Slice').disabled).toBe(false);
+  it('removes the legacy Slice/OpenStack completion flow', () => {
+    expect(component['deploymentOptions'].some((option) => option.id === 'slice')).toBe(false);
+    expect(fixture.nativeElement.textContent).not.toContain('Mark Everything as Done');
+    expect(fixture.nativeElement.textContent).not.toContain('Deploy Slice');
   });
 });

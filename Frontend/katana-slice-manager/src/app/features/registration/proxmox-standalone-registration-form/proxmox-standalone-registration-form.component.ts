@@ -419,12 +419,6 @@ export class ProxmoxStandaloneRegistrationFormComponent implements OnInit {
     this.submitMessage = '';
     this.submitError = '';
 
-    if (this.form.invalid || !this.hasAuthenticationValues()) {
-      this.form.markAllAsTouched();
-      this.submitError = 'Enter the Proxmox URL, username, and password to continue.';
-      return;
-    }
-
     if (this.isUsingLoadedActiveRegistration() && this.resultsView) {
       this.submitSucceeded = true;
       this.submitMessage = this.resultsView.selectedDatacenter
@@ -432,6 +426,12 @@ export class ProxmoxStandaloneRegistrationFormComponent implements OnInit {
         : 'Using the existing active standalone Proxmox registration.';
       this.completed.emit();
       this.changeDetectorRef.detectChanges();
+      return;
+    }
+
+    if (this.form.invalid || !this.hasAuthenticationValues()) {
+      this.form.markAllAsTouched();
+      this.submitError = 'Enter the Proxmox URL, username, and password to continue.';
       return;
     }
 

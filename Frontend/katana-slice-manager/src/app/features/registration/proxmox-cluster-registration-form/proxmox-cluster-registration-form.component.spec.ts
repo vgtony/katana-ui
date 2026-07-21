@@ -63,6 +63,7 @@ describe('ProxmoxClusterRegistrationFormComponent interaction', () => {
     const completedSpy = vi.spyOn(component.completed, 'emit');
     const submitButton = fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement;
 
+    expect(component['form'].controls.password.value).toBe('');
     expect(submitButton.textContent?.replace(/\s+/g, ' ').trim()).toBe('Use Active Proxmox Cluster');
 
     submitButton.click();

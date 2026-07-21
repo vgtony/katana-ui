@@ -2,10 +2,11 @@ import { Injectable } from '@angular/core';
 import {
   DeploymentFormKey,
   DeploymentFormSnapshots,
-  DeploymentFormState
+  DeploymentFormState,
 } from '../../models/interfaces/deployment-draft.interface';
 import { DeploymentOption } from '../../models/interfaces/deployment.interface';
 import { DeploymentPack } from '../../models/interfaces/deployment-pack.interface';
+import { redactStoredSecrets } from '../storage-redaction.utils';
 
 const DEPLOYMENT_DRAFT_STORAGE_KEY = 'katana-slice-manager.deployment-drafts';
 const DEPLOYMENT_HISTORY_CONTEXT_STORAGE_KEY = 'katana-slice-manager.deployment-history-context';
@@ -38,7 +39,7 @@ function isStoredFormEntry(value: unknown): value is DeploymentStoredFormEntry {
 
 function createEmptyLike<T extends object>(fallback: T): T {
   return Object.fromEntries(
-    Object.entries(fallback).map(([key, value]) => [key, emptyValueOf(value)])
+    Object.entries(fallback).map(([key, value]) => [key, emptyValueOf(value)]),
   ) as T;
 }
 
@@ -61,7 +62,7 @@ function emptyValueOf(value: unknown): unknown {
 
   if (isRecord(value)) {
     return Object.fromEntries(
-      Object.entries(value).map(([key, nestedValue]) => [key, emptyValueOf(nestedValue)])
+      Object.entries(value).map(([key, nestedValue]) => [key, emptyValueOf(nestedValue)]),
     );
   }
 
@@ -72,7 +73,7 @@ function emptyValueOf(value: unknown): unknown {
 export class DeploymentDraftService {
   getSavedFormSnapshot<T extends object>(
     optionId: DeploymentOption['id'],
-    formKey: DeploymentFormKey
+    formKey: DeploymentFormKey,
   ): Partial<T> | null {
     const savedValue = this.getStoredFormValue(optionId, formKey);
     return isRecord(savedValue) ? (savedValue as Partial<T>) : null;
@@ -81,7 +82,7 @@ export class DeploymentDraftService {
   getFormValue<T extends object>(
     optionId: DeploymentOption['id'],
     formKey: DeploymentFormKey,
-    fallback: T
+    fallback: T,
   ): T {
     const savedValue = this.getStoredFormValue(optionId, formKey);
     const historyContext = this.readHistoryContext();
@@ -96,7 +97,7 @@ export class DeploymentDraftService {
 
     return {
       ...createEmptyLike(fallback),
-      ...savedValue
+      ...savedValue,
     } as T;
   }
 
@@ -104,7 +105,7 @@ export class DeploymentDraftService {
     optionId: DeploymentOption['id'],
     formKey: DeploymentFormKey,
     value: unknown,
-    state: Exclude<DeploymentFormState, 'missing'> = 'draft'
+    state: Exclude<DeploymentFormState, 'missing'> = 'draft',
   ): void {
     const storableValue = this.toStorableValue(value);
 
@@ -119,8 +120,8 @@ export class DeploymentDraftService {
       ...optionDrafts,
       [formKey]: {
         state,
-        value: storableValue
-      }
+        value: storableValue,
+      },
     };
 
     this.writeDrafts(drafts);
@@ -136,14 +137,11 @@ export class DeploymentDraftService {
       Object.entries(this.readDrafts()[optionId] ?? {}).flatMap(([formKey, entry]) => {
         const storedValue = isStoredFormEntry(entry) ? entry.value : entry;
         return storedValue === undefined ? [] : [[formKey, storedValue]];
-      })
+      }),
     ) as DeploymentFormSnapshots;
   }
 
-  getFormState(
-    optionId: DeploymentOption['id'],
-    formKey: DeploymentFormKey
-  ): DeploymentFormState {
+  getFormState(optionId: DeploymentOption['id'], formKey: DeploymentFormKey): DeploymentFormState {
     const entry = this.readDrafts()[optionId]?.[formKey];
 
     if (entry === undefined) {
@@ -177,8 +175,8 @@ export class DeploymentDraftService {
       ...optionDrafts,
       [formKey]: {
         state: 'draft',
-        value: storedValue
-      }
+        value: storedValue,
+      },
     };
 
     this.writeDrafts(drafts);
@@ -210,15 +208,15 @@ export class DeploymentDraftService {
         formKey,
         {
           state: 'draft',
-          value
-        }
-      ])
+          value,
+        },
+      ]),
     ) as DeploymentStoredOptionDrafts;
 
     this.writeDrafts(drafts);
     this.writeHistoryContext({
       optionId: pack.optionId,
-      formKeys: Object.keys(pack.formSnapshots ?? {}) as DeploymentFormKey[]
+      formKeys: Object.keys(pack.formSnapshots ?? {}) as DeploymentFormKey[],
     });
   }
 
@@ -236,7 +234,7 @@ export class DeploymentDraftService {
 
   private getStoredFormValue(
     optionId: DeploymentOption['id'],
-    formKey: DeploymentFormKey
+    formKey: DeploymentFormKey,
   ): unknown {
     const entry = this.readDrafts()[optionId]?.[formKey];
 
@@ -257,20 +255,32 @@ export class DeploymentDraftService {
 
     try {
       const parsedValue = JSON.parse(rawValue) as DeploymentStoredDraftMap;
-      return parsedValue && typeof parsedValue === 'object' ? parsedValue : {};
+      if (!parsedValue || typeof parsedValue !== 'object') {
+        return {};
+      }
+
+      const redactedValue = redactStoredSecrets(parsedValue);
+      const serializedValue = JSON.stringify(redactedValue);
+      if (serializedValue !== rawValue) {
+        storage?.setItem(DEPLOYMENT_DRAFT_STORAGE_KEY, serializedValue);
+      }
+      return redactedValue;
     } catch {
       return {};
     }
   }
 
   private writeDrafts(drafts: DeploymentStoredDraftMap): void {
-    this.getStorage()?.setItem(DEPLOYMENT_DRAFT_STORAGE_KEY, JSON.stringify(drafts));
+    this.getStorage()?.setItem(
+      DEPLOYMENT_DRAFT_STORAGE_KEY,
+      JSON.stringify(redactStoredSecrets(drafts)),
+    );
   }
 
   private isMissingHistorySnapshot(
     optionId: DeploymentOption['id'],
     formKey: DeploymentFormKey,
-    historyContext: DeploymentHistoryContext | null
+    historyContext: DeploymentHistoryContext | null,
   ): boolean {
     return historyContext?.optionId === optionId && !historyContext.formKeys.includes(formKey);
   }

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { DeploymentPack } from '../../models/interfaces/deployment-pack.interface';
+import { redactStoredSecrets } from '../storage-redaction.utils';
 
 const DEPLOYMENT_HISTORY_STORAGE_KEY = 'katana-slice-manager.deployment-history';
 
@@ -27,10 +28,10 @@ export class DeploymentHistoryService {
   }
 
   addPack(pack: Omit<DeploymentPack, 'id'>): DeploymentPack {
-    const createdPack: DeploymentPack = {
+    const createdPack = redactStoredSecrets<DeploymentPack>({
       ...pack,
-      id: createPackId()
-    };
+      id: createPackId(),
+    });
 
     const nextPacks = [createdPack, ...this.packsSubject.value];
     this.writePacks(nextPacks);
@@ -54,14 +55,26 @@ export class DeploymentHistoryService {
 
     try {
       const parsedValue = JSON.parse(rawValue) as DeploymentPack[];
-      return Array.isArray(parsedValue) ? parsedValue : [];
+      if (!Array.isArray(parsedValue)) {
+        return [];
+      }
+
+      const redactedValue = redactStoredSecrets(parsedValue);
+      const serializedValue = JSON.stringify(redactedValue);
+      if (serializedValue !== rawValue) {
+        storage?.setItem(DEPLOYMENT_HISTORY_STORAGE_KEY, serializedValue);
+      }
+      return redactedValue;
     } catch {
       return [];
     }
   }
 
   private writePacks(packs: DeploymentPack[]): void {
-    this.getStorage()?.setItem(DEPLOYMENT_HISTORY_STORAGE_KEY, JSON.stringify(packs));
+    this.getStorage()?.setItem(
+      DEPLOYMENT_HISTORY_STORAGE_KEY,
+      JSON.stringify(redactStoredSecrets(packs)),
+    );
   }
 
   private getStorage(): Storage | null {

@@ -1,27 +1,30 @@
 import { DOCUMENT } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { RouterLink, RouterOutlet } from '@angular/router';
 import { HttpActivityService } from '../../shared/services/http-activity.service';
+import { InfrastructureStatusService } from '../../shared/services/infrastructure-status.service';
 import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
 
 type AppTheme = 'dark' | 'light';
 
 @Component({
   selector: 'app-main-layout',
-  imports: [RouterOutlet, SidebarComponent],
+  imports: [RouterLink, RouterOutlet, SidebarComponent],
   templateUrl: './main-layout.component.html',
-  styleUrl: './main-layout.component.scss'
+  styleUrl: './main-layout.component.scss',
 })
 export class MainLayoutComponent implements OnInit {
   private readonly document = inject(DOCUMENT);
   private readonly themeStorageKey = 'katana-ui-theme';
   protected readonly httpActivityService = inject(HttpActivityService);
+  protected readonly infrastructureStatus = inject(InfrastructureStatusService);
 
   protected theme: AppTheme = 'dark';
 
   ngOnInit(): void {
     this.theme = this.getInitialTheme();
     this.applyTheme(this.theme);
+    this.infrastructureStatus.refresh();
   }
 
   protected toggleTheme(): void {

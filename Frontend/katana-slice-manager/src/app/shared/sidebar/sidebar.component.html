@@ -8,6 +8,9 @@
 
   <nav class="sidebar__nav" aria-label="Primary navigation">
     @for (item of navigationItems; track item.route) {
+      @if (item.administrative) {
+        <p class="sidebar__section-label">Administration</p>
+      }
       <a
         class="sidebar__link"
         [routerLink]="item.route"
@@ -60,6 +63,14 @@
                 <path d="M12 3 4.5 7.2 12 11.4l7.5-4.2L12 3Z"></path>
                 <path d="m4.5 12.8 7.5 4.2 7.5-4.2"></path>
                 <path d="m4.5 17.2 7.5 4.2 7.5-4.2"></path>
+              </svg>
+            }
+            @case ('infrastructure') {
+              <svg viewBox="0 0 24 24">
+                <rect x="3.5" y="4" width="7" height="6" rx="1.5"></rect>
+                <rect x="13.5" y="14" width="7" height="6" rx="1.5"></rect>
+                <path d="M7 10v3h10v1"></path>
+                <path d="M17 14v-3H7"></path>
               </svg>
             }
           }

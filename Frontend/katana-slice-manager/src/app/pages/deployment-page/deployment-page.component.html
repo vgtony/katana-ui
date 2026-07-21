@@ -474,30 +474,6 @@
                 >
                   <div class="deployment-page__embedded-form">
                     @switch (currentRequirement.id) {
-                      @case ('nfvo') {
-                        <app-nfvo-registration-form
-                          (completed)="markRequirementDone('nfvo')"
-                          (failed)="markRequirementFailed('nfvo')"
-                        ></app-nfvo-registration-form>
-                      }
-                      @case ('function') {
-                        <app-function-registration-form
-                          (completed)="markRequirementDone('function')"
-                          (failed)="markRequirementFailed('function')"
-                        ></app-function-registration-form>
-                      }
-                      @case ('vim') {
-                        <app-vim-registration-form
-                          (completed)="markRequirementDone('vim')"
-                          (failed)="markRequirementFailed('vim')"
-                        ></app-vim-registration-form>
-                      }
-                      @case ('location') {
-                        <app-location-registration-form
-                          (completed)="markRequirementDone('location')"
-                          (failed)="markRequirementFailed('location')"
-                        ></app-location-registration-form>
-                      }
                       @case ('k8s-credentials') {
                         <app-k8s-credentials-upload-form
                           (completed)="markRequirementDone('k8s-credentials')"
@@ -529,98 +505,6 @@
               }
             }
 
-            @if (isDeployWizardStep(currentStep) && isSliceFlow()) {
-              <div class="deployment-page__panel-header">
-                <p class="deployment-page__kicker">Step {{ currentStep }}</p>
-                <h3>Deploy Configuration</h3>
-                <p>Complete the slice form and deploy.</p>
-                @if (getFinalConfigurationNotice(); as configurationNotice) {
-                  <div class="deployment-page__notice" role="status">
-                    {{ configurationNotice }}
-                    @if (isFinalConfigurationActive()) {
-                      <button
-                        class="deployment-page__notice-action"
-                        type="button"
-                        (click)="requestConfigurationDeactivation()"
-                      >
-                        Deactivate
-                      </button>
-                    }
-                  </div>
-                }
-                @if (pendingConfigurationDeactivation) {
-                  <div
-                    class="deployment-page__deactivation-notice"
-                    role="alertdialog"
-                    aria-modal="false"
-                  >
-                    <p>
-                      Deactivate this active configuration? Its values will stay saved as a draft.
-                    </p>
-                    <div class="deployment-page__deactivation-actions">
-                      <button
-                        class="deployment-page__secondary"
-                        type="button"
-                        (click)="confirmConfigurationDeactivation()"
-                      >
-                        Yes
-                      </button>
-                      <button
-                        class="deployment-page__secondary"
-                        type="button"
-                        (click)="cancelConfigurationDeactivation()"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                }
-              </div>
-
-              <div class="deployment-page__embedded-form">
-                <app-slice-registration-form
-                  (created)="handleSliceCreated()"
-                ></app-slice-registration-form>
-              </div>
-
-              @if (!isSliceConfigurationComplete()) {
-                <div class="deployment-page__notice" role="status">
-                  The deploy action stays disabled until the slice configuration is marked complete.
-                </div>
-              }
-
-              <div class="deployment-page__actions deployment-page__actions--final">
-                <button
-                  class="deployment-page__secondary"
-                  type="button"
-                  (click)="selectWizardStep(selectedOption.requirements.length)"
-                >
-                  Back
-                </button>
-                <button
-                  class="deployment-page__secondary"
-                  type="button"
-                  (click)="toggleSliceConfigurationComplete()"
-                >
-                  {{ sliceConfigurationComplete ? 'Mark as incomplete' : 'Mark as complete' }}
-                </button>
-                <button
-                  class="deployment-page__primary"
-                  type="button"
-                  [disabled]="!isSliceConfigurationComplete()"
-                  [class.deployment-page__primary--disabled]="!isSliceConfigurationComplete()"
-                  (click)="deploy()"
-                >
-                  Deploy Slice
-                </button>
-              </div>
-
-              @if (deploymentStarted) {
-                <div class="deployment-page__success" role="status">
-                  {{ getDeploymentFeedbackMessage() }}
-                </div>
-              }
-            }
 
             @if (isDeployWizardStep(currentStep) && selectedOption.id === 'k8s') {
               <div class="deployment-page__panel-header">

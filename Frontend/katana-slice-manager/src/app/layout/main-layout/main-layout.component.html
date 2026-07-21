@@ -21,6 +21,24 @@
       </button>
     </div>
 
+    @if (infrastructureStatus.status(); as bootstrap) {
+      @if (bootstrap.status === 'never_run' || bootstrap.status === 'failed') {
+        <div class="layout-bootstrap-warning" role="status">
+          <div>
+            <strong>{{
+              bootstrap.status === 'never_run'
+                ? 'Infrastructure setup has not run.'
+                : 'The latest infrastructure reconciliation failed.'
+            }}</strong>
+            @if (bootstrap.error) {
+              <span>{{ bootstrap.error }}</span>
+            }
+          </div>
+          <a routerLink="/admin/infrastructure/bootstrap">Open administrator setup</a>
+        </div>
+      }
+    }
+
     <router-outlet></router-outlet>
   </main>
 </div>

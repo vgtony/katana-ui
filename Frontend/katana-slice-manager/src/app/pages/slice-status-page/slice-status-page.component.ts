@@ -1,20 +1,41 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectorRef, Component, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Subject, catchError, exhaustMap, map, of, takeUntil, timer } from 'rxjs';
+import { Subject, catchError, exhaustMap, finalize, map, of, takeUntil, timer } from 'rxjs';
 import { isNestRecord } from '../../shared/nest-file.utils';
-import { SliceApiService, getApiErrorMessage } from '../../shared/services/api';
+import { NsdSummary, VimSummary } from '../../models/interfaces/infrastructure.interface';
+import {
+  CatalogApiService,
+  SliceApiService,
+  VimApiService,
+  getApiErrorMessage,
+} from '../../shared/services/api';
 
-interface PollSuccess { kind: 'success'; value: unknown }
-interface PollFailure { kind: 'failure'; error: unknown }
+interface PollSuccess {
+  kind: 'success';
+  value: unknown;
+}
+interface PollFailure {
+  kind: 'failure';
+  error: unknown;
+}
 type PollResult = PollSuccess | PollFailure;
+
+interface NetworkServiceInstance {
+  nsId: string;
+  location: string;
+  nfvoId: string;
+  nsName: string;
+  currentTarget: string;
+}
 
 @Component({
   selector: 'app-slice-status-page',
-  imports: [RouterLink],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './slice-status-page.component.html',
-  styleUrl: './slice-status-page.component.scss'
+  styleUrl: './slice-status-page.component.scss',
 })
 export class SliceStatusPageComponent {
   private readonly route = inject(ActivatedRoute);
@@ -22,6 +43,9 @@ export class SliceStatusPageComponent {
   private readonly sliceApi = inject(SliceApiService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
+  private readonly formBuilder = inject(FormBuilder);
+  private readonly catalogApi = inject(CatalogApiService);
+  private readonly vimApi = inject(VimApiService);
   private readonly pollingStopped = new Subject<void>();
   private readonly pollingStartedAt = Date.now();
   private consecutiveFailures = 0;
@@ -43,6 +67,31 @@ export class SliceStatusPageComponent {
   protected deleteConfirmation = false;
   protected deleting = false;
   protected deleteError = '';
+  protected nsds: NsdSummary[] = [];
+  protected addVims: VimSummary[] = [];
+  protected restartVims: VimSummary[] = [];
+  protected modifying = false;
+  protected modifyMessage = '';
+  protected addError = '';
+  protected restartError = '';
+
+  protected readonly addNsForm = this.formBuilder.group({
+    nsdId: ['', Validators.required],
+    nsName: ['', Validators.required],
+    nfvoId: ['', Validators.required],
+    location: ['', Validators.required],
+    target: ['', Validators.required],
+  });
+
+  protected readonly restartNsForm = this.formBuilder.group({
+    instanceKey: ['', Validators.required],
+    nsId: ['', Validators.required],
+    location: ['', Validators.required],
+    nfvoId: ['', Validators.required],
+    currentTarget: [''],
+    changeVim: [false],
+    target: [''],
+  });
 
   protected get currentStageIndex(): number {
     const status = this.status.toLowerCase();
@@ -56,6 +105,47 @@ export class SliceStatusPageComponent {
 
   protected get failed(): boolean {
     return this.status.toLowerCase().startsWith('failed');
+  }
+
+  protected get networkServiceInstances(): NetworkServiceInstance[] {
+    if (!isNestRecord(this.slice) || !isNestRecord(this.slice['ns_inst_info'])) return [];
+    const instances: NetworkServiceInstance[] = [];
+    for (const [nsId, locations] of Object.entries(this.slice['ns_inst_info'])) {
+      if (!isNestRecord(locations)) continue;
+      for (const [location, raw] of Object.entries(locations)) {
+        if (!isNestRecord(raw)) continue;
+        instances.push({
+          nsId,
+          location,
+          nfvoId: String(raw['nfvo-id'] ?? ''),
+          nsName: String(raw['ns-name'] ?? nsId),
+          currentTarget: String(raw['vim'] ?? ''),
+        });
+      }
+    }
+    return instances;
+  }
+
+  protected get addLocations(): string[] {
+    return [
+      ...new Set(
+        this.addVims
+          .filter((vim) => vim.type.toLowerCase() === 'openstack')
+          .map((vim) => vim.location),
+      ),
+    ].sort();
+  }
+
+  protected get addTargets(): VimSummary[] {
+    const location = this.addNsForm.controls.location.value?.toLowerCase() ?? '';
+    return this.addVims.filter(
+      (vim) => vim.type.toLowerCase() === 'openstack' && vim.location.toLowerCase() === location,
+    );
+  }
+
+  protected get restartTargets(): VimSummary[] {
+    const location = this.restartNsForm.controls.location.value?.toLowerCase() ?? '';
+    return this.restartVims.filter((vim) => vim.location.toLowerCase() === location);
   }
 
   protected get sliceDetails(): string {
@@ -82,13 +172,186 @@ export class SliceStatusPageComponent {
         exhaustMap(() =>
           this.sliceApi.pollSlice(this.sliceId).pipe(
             map((value): PollResult => ({ kind: 'success', value })),
-            catchError((error) => of({ kind: 'failure', error } as PollResult))
-          )
+            catchError((error) => of({ kind: 'failure', error } as PollResult)),
+          ),
         ),
         takeUntil(this.pollingStopped),
-        takeUntilDestroyed(this.destroyRef)
+        takeUntilDestroyed(this.destroyRef),
       )
       .subscribe((result) => this.handlePollResult(result));
+
+    this.catalogApi
+      .getNsList()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (nsds) => (this.nsds = nsds),
+        error: (error) =>
+          (this.addError = getApiErrorMessage(error, 'Unable to load the NSD catalog.')),
+      });
+  }
+
+  protected nsdId(nsd: NsdSummary): string {
+    return String(nsd['nsd-id'] ?? nsd['nsd_id'] ?? '');
+  }
+
+  protected nsdLabel(nsd: NsdSummary): string {
+    return `${String(nsd['nsd-name'] ?? nsd['nsd_name'] ?? this.nsdId(nsd))} · ${String(nsd.nfvo_id ?? 'No owner')}`;
+  }
+
+  protected addNsdChanged(): void {
+    const selected = this.nsds.find(
+      (nsd) => this.nsdId(nsd) === this.addNsForm.controls.nsdId.value,
+    );
+    const runtime = String(selected?.deployment_runtime ?? '').toLowerCase();
+    const nfvoId = String(selected?.nfvo_id ?? '');
+    this.addNsForm.patchValue({ nfvoId, location: '', target: '' });
+    this.addVims = [];
+    this.addError =
+      runtime && runtime !== 'openstack'
+        ? `NSD runtime ${runtime} is not supported by the OpenStack VIM inventory.`
+        : '';
+    if (!nfvoId || this.addError) return;
+    this.vimApi
+      .getVims(nfvoId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (vims) => {
+          this.addVims = vims;
+          if (!vims.length) this.addError = 'No VIMs are linked to the selected NSD owner.';
+        },
+        error: (error) =>
+          (this.addError = getApiErrorMessage(error, 'Unable to load linked VIMs.')),
+      });
+  }
+
+  protected addLocationChanged(): void {
+    if (!this.addTargets.some((vim) => vim.vim_id === this.addNsForm.controls.target.value)) {
+      this.addNsForm.controls.target.setValue('');
+    }
+  }
+
+  protected restartInstanceChanged(): void {
+    const selected = this.networkServiceInstances.find(
+      (instance) =>
+        `${instance.nsId}:${instance.location}` === this.restartNsForm.controls.instanceKey.value,
+    );
+    this.restartVims = [];
+    this.restartError = '';
+    this.restartNsForm.patchValue({
+      nsId: selected?.nsId ?? '',
+      location: selected?.location ?? '',
+      nfvoId: selected?.nfvoId ?? '',
+      currentTarget: selected?.currentTarget ?? '',
+      target: '',
+    });
+    if (!selected) return;
+    this.vimApi
+      .getVims(selected.nfvoId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (vims) =>
+          (this.restartVims = vims.filter(
+            (vim) => vim.location.toLowerCase() === selected.location.toLowerCase(),
+          )),
+        error: (error) =>
+          (this.restartError = getApiErrorMessage(error, 'Unable to load restart targets.')),
+      });
+  }
+
+  protected changeVimChanged(): void {
+    if (!this.restartNsForm.controls.changeVim.value)
+      this.restartNsForm.controls.target.setValue('');
+  }
+
+  protected addNetworkService(): void {
+    this.modifyMessage = '';
+    this.addError = '';
+    if (
+      this.modifying ||
+      this.addNsForm.invalid ||
+      !this.addTargets.some((vim) => vim.vim_id === this.addNsForm.controls.target.value)
+    ) {
+      this.addNsForm.markAllAsTouched();
+      this.addError = 'Complete every AddNS field and select a linked target.';
+      return;
+    }
+    const value = this.addNsForm.getRawValue();
+    this.modifying = true;
+    this.sliceApi
+      .modifySlice(this.sliceId, {
+        domain: 'NFV',
+        action: 'AddNS',
+        details: {
+          nsd_id: value.nsdId,
+          ns_name: value.nsName,
+          location: value.location,
+          nfvo_id: value.nfvoId,
+          target: value.target,
+        },
+      })
+      .pipe(
+        finalize(() => (this.modifying = false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.modifyMessage = 'Network service added successfully.';
+          this.addNsForm.reset({ nsdId: '', nsName: '', nfvoId: '', location: '', target: '' });
+          this.addVims = [];
+          this.refreshSlice();
+        },
+        error: (error) =>
+          (this.addError = getApiErrorMessage(error, 'Unable to add the network service.')),
+      });
+  }
+
+  protected restartNetworkService(): void {
+    this.modifyMessage = '';
+    this.restartError = '';
+    const value = this.restartNsForm.getRawValue();
+    const selected = this.networkServiceInstances.find(
+      (instance) => `${instance.nsId}:${instance.location}` === value.instanceKey,
+    );
+    const targetValid =
+      !value.changeVim ||
+      (!!selected &&
+        !!value.target &&
+        this.restartVims.some(
+          (vim) =>
+            vim.vim_id === value.target &&
+            vim.location.toLowerCase() === selected.location.toLowerCase(),
+        ));
+    if (this.modifying || !selected || !targetValid) {
+      this.restartNsForm.markAllAsTouched();
+      this.restartError = value.changeVim
+        ? 'Select a VIM linked to this NS NFVO in the same location.'
+        : 'Select a network service instance.';
+      return;
+    }
+    this.modifying = true;
+    this.sliceApi
+      .modifySlice(this.sliceId, {
+        domain: 'NFV',
+        action: 'RestartNS',
+        details: {
+          ns_id: selected.nsId,
+          location: selected.location,
+          change_vim: value.changeVim,
+          ...(value.changeVim ? { target: value.target } : {}),
+        },
+      })
+      .pipe(
+        finalize(() => (this.modifying = false)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => {
+          this.modifyMessage = 'Network service restart requested successfully.';
+          this.refreshSlice();
+        },
+        error: (error) =>
+          (this.restartError = getApiErrorMessage(error, 'Unable to restart the network service.')),
+      });
   }
 
   protected stageClass(index: number): string {
@@ -115,7 +378,7 @@ export class SliceStatusPageComponent {
         error: (error) => {
           this.diagnosticsError = getApiErrorMessage(error, 'Unable to load runtime errors.');
           this.loadingErrors = false;
-        }
+        },
       });
   }
 
@@ -134,7 +397,7 @@ export class SliceStatusPageComponent {
         error: (error) => {
           this.diagnosticsError = getApiErrorMessage(error, 'Unable to load slice logs.');
           this.loadingLogs = false;
-        }
+        },
       });
   }
 
@@ -150,7 +413,7 @@ export class SliceStatusPageComponent {
         error: (error) => {
           this.deleteError = getApiErrorMessage(error, 'Unable to delete this slice.');
           this.deleting = false;
-        }
+        },
       });
   }
 
@@ -179,6 +442,21 @@ export class SliceStatusPageComponent {
     this.changeDetectorRef.markForCheck();
   }
 
+  private refreshSlice(): void {
+    this.sliceApi
+      .getSlice(this.sliceId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (slice) => {
+          this.slice = slice;
+          this.status = this.readStatus(slice);
+          this.changeDetectorRef.markForCheck();
+        },
+        error: (error) =>
+          (this.diagnosticsError = getApiErrorMessage(error, 'Unable to refresh slice details.')),
+      });
+  }
+
   private handlePollFailure(error: unknown): void {
     const isTransient404 =
       error instanceof HttpErrorResponse &&
@@ -194,7 +472,10 @@ export class SliceStatusPageComponent {
     this.pollMessage = `Status request failed (${this.consecutiveFailures}/3). Retrying…`;
 
     if (this.consecutiveFailures >= 3) {
-      this.pollError = getApiErrorMessage(error, 'Slice status could not be loaded after three attempts.');
+      this.pollError = getApiErrorMessage(
+        error,
+        'Slice status could not be loaded after three attempts.',
+      );
       this.stopPolling();
     }
   }
@@ -208,7 +489,10 @@ export class SliceStatusPageComponent {
   private loadDeploymentTime(): void {
     this.sliceApi
       .getSliceDeploymentTime(this.sliceId)
-      .pipe(catchError(() => of(null)), takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        catchError(() => of(null)),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe((value) => (this.deploymentTime = value));
   }
 
@@ -242,8 +526,8 @@ export class SliceStatusPageComponent {
         key,
         /(credentials?|password|secret|token|kubeconfig)/i.test(key)
           ? '[redacted]'
-          : this.sanitizeForDisplay(item)
-      ])
+          : this.sanitizeForDisplay(item),
+      ]),
     );
   }
 }

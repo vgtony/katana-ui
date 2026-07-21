@@ -64,11 +64,6 @@ export class ProxmoxClusterRegistrationFormComponent {
     this.submitMessage = '';
     this.submitError = '';
 
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
-
     if (this.isUsingLoadedActiveCluster()) {
       this.deploymentDraftService.saveFormValue(
         'proxmox',
@@ -80,6 +75,11 @@ export class ProxmoxClusterRegistrationFormComponent {
       this.submitMessage = 'Using the existing active Proxmox cluster registration.';
       this.completed.emit();
       this.changeDetectorRef.detectChanges();
+      return;
+    }
+
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
       return;
     }
 

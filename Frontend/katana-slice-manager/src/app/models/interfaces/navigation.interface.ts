@@ -7,8 +7,16 @@ export interface NavigationChild {
 
 export interface NavigationItem {
   key?: NavigationSectionKey;
-  icon: 'overview' | 'dashboard' | 'history' | 'monitoring' | 'deployment' | 'proxmox';
+  icon:
+    | 'overview'
+    | 'dashboard'
+    | 'history'
+    | 'monitoring'
+    | 'deployment'
+    | 'proxmox'
+    | 'infrastructure';
   label: string;
   route: string;
+  administrative?: boolean;
   children?: NavigationChild[];
 }

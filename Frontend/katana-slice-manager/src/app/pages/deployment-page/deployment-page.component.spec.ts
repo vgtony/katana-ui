@@ -141,7 +141,7 @@ describe('DeploymentPageComponent', () => {
       fixture.detectChanges();
 
       expect(getTextContent()).toContain('Create New Network Slice');
-      expect(getTextContent()).toContain('Slice / OpenStack');
+      expect(getTextContent()).not.toContain('Slice / OpenStack');
       expect(getTextContent()).toContain('K8s Deploy');
       expect(getTextContent()).toContain('Proxmox');
       expect(getTextContent()).toContain('Amari');
@@ -165,77 +165,11 @@ describe('DeploymentPageComponent', () => {
     });
   });
 
-  describe('Slice/OpenStack wizard', () => {
-    beforeEach(() => {
-      createComponentForOption('slice');
-    });
-
-    it('clears the selected route before returning to the deployment chooser', () => {
-      const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
-
-      getButtonByAriaLabel('Change deployment type').click();
-      expect(navigateSpy).toHaveBeenCalledWith(['/deployment'], {
-        replaceUrl: true,
-        queryParams: { modal: 'chooser' }
-      });
-      fixture.detectChanges();
-
-      expect(component['selectedRouteOptionId']).toBeNull();
-      expect(component['isNewDeploymentModalOpen']).toBe(true);
-      expect(component['isDeploymentChooserOpen']).toBe(true);
-      expect(getTextContent()).toContain('Create New Network Slice');
-
-      paramMap$.next(convertToParamMap({}));
-      fixture.detectChanges();
-
-      expect(component['selectedRouteOptionId']).toBeNull();
-      expect(component['isNewDeploymentModalOpen']).toBe(true);
-      expect(component['isDeploymentChooserOpen']).toBe(true);
-      expect(getTextContent()).toContain('Create New Network Slice');
-      expect(getTextContent()).toContain('Slice / OpenStack');
-      expect(getTextContent()).toContain('K8s Deploy');
-      expect(getTextContent()).toContain('Proxmox');
-    });
-
-    it('shows five sequential wizard steps in the expected order', () => {
-      const wizardLabels = getWizardButtons().map((button) =>
-        button.textContent?.replace(/\s+/g, ' ').trim()
-      );
-
-      expect(wizardLabels).toHaveLength(5);
-      expect(wizardLabels[0]).toContain('NFVO');
-      expect(wizardLabels[1]).toContain('Location');
-      expect(wizardLabels[2]).toContain('Function');
-      expect(wizardLabels[3]).toContain('VIM');
-      expect(wizardLabels[4]).toContain('Deploy');
-      expect(getTextContent()).toContain('Register NFVO');
-      expect(getTextContent()).toContain('NFVO IP');
-    });
-
-    it('advances one form at a time and unlocks deploy after all registrations are active', async () => {
-      component['markRequirementDone']('nfvo');
-      await fixture.whenStable();
-      fixture.detectChanges();
-
-      expect(component['currentStep']).toBe(2);
-      expect(getTextContent()).toContain('Create Location');
-      expect(getTextContent()).toContain('Description');
-
-      component['markRequirementDone']('location');
-      await fixture.whenStable();
-      fixture.detectChanges();
-      component['markRequirementDone']('function');
-      await fixture.whenStable();
-      fixture.detectChanges();
-      component['markRequirementDone']('vim');
-      await fixture.whenStable();
-      fixture.detectChanges();
-
-      expect(component['canAccessStepTwo']()).toBe(true);
-      expect(component['currentStep']).toBe(5);
-      expect(getTextContent()).toContain('Deploy Configuration');
-      expect(getButtonByText('Deploy Slice').disabled).toBe(true);
-    });
+  it('does not expose slice-time infrastructure registration', () => {
+    createComponentForOption('slice');
+    expect(component['deploymentOptions'].some((option) => option.id === 'slice')).toBe(false);
+    expect(getTextContent()).not.toContain('Register NFVO');
+    expect(getTextContent()).not.toContain('Register VIM');
   });
 
   describe('K8s wizard', () => {

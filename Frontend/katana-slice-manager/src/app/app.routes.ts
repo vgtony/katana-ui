@@ -10,70 +10,85 @@ export const routes: Routes = [
         path: '',
         pathMatch: 'full',
         loadComponent: () =>
-          import('./pages/home-page/home-page.component').then((m) => m.HomePageComponent)
+          import('./pages/home-page/home-page.component').then((m) => m.HomePageComponent),
       },
       {
         path: 'dashboard',
         loadComponent: () =>
           import('./pages/dashboard-page/dashboard-page.component').then(
-            (m) => m.DashboardPageComponent
-          )
+            (m) => m.DashboardPageComponent,
+          ),
       },
       {
         path: 'history',
         loadComponent: () =>
-          import('./pages/history-page/history-page.component').then((m) => m.HistoryPageComponent)
+          import('./pages/history-page/history-page.component').then((m) => m.HistoryPageComponent),
       },
       {
         path: 'proxmox-monitoring',
         loadComponent: () =>
           import('./pages/proxmox-monitoring-page/proxmox-monitoring-page.component').then(
-            (m) => m.ProxmoxMonitoringPageComponent
-          )
+            (m) => m.ProxmoxMonitoringPageComponent,
+          ),
       },
       {
         path: 'monitoring',
         loadComponent: () =>
           import('./pages/monitoring-page/monitoring-page.component').then(
-            (m) => m.MonitoringPageComponent
-          )
+            (m) => m.MonitoringPageComponent,
+          ),
       },
       {
         path: 'monitoring/:sliceId',
         loadComponent: () =>
           import('./pages/monitoring-page/monitoring-page.component').then(
-            (m) => m.MonitoringPageComponent
-          )
+            (m) => m.MonitoringPageComponent,
+          ),
       },
       {
         path: 'slices/create',
         loadComponent: () =>
           import('./pages/create-slice-page/create-slice-page.component').then(
-            (m) => m.CreateSlicePageComponent
-          )
+            (m) => m.CreateSlicePageComponent,
+          ),
+      },
+      {
+        path: 'infrastructure',
+        loadComponent: () =>
+          import('./pages/infrastructure-page/infrastructure-page.component').then(
+            (m) => m.InfrastructurePageComponent,
+          ),
+      },
+      {
+        path: 'admin/infrastructure/bootstrap',
+        loadComponent: () =>
+          import('./pages/infrastructure-bootstrap-page/infrastructure-bootstrap-page.component').then(
+            (m) => m.InfrastructureBootstrapPageComponent,
+          ),
       },
       {
         path: 'slices/:sliceId',
         loadComponent: () =>
           import('./pages/slice-status-page/slice-status-page.component').then(
-            (m) => m.SliceStatusPageComponent
-          )
+            (m) => m.SliceStatusPageComponent,
+          ),
       },
       {
         path: 'deployment',
         loadComponent: () =>
           import('./pages/deployment-page/deployment-page.component').then(
-            (m) => m.DeploymentPageComponent
-          )
+            (m) => m.DeploymentPageComponent,
+          ),
       },
+      { path: 'deployment/slice', redirectTo: 'slices/create', pathMatch: 'full' },
       {
         path: 'deployment/:option',
         loadComponent: () =>
           import('./pages/deployment-page/deployment-page.component').then(
-            (m) => m.DeploymentPageComponent
-          )
-      }
-    ]
+            (m) => m.DeploymentPageComponent,
+          ),
+      },
+    ],
   },
-  { path: '**', redirectTo: '' }
+  { path: '**', redirectTo: '' },
 ];

@@ -4,68 +4,238 @@
       <p class="slice-status-page__eyebrow">Slice deployment</p>
       <h2>{{ sliceId }}</h2>
     </div>
-    <span class="slice-status-page__status" [class.slice-status-page__status--failed]="failed">{{ status }}</span>
+    <span class="slice-status-page__status" [class.slice-status-page__status--failed]="failed">{{
+      status
+    }}</span>
   </header>
 
   <section class="slice-status-card" aria-live="polite">
     <div class="slice-status-card__heading">
-      <div><h3>Deployment progress</h3><p>{{ pollMessage }}</p></div>
-      @if (polling) { <span class="slice-status-page__polling">Polling every 2 seconds</span> }
+      <div>
+        <h3>Deployment progress</h3>
+        <p>{{ pollMessage }}</p>
+      </div>
+      @if (polling) {
+        <span class="slice-status-page__polling">Polling every 2 seconds</span>
+      }
     </div>
 
     <ol class="slice-progress">
       @for (stage of stages; track stage; let index = $index) {
         <li
           class="slice-progress__step"
-          [class.slice-progress__step--current]="stageClass(index) === 'slice-progress__step--current'"
-          [class.slice-progress__step--complete]="stageClass(index) === 'slice-progress__step--complete'"
-          [class.slice-progress__step--failed]="stageClass(index) === 'slice-progress__step--failed'"
+          [class.slice-progress__step--current]="
+            stageClass(index) === 'slice-progress__step--current'
+          "
+          [class.slice-progress__step--complete]="
+            stageClass(index) === 'slice-progress__step--complete'
+          "
+          [class.slice-progress__step--failed]="
+            stageClass(index) === 'slice-progress__step--failed'
+          "
         >
-          <span>{{ index + 1 }}</span><strong>{{ stage }}</strong>
+          <span>{{ index + 1 }}</span
+          ><strong>{{ stage }}</strong>
         </li>
       }
     </ol>
 
-    @if (pollError) { <p class="slice-status-page__notice slice-status-page__notice--error" role="alert">{{ pollError }}</p> }
+    @if (pollError) {
+      <p class="slice-status-page__notice slice-status-page__notice--error" role="alert">
+        {{ pollError }}
+      </p>
+    }
   </section>
 
   <div class="slice-status-page__grid">
     <section class="slice-status-card">
       <div class="slice-status-card__heading"><h3>Slice details</h3></div>
-      @if (sliceDetails) { <pre>{{ sliceDetails }}</pre> } @else { <p>No slice details are available yet.</p> }
+      @if (sliceDetails) {
+        <pre>{{ sliceDetails }}</pre>
+      } @else {
+        <p>No slice details are available yet.</p>
+      }
     </section>
 
     <section class="slice-status-card">
       <div class="slice-status-card__heading"><h3>Deployment times</h3></div>
-      @if (deploymentTimeText) { <pre>{{ deploymentTimeText }}</pre> } @else { <p>Timing data is not available yet.</p> }
+      @if (deploymentTimeText) {
+        <pre>{{ deploymentTimeText }}</pre>
+      } @else {
+        <p>Timing data is not available yet.</p>
+      }
     </section>
   </div>
 
   <section class="slice-status-card">
     <div class="slice-status-card__heading">
-      <h3>Errors and logs</h3>
-      <div class="slice-status-page__actions">
-        <button type="button" (click)="loadErrors()" [disabled]="loadingErrors">{{ loadingErrors ? 'Loading…' : 'Load errors' }}</button>
-        <button type="button" (click)="loadLogs()" [disabled]="loadingLogs">{{ loadingLogs ? 'Loading…' : 'Load logs' }}</button>
+      <div>
+        <h3>Day-2 network services</h3>
+        <p>Add a service or restart an existing instance using linked Time-0 VIMs.</p>
       </div>
     </div>
-    @if (diagnosticsError) { <p class="slice-status-page__notice slice-status-page__notice--error" role="alert">{{ diagnosticsError }}</p> }
-    @if (runtimeErrorsText) { <h4>Runtime errors</h4><pre>{{ runtimeErrorsText }}</pre> }
-    @if (logs) { <h4>Logs and events</h4><pre>{{ logs }}</pre> }
-    @if (!runtimeErrorsText && !logs) { <p>Load runtime errors or logs when you need deployment diagnostics.</p> }
+    @if (modifyMessage) {
+      <p class="slice-status-page__notice slice-status-page__notice--success" role="status">
+        {{ modifyMessage }}
+      </p>
+    }
+    <div class="slice-status-day2">
+      <form
+        [formGroup]="addNsForm"
+        (ngSubmit)="addNetworkService()"
+        class="slice-status-day2__form"
+      >
+        <h4>Add network service</h4>
+        <label
+          ><span>NSD *</span
+          ><select formControlName="nsdId" (change)="addNsdChanged()">
+            <option value="">Select NSD</option>
+            @for (nsd of nsds; track nsd._id || nsdId(nsd)) {
+              <option [value]="nsdId(nsd)">{{ nsdLabel(nsd) }}</option>
+            }
+          </select></label
+        >
+        <label><span>NS name *</span><input type="text" formControlName="nsName" /></label>
+        <label
+          ><span>Owning NFVO *</span
+          ><input type="text" formControlName="nfvoId" readonly aria-readonly="true"
+        /></label>
+        <label
+          ><span>Location *</span
+          ><select formControlName="location" (change)="addLocationChanged()">
+            <option value="">Select location</option>
+            @for (location of addLocations; track location) {
+              <option [value]="location">{{ location }}</option>
+            }
+          </select></label
+        >
+        <label
+          ><span>Target VIM *</span
+          ><select formControlName="target">
+            <option value="">Select target</option>
+            @for (vim of addTargets; track vim.vim_id) {
+              <option [value]="vim.vim_id">{{ vim.name }} · {{ vim.vim_id }}</option>
+            }
+          </select></label
+        >
+        @if (addError) {
+          <p class="slice-status-page__notice slice-status-page__notice--error" role="alert">
+            {{ addError }}
+          </p>
+        }
+        <button type="submit" [disabled]="modifying">
+          {{ modifying ? 'Submitting…' : 'Add service' }}
+        </button>
+      </form>
+
+      <form
+        [formGroup]="restartNsForm"
+        (ngSubmit)="restartNetworkService()"
+        class="slice-status-day2__form"
+      >
+        <h4>Restart network service</h4>
+        <label
+          ><span>Existing service *</span
+          ><select formControlName="instanceKey" (change)="restartInstanceChanged()">
+            <option value="">Select instance</option>
+            @for (instance of networkServiceInstances; track instance.nsId + instance.location) {
+              <option [value]="instance.nsId + ':' + instance.location">
+                {{ instance.nsName }} · {{ instance.location }} · {{ instance.nfvoId }}
+              </option>
+            }
+          </select></label
+        >
+        <div class="slice-status-day2__facts">
+          <span>NFVO: {{ restartNsForm.controls.nfvoId.value || '—' }}</span
+          ><span>Location: {{ restartNsForm.controls.location.value || '—' }}</span
+          ><span>Current target: {{ restartNsForm.controls.currentTarget.value || '—' }}</span>
+        </div>
+        <label class="slice-status-day2__checkbox"
+          ><input type="checkbox" formControlName="changeVim" (change)="changeVimChanged()" /><span
+            >Change VIM</span
+          ></label
+        >
+        @if (restartNsForm.controls.changeVim.value) {
+          <label
+            ><span>New target VIM *</span
+            ><select formControlName="target">
+              <option value="">Select target</option>
+              @for (vim of restartTargets; track vim.vim_id) {
+                <option [value]="vim.vim_id">{{ vim.name }} · {{ vim.vim_id }}</option>
+              }
+            </select></label
+          >
+        }
+        @if (restartError) {
+          <p class="slice-status-page__notice slice-status-page__notice--error" role="alert">
+            {{ restartError }}
+          </p>
+        }
+        <button type="submit" [disabled]="modifying">
+          {{ modifying ? 'Submitting…' : 'Restart service' }}
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <section class="slice-status-card">
+    <div class="slice-status-card__heading">
+      <h3>Errors and logs</h3>
+      <div class="slice-status-page__actions">
+        <button type="button" (click)="loadErrors()" [disabled]="loadingErrors">
+          {{ loadingErrors ? 'Loading…' : 'Load errors' }}
+        </button>
+        <button type="button" (click)="loadLogs()" [disabled]="loadingLogs">
+          {{ loadingLogs ? 'Loading…' : 'Load logs' }}
+        </button>
+      </div>
+    </div>
+    @if (diagnosticsError) {
+      <p class="slice-status-page__notice slice-status-page__notice--error" role="alert">
+        {{ diagnosticsError }}
+      </p>
+    }
+    @if (runtimeErrorsText) {
+      <h4>Runtime errors</h4>
+      <pre>{{ runtimeErrorsText }}</pre>
+    }
+    @if (logs) {
+      <h4>Logs and events</h4>
+      <pre>{{ logs }}</pre>
+    }
+    @if (!runtimeErrorsText && !logs) {
+      <p>Load runtime errors or logs when you need deployment diagnostics.</p>
+    }
   </section>
 
   <section class="slice-status-card slice-status-page__footer">
-    <a class="slice-status-page__primary" [routerLink]="['/monitoring', sliceId]">Open monitoring</a>
+    <a class="slice-status-page__primary" [routerLink]="['/monitoring', sliceId]"
+      >Open monitoring</a
+    >
     @if (!deleteConfirmation) {
-      <button type="button" class="slice-status-page__danger" (click)="deleteConfirmation = true">Delete slice</button>
+      <button type="button" class="slice-status-page__danger" (click)="deleteConfirmation = true">
+        Delete slice
+      </button>
     } @else {
       <div class="slice-status-page__confirm" role="group" aria-label="Confirm slice deletion">
         <span>Delete this slice?</span>
-        <button type="button" class="slice-status-page__danger" (click)="deleteSlice()" [disabled]="deleting">{{ deleting ? 'Deleting…' : 'Confirm delete' }}</button>
-        <button type="button" (click)="deleteConfirmation = false" [disabled]="deleting">Cancel</button>
+        <button
+          type="button"
+          class="slice-status-page__danger"
+          (click)="deleteSlice()"
+          [disabled]="deleting"
+        >
+          {{ deleting ? 'Deleting…' : 'Confirm delete' }}
+        </button>
+        <button type="button" (click)="deleteConfirmation = false" [disabled]="deleting">
+          Cancel
+        </button>
       </div>
     }
-    @if (deleteError) { <p class="slice-status-page__notice slice-status-page__notice--error" role="alert">{{ deleteError }}</p> }
+    @if (deleteError) {
+      <p class="slice-status-page__notice slice-status-page__notice--error" role="alert">
+        {{ deleteError }}
+      </p>
+    }
   </section>
 </section>

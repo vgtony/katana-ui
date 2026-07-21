@@ -2,16 +2,11 @@ import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angul
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { combineLatest, finalize, Observable } from 'rxjs';
-import { NfvoRegistrationFormComponent } from '../../features/registration/nfvo-registration-form/nfvo-registration-form.component';
-import { FunctionRegistrationFormComponent } from '../../features/registration/function-registration-form/function-registration-form.component';
-import { VimRegistrationFormComponent } from '../../features/registration/vim-registration-form/vim-registration-form.component';
-import { LocationRegistrationFormComponent } from '../../features/registration/location-registration-form/location-registration-form.component';
 import { K8sCredentialsUploadFormComponent } from '../../features/registration/k8s-credentials-upload-form/k8s-credentials-upload-form.component';
 import { K8sClusterRegistrationFormComponent } from '../../features/registration/k8s-cluster-registration-form/k8s-cluster-registration-form.component';
 import { K8sDeployServiceFormComponent } from '../../features/registration/k8s-deploy-service-form/k8s-deploy-service-form.component';
 import { ProxmoxStandaloneRegistrationFormComponent } from '../../features/registration/proxmox-standalone-registration-form/proxmox-standalone-registration-form.component';
 import { DeploymentAttemptEvent } from '../../features/registration/proxmox-vm-creation-form/proxmox-vm-creation-form.component';
-import { SliceRegistrationFormComponent } from '../../features/registration/slice-registration-form/slice-registration-form.component';
 import { AmarisoftSliceDeploymentFormComponent } from '../../features/registration/amarisoft-slice-deployment-form/amarisoft-slice-deployment-form.component';
 import {
   DeploymentFormKey,
@@ -63,15 +58,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 @Component({
   selector: 'app-deployment-page',
   imports: [
-    NfvoRegistrationFormComponent,
-    FunctionRegistrationFormComponent,
-    VimRegistrationFormComponent,
-    LocationRegistrationFormComponent,
     K8sCredentialsUploadFormComponent,
     K8sClusterRegistrationFormComponent,
     K8sDeployServiceFormComponent,
     ProxmoxStandaloneRegistrationFormComponent,
-    SliceRegistrationFormComponent,
     AmarisoftSliceDeploymentFormComponent
   ],
   templateUrl: './deployment-page.component.html',
@@ -115,46 +105,6 @@ export class DeploymentPageComponent implements OnInit {
   protected amariDeleteError = '';
 
   protected readonly deploymentOptions: DeploymentOption[] = [
-    {
-      id: 'slice',
-      label: 'Slice / OpenStack',
-      shortLabel: 'Slice',
-      description: 'OpenStack-backed slice deployment.',
-      requirementsTitle: 'Slice registrations',
-      requirementsDescription: 'Finish the registrations, then deploy.',
-      requirements: [
-        {
-          id: 'nfvo',
-          label: 'NFVO',
-          route: '/deployment/slice',
-          type: 'registration',
-          guidance: 'Register the orchestrator.'
-        },
-        {
-          id: 'location',
-          label: 'Location',
-          route: '/deployment/slice',
-          type: 'registration',
-          guidance: 'Set the target location.'
-        },
-        {
-          id: 'function',
-          label: 'Function',
-          route: '/deployment/slice',
-          type: 'registration',
-          guidance: 'Register the function package.'
-        },
-        {
-          id: 'vim',
-          label: 'VIM',
-          route: '/deployment/slice',
-          type: 'registration',
-          guidance: 'Register the infrastructure target.'
-        }
-      ],
-      finalConfigurationLabel: 'Slice configuration',
-      deployActionLabel: 'Deploy Slice'
-    },
     {
       id: 'k8s',
       label: 'K8s Deploy',

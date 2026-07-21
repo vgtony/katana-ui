@@ -11,7 +11,7 @@
     <label><span>URL</span><input type="text" formControlName="url" /></label>
     <label><span>Username</span><input type="text" formControlName="username" /></label>
     <label><span>Password</span><input type="password" formControlName="password" /></label>
-    <button type="submit" [disabled]="form.invalid || submitting">
+    <button type="submit" [disabled]="(form.invalid && !isUsingLoadedActiveCluster()) || submitting">
       {{
         submitting
           ? 'Registering cluster...'

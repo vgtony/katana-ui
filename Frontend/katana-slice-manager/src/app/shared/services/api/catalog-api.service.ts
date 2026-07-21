@@ -1,6 +1,7 @@
 import { HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { NsdSummary } from '../../../models/interfaces/infrastructure.interface';
 import { KatanaApiBaseService } from './katana-api-base.service';
 
 export interface NsListQuery {
@@ -38,7 +39,7 @@ export class CatalogApiService extends KatanaApiBaseService {
     return this.http.delete(this.buildApiUrl('base_slice_des', id));
   }
 
-  getNsList(query?: NsListQuery): Observable<unknown[]> {
+  getNsList(query?: NsListQuery): Observable<NsdSummary[]> {
     let params = new HttpParams();
 
     if (query?.nsdId) {
@@ -49,6 +50,6 @@ export class CatalogApiService extends KatanaApiBaseService {
       params = params.set('nfvo-id', query.nfvoId);
     }
 
-    return this.http.get<unknown[]>(this.buildApiUrl('nslist'), { params });
+    return this.http.get<NsdSummary[]>(this.buildApiUrl('nslist'), { params });
   }
 }

@@ -9,7 +9,7 @@ describe('DeploymentDraftService', () => {
     localStorage.clear();
 
     TestBed.configureTestingModule({
-      providers: [DeploymentDraftService]
+      providers: [DeploymentDraftService],
     });
 
     service = TestBed.inject(DeploymentDraftService);
@@ -30,9 +30,9 @@ describe('DeploymentDraftService', () => {
       formSnapshots: {
         nfvo: {
           id: 'nfvo-1',
-          name: 'NFVO Alpha'
-        }
-      }
+          name: 'NFVO Alpha',
+        },
+      },
     };
 
     service.loadPackAsDraft(pack);
@@ -41,19 +41,19 @@ describe('DeploymentDraftService', () => {
       service.getFormValue('slice', 'nfvo', {
         id: '',
         name: '',
-        nfvoip: 'should-not-remain'
-      })
+        nfvoip: 'should-not-remain',
+      }),
     ).toEqual({
       id: 'nfvo-1',
       name: 'NFVO Alpha',
-      nfvoip: ''
+      nfvoip: '',
     });
   });
 
   it('returns fallback defaults for a new form when only sibling drafts exist', () => {
     service.saveFormValue('proxmox', 'proxmox-cluster', {
       name: 'cluster-a',
-      url: 'https://cluster-a.example:8006'
+      url: 'https://cluster-a.example:8006',
     });
 
     expect(
@@ -61,20 +61,20 @@ describe('DeploymentDraftService', () => {
         clusterName: '',
         vmName: 'katana-vm-1',
         template: '',
-        cpu: 4
-      })
+        cpu: 4,
+      }),
     ).toEqual({
       clusterName: '',
       vmName: 'katana-vm-1',
       template: '',
-      cpu: 4
+      cpu: 4,
     });
   });
 
   it('overwrites stale option drafts when a history pack is opened', () => {
     service.saveFormValue('proxmox', 'proxmox-cluster', {
       name: 'old-cluster',
-      url: 'https://old.example:8006'
+      url: 'https://old.example:8006',
     });
 
     const pack: DeploymentPack = {
@@ -91,9 +91,9 @@ describe('DeploymentDraftService', () => {
       formSnapshots: {
         'proxmox-vm': {
           clusterName: 'prod-cluster-01',
-          vmName: 'web-server-01'
-        }
-      }
+          vmName: 'web-server-01',
+        },
+      },
     };
 
     service.loadPackAsDraft(pack);
@@ -101,11 +101,11 @@ describe('DeploymentDraftService', () => {
     expect(
       service.getFormValue('proxmox', 'proxmox-cluster', {
         name: 'fallback',
-        url: 'https://fallback.example:8006'
-      })
+        url: 'https://fallback.example:8006',
+      }),
     ).toEqual({
       name: '',
-      url: ''
+      url: '',
     });
   });
 
@@ -124,25 +124,25 @@ describe('DeploymentDraftService', () => {
       formSnapshots: {
         'proxmox-vm': {
           clusterName: 'prod-cluster-01',
-          vmName: 'web-server-01'
-        }
-      }
+          vmName: 'web-server-01',
+        },
+      },
     };
 
     service.loadPackAsDraft(pack);
     service.saveFormValue('proxmox', 'proxmox-cluster', {
       name: 'cluster-a',
-      url: 'https://cluster-a.example:8006'
+      url: 'https://cluster-a.example:8006',
     });
 
     expect(
       service.getFormValue('proxmox', 'proxmox-cluster', {
         name: 'fallback',
-        url: 'https://fallback.example:8006'
-      })
+        url: 'https://fallback.example:8006',
+      }),
     ).toEqual({
       name: 'cluster-a',
-      url: 'https://cluster-a.example:8006'
+      url: 'https://cluster-a.example:8006',
     });
   });
 
@@ -152,9 +152,9 @@ describe('DeploymentDraftService', () => {
       'nfvo',
       {
         id: 'nfvo-1',
-        name: 'NFVO Alpha'
+        name: 'NFVO Alpha',
       },
-      'draft'
+      'draft',
     );
 
     expect(service.getFormState('slice', 'nfvo')).toBe('draft');
@@ -164,9 +164,9 @@ describe('DeploymentDraftService', () => {
       'nfvo',
       {
         id: 'nfvo-1',
-        name: 'NFVO Alpha'
+        name: 'NFVO Alpha',
       },
-      'active'
+      'active',
     );
 
     expect(service.getFormState('slice', 'nfvo')).toBe('active');
@@ -179,18 +179,18 @@ describe('DeploymentDraftService', () => {
         proxmox: {
           'proxmox-cluster': {
             name: 'legacy-cluster',
-            node: 'pve-node-01'
-          }
-        }
-      })
+            node: 'pve-node-01',
+          },
+        },
+      }),
     );
 
     expect(service.getFormState('proxmox', 'proxmox-cluster')).toBe('active');
     expect(service.getSnapshotsForOption('proxmox')).toEqual({
       'proxmox-cluster': {
         name: 'legacy-cluster',
-        node: 'pve-node-01'
-      }
+        node: 'pve-node-01',
+      },
     });
   });
 
@@ -200,19 +200,19 @@ describe('DeploymentDraftService', () => {
       'proxmox-cluster',
       {
         name: 'lab-cluster',
-        node: 'pve-node-01'
+        node: 'pve-node-01',
       },
-      'active'
+      'active',
     );
 
     service.deactivateForm('proxmox', 'proxmox-cluster');
 
     expect(service.getFormState('proxmox', 'proxmox-cluster')).toBe('draft');
     expect(
-      service.getSavedFormSnapshot<{ name: string; node: string }>('proxmox', 'proxmox-cluster')
+      service.getSavedFormSnapshot<{ name: string; node: string }>('proxmox', 'proxmox-cluster'),
     ).toEqual({
       name: 'lab-cluster',
-      node: 'pve-node-01'
+      node: 'pve-node-01',
     });
   });
 
@@ -222,18 +222,18 @@ describe('DeploymentDraftService', () => {
       'proxmox-standalone',
       {
         clusterId: 'saved-katana-id',
-        clusterName: 'Antares'
+        clusterName: 'Antares',
       },
-      'active'
+      'active',
     );
     service.saveFormValue(
       'proxmox-standalone',
       'proxmox-vm',
       {
         vmName: 'katana-vm-01',
-        clusterName: 'Antares'
+        clusterName: 'Antares',
       },
-      'draft'
+      'draft',
     );
 
     service.clearForm('proxmox-standalone', 'proxmox-vm');
@@ -243,11 +243,67 @@ describe('DeploymentDraftService', () => {
     expect(
       service.getSavedFormSnapshot<{ clusterId: string; clusterName: string }>(
         'proxmox-standalone',
-        'proxmox-standalone'
-      )
+        'proxmox-standalone',
+      ),
     ).toEqual({
       clusterId: 'saved-katana-id',
-      clusterName: 'Antares'
+      clusterName: 'Antares',
     });
+  });
+
+  it('redacts secrets before persisting drafts', () => {
+    service.saveFormValue('proxmox', 'proxmox-cluster', {
+      name: 'lab-cluster',
+      password: 'cluster-password',
+      auth: {
+        tokenId: 'katana@pve!manager',
+        secret: 'token-secret',
+      },
+      credentials: {
+        username: 'admin',
+        password: 'nested-password',
+      },
+    });
+
+    const storedValue = localStorage.getItem('katana-slice-manager.deployment-drafts') ?? '';
+    expect(storedValue).toContain('lab-cluster');
+    expect(storedValue).not.toContain('cluster-password');
+    expect(storedValue).not.toContain('token-secret');
+    expect(storedValue).not.toContain('nested-password');
+    expect(storedValue).not.toContain('tokenId');
+    expect(storedValue).not.toContain('credentials');
+
+    expect(
+      service.getFormValue('proxmox', 'proxmox-cluster', {
+        name: '',
+        password: '',
+        auth: { tokenId: '', secret: '' },
+        credentials: { username: '', password: '' },
+      }),
+    ).toEqual({
+      name: 'lab-cluster',
+      password: '',
+      auth: {},
+      credentials: { username: '', password: '' },
+    });
+  });
+
+  it('removes secrets from legacy draft storage when it is read', () => {
+    localStorage.setItem(
+      'katana-slice-manager.deployment-drafts',
+      JSON.stringify({
+        slice: {
+          nfvo: {
+            state: 'active',
+            value: { id: 'osm-1', nfvopassword: 'legacy-password' },
+          },
+        },
+      }),
+    );
+
+    expect(service.getFormState('slice', 'nfvo')).toBe('active');
+    expect(localStorage.getItem('katana-slice-manager.deployment-drafts')).not.toContain(
+      'legacy-password',
+    );
   });
 });
