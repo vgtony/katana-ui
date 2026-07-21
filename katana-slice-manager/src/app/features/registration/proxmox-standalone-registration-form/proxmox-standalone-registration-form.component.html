@@ -1,0 +1,287 @@
+<section class="registration-form registration-form--standalone">
+  @if (!compactOnly()) {
+    <form class="registration-form__grid" [formGroup]="form" (ngSubmit)="submit()">
+      @if (restoreMessage) {
+        <p class="registration-form__status" role="status">{{ restoreMessage }}</p>
+      }
+
+      <label>
+        <span>URL</span>
+        <input type="text" formControlName="url" placeholder="https://10.160.100.11:8006" />
+      </label>
+
+      <label class="registration-form__checkbox">
+        <input type="checkbox" formControlName="verifySsl" />
+        <span>Verify SSL certificate</span>
+      </label>
+
+      <label>
+        <span>Username</span>
+        <input type="text" formControlName="username" placeholder="root@pam" />
+      </label>
+
+      <label>
+        <span>Password</span>
+        <input type="password" formControlName="password" placeholder="Enter Proxmox password" />
+      </label>
+
+      <button class="registration-form__submit" type="submit" [disabled]="submitting">
+        {{ submitting ? 'Loading Proxmox data...' : 'Register Proxmox' }}
+      </button>
+
+      @if (submitting) {
+        <div class="registration-form__loader" role="status" aria-live="polite">
+          <span class="registration-form__spinner" aria-hidden="true"></span>
+          <span>{{ loadingMessage }}</span>
+        </div>
+      }
+
+      @if (submitMessage) {
+        <p class="registration-form__status registration-form__status--success" role="status">
+          {{ submitMessage }}
+        </p>
+      }
+
+      @if (submitError) {
+        <p class="registration-form__status registration-form__status--error" role="alert">
+          {{ submitError }}
+        </p>
+      }
+    </form>
+  }
+
+  @if (hasResults && resultsView; as results) {
+    <section class="registration-form__results">
+      @if (results.datacenters.length) {
+        <section class="registration-form__compact-section">
+          <div class="registration-form__section-head">
+            <div>
+              <h5>Datacenters</h5>
+              <p>Pick a datacenter to load its nodes, servers, and deployment overview.</p>
+            </div>
+          </div>
+
+          <div class="registration-form__datacenter-list">
+            @for (datacenter of results.datacenters; track trackDatacenter($index, datacenter)) {
+              <article
+                class="registration-form__datacenter-card"
+                [class.registration-form__datacenter-card--selected]="
+                  isDatacenterSelected(datacenter.id)
+                "
+              >
+                <div class="registration-form__datacenter-card-top">
+                  <button
+                    class="registration-form__datacenter-card-button"
+                    type="button"
+                    [disabled]="submitting"
+                    (click)="
+                      isDatacenterSelected(datacenter.id)
+                        ? clearSelectedDatacenter()
+                        : selectDatacenter(datacenter)
+                    "
+                  >
+                    <span>{{ datacenter.name }}</span>
+                    <strong>{{ datacenter.nodeCount }} nodes</strong>
+                  </button>
+                  @if (isDatacenterSelected(datacenter.id)) {
+                    <button
+                      class="registration-form__server-change-button registration-form__server-change-button--danger"
+                      type="button"
+                      [disabled]="submitting"
+                      (click)="deregister()"
+                    >
+                      <span class="registration-form__button-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                          <path d="M4 7h16"></path>
+                          <path d="M10 11v6"></path>
+                          <path d="M14 11v6"></path>
+                          <path d="M6 7l1 13h10l1-13"></path>
+                          <path d="M9 7V4h6v3"></path>
+                        </svg>
+                      </span>
+                      <span>Deregister Proxmox</span>
+                    </button>
+                  }
+                </div>
+              </article>
+            }
+          </div>
+        </section>
+      }
+
+      @if (results.selectedDatacenter) {
+        <div class="registration-form__board">
+          <article class="registration-form__hero-card">
+            <!-- <div class="registration-form__hero-top">
+              <div>
+                <p class="registration-form__eyebrow">Selected Datacenter</p>
+                <h5>{{ results.selectedDatacenter.name }}</h5>
+              </div>
+            </div> -->
+
+            <div class="registration-form__resource-grid">
+              <article
+                class="registration-form__resource-panel registration-form__resource-panel--cpu"
+              >
+                <span>CPU</span>
+                <strong>{{ results.clusterCpu }}</strong>
+              </article>
+              <article
+                class="registration-form__resource-panel registration-form__resource-panel--memory"
+              >
+                <span>Memory</span>
+                <strong>{{ results.clusterMemory }}</strong>
+              </article>
+              <article
+                class="registration-form__resource-panel registration-form__resource-panel--disk"
+              >
+                <span>Disk</span>
+                <strong>{{ results.clusterDisk }}</strong>
+              </article>
+            </div>
+          </article>
+
+          <article
+            class="registration-form__compact-section registration-form__compact-section--servers"
+          >
+            <div class="registration-form__section-head">
+              <div>
+                <h5>Servers</h5>
+                <p>Choose the target node for deployment.</p>
+              </div>
+              <span>{{ results.servers.length }}</span>
+            </div>
+
+            @if (results.servers.length) {
+              @if (!compactOnly() || !selectedVmTargets.length) {
+                <div class="registration-form__server-list">
+                  @for (server of results.servers; track trackServer($index, server)) {
+                    <article
+                      class="registration-form__server-table"
+                      [class.registration-form__server-table--interactive]="compactOnly()"
+                      [class.registration-form__server-table--selected]="
+                        isServerSelected(server.name)
+                      "
+                      [attr.aria-label]="compactOnly() ? 'Select server ' + server.name : null"
+                      [attr.aria-pressed]="compactOnly() ? isServerSelected(server.name) : null"
+                      [attr.role]="compactOnly() ? 'button' : null"
+                      [attr.tabindex]="compactOnly() ? 0 : null"
+                      (click)="chooseServer(server.name)"
+                      (keydown.enter)="chooseServer(server.name)"
+                      (keydown.space)="chooseServer(server.name); $event.preventDefault()"
+                    >
+                      <div
+                        class="registration-form__server-table-row registration-form__server-table-row--summary"
+                        [class.registration-form__server-table-row--summary-compact]="
+                          serverViewMode() === 'compact'
+                        "
+                      >
+                        <div
+                          class="registration-form__server-cell registration-form__server-cell--name"
+                        >
+                          <span>Name</span>
+                          <strong>{{ server.name }}</strong>
+                          @if (compactOnly() && isServerSelected(server.name)) {
+                            <em class="registration-form__server-selection-pill">Selected</em>
+                          }
+                        </div>
+                        <div class="registration-form__server-cell">
+                          <span>CPU</span>
+                          <strong>{{ server.cpu }}</strong>
+                        </div>
+                        <div class="registration-form__server-cell">
+                          <span>RAM</span>
+                          <strong>{{ server.memory }}</strong>
+                        </div>
+                        <div class="registration-form__server-cell">
+                          <span>Disk</span>
+                          <strong>{{ server.disk }}</strong>
+                        </div>
+                      </div>
+
+                      @if (serverViewMode() === 'detail' && server.storage.length) {
+                        @for (storage of server.storage; track trackStorage($index, storage)) {
+                          <div
+                            class="registration-form__server-table-row registration-form__server-table-row--storage"
+                          >
+                            <div
+                              class="registration-form__server-storage-cell registration-form__server-storage-cell--name"
+                            >
+                              <span>Storage</span>
+                              <strong>{{ storage.name }}</strong>
+                              <p>{{ storage.type }}</p>
+                            </div>
+                            <div class="registration-form__server-storage-cell">
+                              <span>Free</span>
+                              <strong>{{ storage.remaining }}</strong>
+                            </div>
+                            <div class="registration-form__server-storage-cell">
+                              <span>Used</span>
+                              <strong>{{ storage.used }}</strong>
+                            </div>
+                            <div class="registration-form__server-storage-cell">
+                              <span>Total</span>
+                              <strong>{{ storage.total }}</strong>
+                            </div>
+                          </div>
+                        }
+                      } @else if (serverViewMode() === 'detail') {
+                        <div
+                          class="registration-form__server-table-row registration-form__server-table-row--empty"
+                        >
+                          <p class="registration-form__empty">
+                            No storage entries returned for this node.
+                          </p>
+                        </div>
+                      }
+                    </article>
+                  }
+                </div>
+              }
+
+              @if (compactOnly()) {
+                @if (selectedVmTargets.length) {
+                  <div class="registration-form__server-selected-summary">
+                    <div>
+                      <span>Selected server</span>
+                      <strong>{{ selectedVmTargets[0].node }}</strong>
+                    </div>
+                    <button
+                      class="registration-form__server-change-button"
+                      type="button"
+                      (click)="clearServerSelection()"
+                    >
+                      Change server
+                    </button>
+                  </div>
+
+                  <app-proxmox-vm-creation-form
+                    [standaloneClusterId]="currentSnapshot.clusterId"
+                    [standaloneClusterName]="results.selectedDatacenter.name"
+                    [serverTargets]="selectedVmTargets"
+                    (deployed)="handleVmDeployed($event)"
+                  ></app-proxmox-vm-creation-form>
+                } @else {
+                  <p class="registration-form__selection-copy">
+                    Select a server to continue to VM deployment.
+                  </p>
+                }
+              }
+            } @else {
+              <p class="registration-form__empty">No servers returned.</p>
+            }
+          </article>
+        </div>
+      } @else {
+        <p class="registration-form__selection-copy">
+          Select a datacenter to load the deployment overview.
+        </p>
+      }
+    </section>
+  } @else if (compactOnly()) {
+    <div class="registration-form__empty registration-form__empty--panel">
+      <p class="registration-form__eyebrow">Standalone overview</p>
+      <p>Complete the standalone Proxmox registration to load datacenters and servers.</p>
+    </div>
+  }
+</section>

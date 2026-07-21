@@ -1,0 +1,109 @@
+:host {
+  display: block;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  height: 100%;
+  padding: 28px 22px;
+  border-right: 1px solid var(--app-border);
+  background: var(--app-sidebar-bg);
+}
+
+.sidebar__brand h1,
+.sidebar__brand p,
+.sidebar__brand span {
+  margin: 0;
+}
+
+.sidebar__brand {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+
+.sidebar__brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 220px;
+  padding: 4px 0 2px;
+}
+
+.sidebar__brand-mark img {
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 12px 20px rgba(27, 153, 210, 0.18));
+}
+
+.sidebar__brand span {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--app-text-subtle);
+}
+
+.sidebar__nav {
+  display: grid;
+  gap: 10px;
+}
+
+.sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 0.95rem 1rem;
+  border-radius: 16px;
+  color: var(--app-text);
+  text-decoration: none;
+  text-align: left;
+  font: inherit;
+  background: var(--app-surface);
+  border: 1px solid transparent;
+  transition: background 220ms ease, border-color 220ms ease, transform 220ms ease;
+}
+
+.sidebar__link-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  color: var(--app-accent-heading);
+}
+
+.sidebar__link-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sidebar__link:hover {
+  transform: translateX(2px);
+  background: var(--app-pill-bg);
+}
+
+.sidebar__link--active {
+  background: var(--app-accent-surface);
+  border-color: var(--app-border-accent);
+  color: var(--app-text);
+}
+
+@media (max-width: 960px) {
+  .sidebar {
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--app-border);
+  }
+}

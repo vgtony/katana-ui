@@ -1,0 +1,113 @@
+import { Component, inject, output } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { finalize } from 'rxjs';
+import { initialSliceRegistrationFormModel } from '../../../models/slice-registration-form.model';
+import { SliceRegistrationFormModel } from '../../../models/interfaces/slice-registration-form.interface';
+import { CreateSliceRequest, SliceApiService, getApiErrorMessage } from '../../../shared/services/api';
+import { DeploymentDraftService } from '../../../shared/services/deployment-draft.service';
+
+@Component({
+  selector: 'app-slice-registration-form',
+  imports: [ReactiveFormsModule],
+  templateUrl: './slice-registration-form.component.html',
+  styleUrl: './slice-registration-form.component.scss'
+})
+export class SliceRegistrationFormComponent {
+  private readonly formBuilder = inject(FormBuilder);
+  private readonly sliceApi = inject(SliceApiService);
+  private readonly deploymentDraftService = inject(DeploymentDraftService);
+  readonly created = output<void>();
+  protected readonly model: SliceRegistrationFormModel = this.deploymentDraftService.getFormValue(
+    'slice',
+    'slice',
+    initialSliceRegistrationFormModel
+  );
+  protected readonly savedState = this.deploymentDraftService.getFormState('slice', 'slice');
+  protected readonly restoreMessage =
+    this.savedState === 'active'
+      ? 'Active slice configuration loaded. Update it only if you want to create a new slice.'
+      : this.savedState === 'draft'
+        ? 'Saved slice configuration draft restored.'
+        : '';
+  protected submitting = false;
+  protected submitMessage = '';
+  protected submitError = '';
+
+  protected readonly form = this.formBuilder.group({
+    baseSliceDesId: [this.model.baseSliceDesId, Validators.required],
+    coverage: [this.model.coverage, Validators.required],
+    delayTolerance: [this.model.delayTolerance],
+    networkDlGuaranteed: [this.model.networkDlGuaranteed, Validators.required],
+    ueDlGuaranteed: [this.model.ueDlGuaranteed, Validators.required],
+    networkUlGuaranteed: [this.model.networkUlGuaranteed, Validators.required],
+    ueUlGuaranteed: [this.model.ueUlGuaranteed, Validators.required],
+    mtu: [this.model.mtu, Validators.required],
+    nsdId: [this.model.nsdId, Validators.required],
+    nsName: [this.model.nsName, Validators.required],
+    placement: [this.model.placement, Validators.required],
+    optional: [this.model.optional]
+  });
+
+  constructor() {
+    this.form.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.deploymentDraftService.saveFormValue(
+        'slice',
+        'slice',
+        this.form.getRawValue() as SliceRegistrationFormModel,
+        'draft'
+      );
+    });
+  }
+
+  private setSubmitStatus(message: string, error = ''): void {
+    setTimeout(() => {
+      this.submitMessage = message;
+      this.submitError = error;
+    });
+  }
+
+  private setSubmitting(submitting: boolean): void {
+    setTimeout(() => {
+      this.submitting = submitting;
+    });
+  }
+
+  protected submit(): void {
+    this.submitMessage = '';
+    this.submitError = '';
+
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    const gst = this.form.getRawValue() as SliceRegistrationFormModel;
+    const payload: CreateSliceRequest = { gst };
+
+    this.submitting = true;
+
+    this.sliceApi
+      .createSlice(payload)
+      .pipe(
+        finalize(() => {
+          this.setSubmitting(false);
+        })
+      )
+      .subscribe({
+        next: (id) => {
+          this.deploymentDraftService.saveFormValue(
+            'slice',
+            'slice',
+            this.form.getRawValue() as SliceRegistrationFormModel,
+            'active'
+          );
+          this.setSubmitStatus(`Slice created successfully with id ${id}.`);
+          this.created.emit();
+        },
+        error: (error: unknown) => {
+          this.setSubmitStatus('', getApiErrorMessage(error, 'Unable to create slice.'));
+        }
+      });
+  }
+}

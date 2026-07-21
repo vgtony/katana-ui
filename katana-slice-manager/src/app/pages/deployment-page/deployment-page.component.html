@@ -1,0 +1,793 @@
+<section class="deployment-page">
+  <header class="deployment-page__hero">
+    <p class="deployment-page__eyebrow">Deployment</p>
+    <h2>Deploy with the targets you already have.</h2>
+    <p>Review registered slices and clusters, then start a new deployment.</p>
+  </header>
+
+  <section class="deployment-page__inventory-shell">
+    <div class="deployment-page__inventory-header">
+      <div>
+        <p class="deployment-page__kicker">Currently created</p>
+        <h3>Live targets</h3>
+      </div>
+
+      <button class="deployment-page__primary" type="button" (click)="openNewDeploymentModal()">
+        + New Deployment
+      </button>
+    </div>
+
+    <div class="deployment-page__inventory-grid">
+      @for (section of inventorySections; track section.key) {
+        <article class="deployment-page__inventory-card">
+          <div class="deployment-page__inventory-card-top">
+            <div>
+              <p class="deployment-page__review-label">{{ section.title }}</p>
+              <h4>{{ section.rows.length }}</h4>
+            </div>
+            <div class="deployment-page__inventory-card-actions">
+              <span class="deployment-page__inventory-count">
+                {{ section.rows.length }} {{ section.rows.length === 1 ? 'entry' : 'entries' }}
+              </span>
+              <button
+                class="deployment-page__inventory-toggle"
+                type="button"
+                (click)="toggleInventorySection(section.key)"
+                [attr.aria-expanded]="isInventorySectionExpanded(section.key)"
+              >
+                {{ isInventorySectionExpanded(section.key) ? 'Collapse' : 'Expand' }}
+              </button>
+            </div>
+          </div>
+
+          <div
+            class="deployment-page__inventory-body"
+            [class.deployment-page__inventory-body--expanded]="
+              isInventorySectionExpanded(section.key)
+            "
+          >
+            <div class="deployment-page__inventory-body-inner">
+              @if (section.loading) {
+                <div class="deployment-page__inventory-skeleton" role="status" aria-live="polite">
+                  <div class="deployment-page__inventory-skeleton-head">
+                    <span class="deployment-page__inventory-skeleton-line deployment-page__inventory-skeleton-line--title"></span>
+                    <span class="deployment-page__inventory-skeleton-line deployment-page__inventory-skeleton-line--pill"></span>
+                  </div>
+                  @for (row of [1, 2, 3]; track row) {
+                    <div class="deployment-page__inventory-skeleton-row" aria-hidden="true">
+                      @for (column of [1, 2, 3, 4]; track column) {
+                        <span class="deployment-page__inventory-skeleton-line"></span>
+                      }
+                    </div>
+                  }
+                  <span class="deployment-page__inventory-skeleton-copy"
+                    >Loading {{ section.title.toLowerCase() }}…</span
+                  >
+                </div>
+              } @else if (section.error) {
+                <p class="deployment-page__error" role="alert">{{ section.error }}</p>
+              } @else if (section.rows.length) {
+                <div class="deployment-page__table-shell">
+                  @if (section.key === 'amari' && amariDeleteError) {
+                    <p class="deployment-page__error" role="alert">{{ amariDeleteError }}</p>
+                  }
+                  <table class="deployment-page__table">
+                    <thead>
+                      <tr>
+                        @for (column of section.columns; track column.key) {
+                          <th>{{ column.label }}</th>
+                        }
+                        @if (isAmariInventorySection(section)) {
+                          <th class="deployment-page__table-action-heading" aria-label="Actions"></th>
+                        }
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of section.rows; track $index) {
+                        <tr
+                          [class.deployment-page__table-row--interactive]="
+                            isAmariInventorySection(section)
+                          "
+                          [class.deployment-page__table-row--selected]="
+                            isAmariInventoryRowSelected(row)
+                          "
+                          [attr.tabindex]="isAmariInventorySection(section) ? 0 : null"
+                          [attr.aria-selected]="
+                            isAmariInventorySection(section)
+                              ? isAmariInventoryRowSelected(row)
+                              : null
+                          "
+                          (click)="
+                            isAmariInventorySection(section) && selectAmariInventoryRow(row)
+                          "
+                          (keydown.enter)="
+                            isAmariInventorySection(section) && selectAmariInventoryRow(row)
+                          "
+                          (keydown.space)="
+                            isAmariInventorySection(section) && selectAmariInventoryRow(row)
+                          "
+                        >
+                          @for (column of section.columns; track column.key) {
+                            <td>
+                              @if (isStatusColumn(column.key)) {
+                                <span
+                                  class="deployment-page__status-pill"
+                                  [class.deployment-page__status-pill--success]="
+                                    getStatusTone(row[column.key]) === 'success'
+                                  "
+                                  [class.deployment-page__status-pill--warning]="
+                                    getStatusTone(row[column.key]) === 'warning'
+                                  "
+                                  [class.deployment-page__status-pill--error]="
+                                    getStatusTone(row[column.key]) === 'error'
+                                  "
+                                >
+                                  {{ row[column.key] }}
+                                </span>
+                              } @else {
+                                {{ row[column.key] }}
+                              }
+                            </td>
+                          }
+                          @if (isAmariInventorySection(section)) {
+                            <td class="deployment-page__table-action-cell">
+                              <div
+                                class="deployment-page__row-action"
+                                [class.deployment-page__row-action--visible]="
+                                  isAmariInventoryRowSelected(row)
+                                "
+                              >
+                                <button
+                                  class="deployment-page__delete-icon-button"
+                                  type="button"
+                                  [disabled]="isAmariSliceDeleting(row)"
+                                  [attr.tabindex]="isAmariInventoryRowSelected(row) ? 0 : -1"
+                                  [attr.aria-label]="'Delete Amari slice ' + row['name']"
+                                  title="Delete Amari slice"
+                                  (click)="requestAmariSliceDelete($event, row)"
+                                >
+                                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M3 6h18"></path>
+                                    <path d="M8 6V4h8v2"></path>
+                                    <path d="M19 6l-1 14H6L5 6"></path>
+                                    <path d="M10 11v5"></path>
+                                    <path d="M14 11v5"></path>
+                                  </svg>
+                                </button>
+
+                                @if (isAmariSliceDeletePending(row)) {
+                                  <div
+                                    class="deployment-page__delete-confirm"
+                                    role="alertdialog"
+                                    aria-modal="false"
+                                    (click)="$event.stopPropagation()"
+                                  >
+                                    <span>Delete this slice?</span>
+                                    <button
+                                      class="deployment-page__delete-confirm-danger"
+                                      type="button"
+                                      [disabled]="isAmariSliceDeleting(row)"
+                                      (click)="confirmAmariSliceDelete($event, row)"
+                                    >
+                                      {{ isAmariSliceDeleting(row) ? 'Deleting...' : 'Delete' }}
+                                    </button>
+                                    <button
+                                      class="deployment-page__delete-confirm-cancel"
+                                      type="button"
+                                      [disabled]="isAmariSliceDeleting(row)"
+                                      (click)="cancelAmariSliceDelete($event)"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                }
+                              </div>
+                            </td>
+                          }
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              } @else {
+                <p class="deployment-page__inventory-empty">{{ section.emptyLabel }}</p>
+              }
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+  </section>
+
+  @if (isNewDeploymentModalOpen) {
+    <div
+      class="deployment-page__modal-backdrop"
+      role="presentation"
+      (click)="closeNewDeploymentModal()"
+    >
+      <section
+        class="deployment-page__modal"
+        [class.deployment-page__modal--chooser]="!hasSelectedDeploymentOption()"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="new-deployment-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="deployment-page__modal-header">
+          <div class="deployment-page__modal-title">
+            <h3 id="new-deployment-title">
+              @if (hasSelectedDeploymentOption()) {
+                Deploy {{ selectedOption.label }}
+              } @else {
+                Create New Network Slice
+              }
+            </h3>
+          </div>
+
+          <div class="deployment-page__modal-actions">
+            @if (hasSelectedDeploymentOption()) {
+              @if (
+                selectedOption.id === 'proxmox-standalone' &&
+                isDeployWizardStep(currentStep)
+              ) {
+                <div
+                  class="deployment-page__view-toggle"
+                  role="group"
+                  aria-label="Proxmox server view mode"
+                >
+                  <button
+                    class="deployment-page__view-toggle-option"
+                    type="button"
+                    [class.deployment-page__view-toggle-option--active]="
+                      proxmoxServerViewMode === 'compact'
+                    "
+                    aria-label="Compact view"
+                    [attr.aria-pressed]="proxmoxServerViewMode === 'compact'"
+                    (click)="setProxmoxServerViewMode('compact')"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <rect x="4" y="5" width="6" height="6" rx="1.5"></rect>
+                      <rect x="14" y="5" width="6" height="6" rx="1.5"></rect>
+                      <rect x="4" y="13" width="6" height="6" rx="1.5"></rect>
+                      <rect x="14" y="13" width="6" height="6" rx="1.5"></rect>
+                    </svg>
+                  </button>
+                  <button
+                    class="deployment-page__view-toggle-option"
+                    type="button"
+                    [class.deployment-page__view-toggle-option--active]="
+                      proxmoxServerViewMode === 'detail'
+                    "
+                    aria-label="Detail view"
+                    [attr.aria-pressed]="proxmoxServerViewMode === 'detail'"
+                    (click)="setProxmoxServerViewMode('detail')"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <rect x="4" y="5" width="16" height="3" rx="1.5"></rect>
+                      <rect x="4" y="10.5" width="16" height="3" rx="1.5"></rect>
+                      <rect x="4" y="16" width="16" height="3" rx="1.5"></rect>
+                    </svg>
+                  </button>
+                </div>
+              }
+              @if (selectedOption.requirements.length) {
+                <button
+                  class="deployment-page__link deployment-page__link--subtle"
+                  type="button"
+                  (click)="markEverythingDone()"
+                >
+                  Mark Everything as Done
+                </button>
+              }
+              <button
+                class="deployment-page__link deployment-page__link--subtle deployment-page__change-type-button"
+                type="button"
+                aria-label="Change deployment type"
+                title="Change deployment type"
+                (click)="returnToDeploymentChooser($event)"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M10 6 5 11l5 5"></path>
+                  <path d="M5 11h11"></path>
+                  <path d="M18 6h1"></path>
+                  <path d="M15 6h.01"></path>
+                  <path d="M14 16h5"></path>
+                  <path d="M11 16h.01"></path>
+                </svg>
+              </button>
+            }
+            <button
+              class="deployment-page__icon-button"
+              type="button"
+              aria-label="Close deployment modal"
+              (click)="closeNewDeploymentModal()"
+            >
+              ×
+            </button>
+          </div>
+        </header>
+
+        @if (!hasSelectedDeploymentOption()) {
+          <div class="deployment-page__modal-section deployment-page__modal-section--chooser">
+            <div class="deployment-page__option-grid">
+              @for (option of deploymentOptions; track option.id) {
+                <button
+                  class="deployment-page__option-card"
+                  type="button"
+                  (click)="chooseDeploymentOption(option.id)"
+                >
+                  <span class="deployment-page__option-icon" aria-hidden="true">
+                    @switch (option.id) {
+                      @case ('slice') {
+                        <svg viewBox="0 0 24 24">
+                          <path d="M5 7h14"></path>
+                          <path d="M5 12h14"></path>
+                          <path d="M5 17h14"></path>
+                          <path d="M8 4v16"></path>
+                          <path d="M16 4v16"></path>
+                        </svg>
+                      }
+                      @case ('k8s') {
+                        <svg viewBox="0 0 24 24">
+                          <path d="M12 3.5 19.4 8v8L12 20.5 4.6 16V8L12 3.5Z"></path>
+                          <path d="M12 8v8"></path>
+                          <path d="m8.5 10 7 4"></path>
+                          <path d="m15.5 10-7 4"></path>
+                        </svg>
+                      }
+                      @case ('proxmox-standalone') {
+                        <svg viewBox="0 0 24 24">
+                          <rect x="4" y="5" width="16" height="14" rx="2"></rect>
+                          <path d="M8 9h8"></path>
+                          <path d="M8 13h3"></path>
+                          <path d="M14 13h2"></path>
+                        </svg>
+                      }
+                      @case ('amari') {
+                        <svg viewBox="0 0 24 24">
+                          <path d="M5 17a7 7 0 0 1 14 0"></path>
+                          <path d="M8 17a4 4 0 0 1 8 0"></path>
+                          <path d="M12 17h.01"></path>
+                          <path d="M6 7h4"></path>
+                          <path d="M14 7h4"></path>
+                          <path d="M8 5v4"></path>
+                          <path d="M16 5v4"></path>
+                        </svg>
+                      }
+                      @default {
+                        <svg viewBox="0 0 24 24">
+                          <rect x="5" y="5" width="14" height="14" rx="2"></rect>
+                          <path d="M9 9h6v6H9z"></path>
+                        </svg>
+                      }
+                    }
+                  </span>
+                  <strong>{{ option.label }}</strong>
+                </button>
+              }
+            </div>
+          </div>
+        } @else {
+          <div class="deployment-page__modal-section deployment-page__modal-section--steps">
+            <div class="deployment-page__modal-section-header">
+              <h4>Deployment Steps</h4>
+            </div>
+
+            <section class="deployment-page__stepper" aria-label="Deployment progress">
+              @for (step of getWizardStepNumbers(); track step) {
+                <button
+                  class="deployment-page__step"
+                  type="button"
+                  [class.deployment-page__step--active]="isWizardStepActive(step)"
+                  [class.deployment-page__step--complete]="isWizardStepComplete(step)"
+                  [class.deployment-page__step--error]="isWizardStepError(step)"
+                  [class.deployment-page__step--disabled]="!isWizardStepAccessible(step)"
+                  [disabled]="!isWizardStepAccessible(step)"
+                  [attr.aria-disabled]="!isWizardStepAccessible(step)"
+                  (click)="selectWizardStep(step)"
+                >
+                  <span class="deployment-page__step-marker" aria-hidden="true"></span>
+                  <span class="deployment-page__step-label">{{ getWizardStepLabel(step) }}</span>
+                </button>
+              }
+            </section>
+          </div>
+
+          <section class="deployment-page__panel deployment-page__panel--modal">
+            @if (getCurrentRequirement(); as currentRequirement) {
+              <!-- <div class="deployment-page__panel-header">
+                <p class="deployment-page__kicker">Step {{ currentStep }}</p>
+                <h3>{{ currentRequirement.label }}</h3>
+                <p>{{ currentRequirement.guidance }}</p>
+              </div> -->
+
+              <article
+                class="deployment-page__requirement-card deployment-page__requirement-card--expanded"
+              >
+                <div class="deployment-page__requirement-heading">
+                  <div class="deployment-page__requirement-meta">
+                    <span class="deployment-page__requirement-type">{{
+                      currentRequirement.type
+                    }}</span>
+                    <span
+                      class="deployment-page__requirement-status"
+                      [class.deployment-page__requirement-status--complete]="
+                        isRequirementComplete(currentRequirement.id)
+                      "
+                      [class.deployment-page__requirement-status--error]="
+                        isRequirementError(currentRequirement.id)
+                      "
+                    >
+                      {{ getRequirementStatusLabel(currentRequirement.id) }}
+                    </span>
+                  </div>
+                  <div class="deployment-page__requirement-title-row">
+                    <h4>{{ currentRequirement.label }}</h4>
+                    @if (getRequirementContextTag(currentRequirement.id); as currentContextTag) {
+                      @if (isRequirementActive(currentRequirement.id)) {
+                        <button
+                          class="deployment-page__requirement-context-tag deployment-page__requirement-context-tag--interactive"
+                          type="button"
+                          (click)="requestRequirementDeactivation($event, currentRequirement.id)"
+                        >
+                          {{ currentContextTag }}
+                        </button>
+                      } @else {
+                        <span class="deployment-page__requirement-context-tag">{{
+                          currentContextTag
+                        }}</span>
+                      }
+                    }
+                  </div>
+                </div>
+
+                @if (isRequirementDeactivationPending(currentRequirement.id)) {
+                  <div
+                    class="deployment-page__deactivation-notice"
+                    role="alertdialog"
+                    aria-modal="false"
+                  >
+                    <p>
+                      Deactivate this active registration? Its values will stay saved as a draft.
+                    </p>
+                    <div class="deployment-page__deactivation-actions">
+                      <button
+                        class="deployment-page__secondary"
+                        type="button"
+                        (click)="confirmRequirementDeactivation(currentRequirement.id)"
+                      >
+                        Yes
+                      </button>
+                      <button
+                        class="deployment-page__secondary"
+                        type="button"
+                        (click)="cancelRequirementDeactivation()"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                }
+
+                <div
+                  class="deployment-page__requirement-body deployment-page__requirement-body--visible"
+                >
+                  <div class="deployment-page__embedded-form">
+                    @switch (currentRequirement.id) {
+                      @case ('nfvo') {
+                        <app-nfvo-registration-form
+                          (completed)="markRequirementDone('nfvo')"
+                          (failed)="markRequirementFailed('nfvo')"
+                        ></app-nfvo-registration-form>
+                      }
+                      @case ('function') {
+                        <app-function-registration-form
+                          (completed)="markRequirementDone('function')"
+                          (failed)="markRequirementFailed('function')"
+                        ></app-function-registration-form>
+                      }
+                      @case ('vim') {
+                        <app-vim-registration-form
+                          (completed)="markRequirementDone('vim')"
+                          (failed)="markRequirementFailed('vim')"
+                        ></app-vim-registration-form>
+                      }
+                      @case ('location') {
+                        <app-location-registration-form
+                          (completed)="markRequirementDone('location')"
+                          (failed)="markRequirementFailed('location')"
+                        ></app-location-registration-form>
+                      }
+                      @case ('k8s-credentials') {
+                        <app-k8s-credentials-upload-form
+                          (completed)="markRequirementDone('k8s-credentials')"
+                          (failed)="markRequirementFailed('k8s-credentials')"
+                        ></app-k8s-credentials-upload-form>
+                      }
+                      @case ('k8s-cluster') {
+                        <app-k8s-cluster-registration-form
+                          (completed)="markRequirementDone('k8s-cluster')"
+                          (failed)="markRequirementFailed('k8s-cluster')"
+                        ></app-k8s-cluster-registration-form>
+                      }
+                      @case ('proxmox-standalone') {
+                        <app-proxmox-standalone-registration-form
+                          (completed)="markRequirementDone('proxmox-standalone')"
+                          (failed)="markRequirementFailed('proxmox-standalone')"
+                          (deregistered)="handleRequirementDeregistered('proxmox-standalone')"
+                        ></app-proxmox-standalone-registration-form>
+                      }
+                    }
+                  </div>
+                </div>
+              </article>
+
+              @if (!canAccessStepTwo()) {
+                <div class="deployment-page__notice" role="status">
+                  The deploy step unlocks after every registration step is active.
+                </div>
+              }
+            }
+
+            @if (isDeployWizardStep(currentStep) && isSliceFlow()) {
+              <div class="deployment-page__panel-header">
+                <p class="deployment-page__kicker">Step {{ currentStep }}</p>
+                <h3>Deploy Configuration</h3>
+                <p>Complete the slice form and deploy.</p>
+                @if (getFinalConfigurationNotice(); as configurationNotice) {
+                  <div class="deployment-page__notice" role="status">
+                    {{ configurationNotice }}
+                    @if (isFinalConfigurationActive()) {
+                      <button
+                        class="deployment-page__notice-action"
+                        type="button"
+                        (click)="requestConfigurationDeactivation()"
+                      >
+                        Deactivate
+                      </button>
+                    }
+                  </div>
+                }
+                @if (pendingConfigurationDeactivation) {
+                  <div
+                    class="deployment-page__deactivation-notice"
+                    role="alertdialog"
+                    aria-modal="false"
+                  >
+                    <p>
+                      Deactivate this active configuration? Its values will stay saved as a draft.
+                    </p>
+                    <div class="deployment-page__deactivation-actions">
+                      <button
+                        class="deployment-page__secondary"
+                        type="button"
+                        (click)="confirmConfigurationDeactivation()"
+                      >
+                        Yes
+                      </button>
+                      <button
+                        class="deployment-page__secondary"
+                        type="button"
+                        (click)="cancelConfigurationDeactivation()"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <div class="deployment-page__embedded-form">
+                <app-slice-registration-form
+                  (created)="handleSliceCreated()"
+                ></app-slice-registration-form>
+              </div>
+
+              @if (!isSliceConfigurationComplete()) {
+                <div class="deployment-page__notice" role="status">
+                  The deploy action stays disabled until the slice configuration is marked complete.
+                </div>
+              }
+
+              <div class="deployment-page__actions deployment-page__actions--final">
+                <button
+                  class="deployment-page__secondary"
+                  type="button"
+                  (click)="selectWizardStep(selectedOption.requirements.length)"
+                >
+                  Back
+                </button>
+                <button
+                  class="deployment-page__secondary"
+                  type="button"
+                  (click)="toggleSliceConfigurationComplete()"
+                >
+                  {{ sliceConfigurationComplete ? 'Mark as incomplete' : 'Mark as complete' }}
+                </button>
+                <button
+                  class="deployment-page__primary"
+                  type="button"
+                  [disabled]="!isSliceConfigurationComplete()"
+                  [class.deployment-page__primary--disabled]="!isSliceConfigurationComplete()"
+                  (click)="deploy()"
+                >
+                  Deploy Slice
+                </button>
+              </div>
+
+              @if (deploymentStarted) {
+                <div class="deployment-page__success" role="status">
+                  {{ getDeploymentFeedbackMessage() }}
+                </div>
+              }
+            }
+
+            @if (isDeployWizardStep(currentStep) && selectedOption.id === 'k8s') {
+              <div class="deployment-page__panel-header">
+                <p class="deployment-page__kicker">Step {{ currentStep }}</p>
+                <h3>Deploy Configuration</h3>
+                <p>Complete the K8s form and deploy.</p>
+                @if (getFinalConfigurationNotice(); as configurationNotice) {
+                  <div class="deployment-page__notice" role="status">
+                    {{ configurationNotice }}
+                    @if (isFinalConfigurationActive()) {
+                      <button
+                        class="deployment-page__notice-action"
+                        type="button"
+                        (click)="requestConfigurationDeactivation()"
+                      >
+                        Deactivate
+                      </button>
+                    }
+                  </div>
+                }
+                @if (pendingConfigurationDeactivation) {
+                  <div
+                    class="deployment-page__deactivation-notice"
+                    role="alertdialog"
+                    aria-modal="false"
+                  >
+                    <p>
+                      Deactivate this active configuration? Its values will stay saved as a draft.
+                    </p>
+                    <div class="deployment-page__deactivation-actions">
+                      <button
+                        class="deployment-page__secondary"
+                        type="button"
+                        (click)="confirmConfigurationDeactivation()"
+                      >
+                        Yes
+                      </button>
+                      <button
+                        class="deployment-page__secondary"
+                        type="button"
+                        (click)="cancelConfigurationDeactivation()"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <div class="deployment-page__embedded-form">
+                <app-k8s-deploy-service-form
+                  (deployed)="deploy($event)"
+                ></app-k8s-deploy-service-form>
+              </div>
+
+              <div class="deployment-page__actions deployment-page__actions--final">
+                <button
+                  class="deployment-page__secondary"
+                  type="button"
+                  (click)="selectWizardStep(selectedOption.requirements.length)"
+                >
+                  Back
+                </button>
+              </div>
+
+              @if (deploymentStarted) {
+                <div class="deployment-page__success" role="status">
+                  {{ getDeploymentFeedbackMessage() }}
+                </div>
+              }
+            }
+
+            @if (isDeployWizardStep(currentStep) && selectedOption.id === 'proxmox-standalone') {
+              <div class="deployment-page__panel-header">
+                <p class="deployment-page__kicker">Step {{ currentStep }}</p>
+                <!-- <h3>Compact Overview</h3>
+                <p>Clusters, servers, and remaining resources from the standalone Proxmox API.</p> -->
+              </div>
+
+              <div class="deployment-page__embedded-form">
+                <app-proxmox-standalone-registration-form
+                  [compactOnly]="true"
+                  [serverViewMode]="proxmoxServerViewMode"
+                  (deployed)="deploy($event)"
+                ></app-proxmox-standalone-registration-form>
+              </div>
+
+              <div class="deployment-page__actions">
+                <button
+                  class="deployment-page__secondary"
+                  type="button"
+                  (click)="selectWizardStep(selectedOption.requirements.length)"
+                >
+                  Back
+                </button>
+              </div>
+
+              @if (deploymentStarted) {
+                <div class="deployment-page__success" role="status">
+                  {{ getDeploymentFeedbackMessage() }}
+                </div>
+              }
+            }
+
+            @if (isDeployWizardStep(currentStep) && selectedOption.id === 'amari') {
+              <div class="deployment-page__panel-header">
+                <p class="deployment-page__kicker">Step {{ currentStep }}</p>
+                <h3>Amari Slice</h3>
+                @if (getFinalConfigurationNotice(); as configurationNotice) {
+                  <div class="deployment-page__notice" role="status">
+                    {{ configurationNotice }}
+                    @if (isFinalConfigurationActive()) {
+                      <button
+                        class="deployment-page__notice-action"
+                        type="button"
+                        (click)="requestConfigurationDeactivation()"
+                      >
+                        Deactivate
+                      </button>
+                    }
+                  </div>
+                }
+                @if (pendingConfigurationDeactivation) {
+                  <div
+                    class="deployment-page__deactivation-notice"
+                    role="alertdialog"
+                    aria-modal="false"
+                  >
+                    <p>
+                      Deactivate this active configuration? Its values will stay saved as a draft.
+                    </p>
+                    <div class="deployment-page__deactivation-actions">
+                      <button
+                        class="deployment-page__secondary"
+                        type="button"
+                        (click)="confirmConfigurationDeactivation()"
+                      >
+                        Yes
+                      </button>
+                      <button
+                        class="deployment-page__secondary"
+                        type="button"
+                        (click)="cancelConfigurationDeactivation()"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <div class="deployment-page__embedded-form">
+                <app-amarisoft-slice-deployment-form
+                  (changed)="handleSliceCreated()"
+                  (deployed)="deploy($event)"
+                ></app-amarisoft-slice-deployment-form>
+              </div>
+
+              @if (deploymentStarted) {
+                <div class="deployment-page__success" role="status">
+                  {{ getDeploymentFeedbackMessage() }}
+                </div>
+              }
+            }
+          </section>
+        }
+      </section>
+    </div>
+  }
+</section>

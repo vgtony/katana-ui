@@ -1,0 +1,158 @@
+<section class="registration-form">
+  <div class="registration-form__header">
+    @if (hasStandaloneTargets) {
+      <p class="registration-form__eyebrow">VM deployment</p>
+      <p class="registration-form__support-copy">
+        Configure one VM per selected server. CPU, RAM, storage, and disk size can be customized
+        per node before deployment.
+      </p>
+    }
+  </div>
+
+  <form class="registration-form__grid" [formGroup]="form" (ngSubmit)="submit()">
+    @if (restoreMessage) {
+      <p class="registration-form__status" role="status">{{ restoreMessage }}</p>
+    }
+
+    <label>
+      <span>Cluster name</span>
+      <input
+        type="text"
+        formControlName="clusterName"
+        placeholder="MyCluster"
+        [readOnly]="hasStandaloneTargets"
+      />
+    </label>
+
+    @if (hasStandaloneTargets) {
+      <div class="registration-form__vm-targets" formArrayName="vmTargets">
+        @for (target of vmTargetControls; track target.get('node')?.value; let index = $index) {
+          <article class="registration-form__vm-target-card" [formGroupName]="index">
+            <div class="registration-form__vm-target-head">
+              <div>
+                <span>Target server</span>
+                <strong>{{ target.get('node')?.value }}</strong>
+              </div>
+            </div>
+
+            <label><span>VM name</span><input type="text" formControlName="vmName" /></label>
+            <label>
+              <span>Template ID</span>
+              @if (getTemplateOptions(index).length) {
+                <select formControlName="template">
+                  <option value="">Create from ISO</option>
+                  @for (templateOption of getTemplateOptions(index); track templateOption.value) {
+                    <option [value]="templateOption.value">{{ templateOption.label }}</option>
+                  }
+                </select>
+              } @else {
+                <input type="text" formControlName="template" placeholder="9000" />
+              }
+            </label>
+            <label>
+              <span>Choose a storage</span>
+              @if (getStorageOptions(index).length) {
+                <select formControlName="storageType" (change)="handleStorageSelectionChange(index)">
+                  <option value="">Choose a storage</option>
+                  @for (storageOption of getStorageOptions(index); track storageOption) {
+                    <option [value]="storageOption">{{ storageOption }}</option>
+                  }
+                </select>
+              } @else {
+                <input type="text" formControlName="storageType" />
+              }
+            </label>
+            <label>
+              <span>ISO image</span>
+              @if (getIsoImageOptions(index).length) {
+                <select formControlName="isoImage">
+                  <option value="">Select ISO if not cloning</option>
+                  @for (isoImage of getIsoImageOptions(index); track isoImage) {
+                    <option [value]="isoImage">{{ isoImage }}</option>
+                  }
+                </select>
+              } @else {
+                <select formControlName="isoImage">
+                  <option value="">
+                    {{ isIsoImageDisabled(index) ? 'Choose a storage first' : 'No ISOs found for this storage' }}
+                  </option>
+                </select>
+              }
+            </label>
+            <label class="registration-form__checkbox registration-form__checkbox--inline">
+              <input type="checkbox" formControlName="start" />
+              <span>Start VM after provisioning</span>
+            </label>
+            <label><span>CPU</span><input type="number" formControlName="cpu" /></label>
+            <label><span>RAM (MB)</span><input type="number" formControlName="ram" /></label>
+            <label><span>Disk size (GB)</span><input type="number" formControlName="diskSize" /></label>
+          </article>
+        }
+      </div>
+    } @else {
+      <label><span>VM name</span><input type="text" formControlName="vmName" /></label>
+      <label><span>Template ID</span><input type="text" formControlName="template" placeholder="9000" /></label>
+      <label
+        ><span>ISO image</span><input type="text" formControlName="isoImage" placeholder="local:iso/ubuntu.iso"
+      /></label>
+      <label class="registration-form__checkbox registration-form__checkbox--inline">
+        <input type="checkbox" formControlName="start" />
+        <span>Start VM after provisioning</span>
+      </label>
+      <label><span>CPU</span><input type="number" formControlName="cpu" /></label>
+      <label><span>RAM (MB)</span><input type="number" formControlName="ram" /></label>
+      <label><span>Storage type</span><input type="text" formControlName="storageType" /></label>
+      <label><span>Disk size (GB)</span><input type="number" formControlName="diskSize" /></label>
+    }
+
+    <label
+      ><span>Management bridge</span><input type="text" formControlName="managementBridgeName"
+    /></label>
+    <label
+      ><span>Management type</span><input type="text" formControlName="managementBridgeType"
+    /></label>
+
+    <details class="registration-form__custom-network" [attr.open]="hasCustomBridgeValues ? true : null">
+      <summary>Optional custom bridge settings</summary>
+      <div class="registration-form__custom-network-grid">
+        <label
+          ><span>Custom bridge</span><input type="text" formControlName="customBridgeName"
+        /></label>
+        <label><span>Custom type</span><input type="text" formControlName="customBridgeType" /></label>
+        <label><span>Custom IP</span><input type="text" formControlName="customIp" /></label>
+        <label><span>Custom netmask</span><input type="text" formControlName="customNetmask" /></label>
+        <label><span>Custom gateway</span><input type="text" formControlName="customGateway" /></label>
+      </div>
+    </details>
+
+    <button type="submit" [disabled]="submitting || waitingForVmIp">
+      {{
+        submitting
+          ? 'Deploying VMs...'
+          : waitingForVmIp
+            ? 'Waiting for VM IP...'
+          : submitSucceeded
+            ? 'Deployment Started'
+            : hasStandaloneTargets
+              ? 'Deploy Selected VMs'
+              : 'Deploy Proxmox VM'
+      }}
+    </button>
+    @if (waitingForVmIp) {
+      <div class="registration-form__loader" role="status" aria-live="polite">
+        <span class="registration-form__spinner" aria-hidden="true"></span>
+        <span>{{ vmIpStatusMessage }}</span>
+      </div>
+    }
+    @if (submitMessage) {
+      <p class="registration-form__status registration-form__status--success" role="status">
+        {{ submitMessage }}
+      </p>
+    }
+    @if (submitError) {
+      <p class="registration-form__status registration-form__status--error" role="alert">
+        {{ submitError }}
+      </p>
+    }
+  </form>
+</section>

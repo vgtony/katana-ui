@@ -1,0 +1,7 @@
+/AGENTS.md
+
+# Local Angular environment files.
+# Keep example/template files tracked instead.
+/katana-slice-manager/src/environments/environment.ts
+/katana-slice-manager/src/environments/environment.*.ts
+!/katana-slice-manager/src/environments/environment*.example.ts

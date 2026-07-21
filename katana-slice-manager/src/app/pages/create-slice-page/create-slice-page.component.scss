@@ -1,0 +1,39 @@
+:host { display: block; }
+
+.create-slice-page { display: grid; gap: 18px; max-width: 980px; margin: 0 auto; color: var(--app-text); }
+.create-slice-page__hero, .create-slice-card { padding: 24px; border: 1px solid var(--app-border); border-radius: 12px; background: var(--app-surface); }
+.create-slice-page__hero h2, .create-slice-page__hero p, .create-slice-card h3, .create-slice-card p, .create-slice-summary, .create-slice-review { margin: 0; }
+.create-slice-page__hero { display: grid; gap: 8px; }
+.create-slice-page__hero > p:last-child, .create-slice-card__heading p, .create-slice-dropzone span, .create-slice-page__automatic p { color: var(--app-text-muted); }
+.create-slice-page__eyebrow, .create-slice-form label > span, dt { color: var(--app-accent); font-size: .74rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.create-slice-page__hero h2 { font-size: 2rem; }
+.create-slice-card { display: grid; gap: 20px; }
+.create-slice-card__heading { display: flex; align-items: flex-start; gap: 14px; }
+.create-slice-card__heading > div { display: grid; gap: 5px; }
+.create-slice-page__step { display: grid; flex: 0 0 34px; width: 34px; height: 34px; place-items: center; border-radius: 50%; background: var(--app-accent-soft); color: var(--app-accent-heading); font-weight: 800; }
+.create-slice-dropzone { display: grid; min-height: 150px; place-items: center; align-content: center; gap: 8px; padding: 22px; border: 1px dashed var(--app-border-accent-strong); border-radius: 12px; background: var(--app-input-bg); text-align: center; cursor: pointer; }
+.create-slice-dropzone input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.create-slice-summary, .create-slice-review { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.create-slice-summary div, .create-slice-review div { display: grid; gap: 6px; padding: 14px; border-radius: 10px; background: var(--app-surface-2); }
+dd { margin: 0; overflow-wrap: anywhere; }
+.create-slice-page__automatic { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px; border: 1px solid var(--app-border-accent); border-radius: 10px; background: var(--app-accent-soft); }
+.create-slice-page__automatic > div { display: grid; gap: 5px; }
+.create-slice-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.create-slice-form label { display: grid; gap: 8px; }
+.create-slice-form input, .create-slice-form select { width: 100%; min-height: 46px; box-sizing: border-box; padding: 0 13px; border: 1px solid var(--app-border-strong); border-radius: 9px; background: var(--app-input-bg); color: var(--app-text); }
+.create-slice-form input[type='file'] { padding: 10px 13px; }
+.create-slice-form__full { grid-column: 1 / -1; }
+.create-slice-page__primary, .create-slice-page__secondary { min-height: 44px; padding: 0 18px; border-radius: 999px; font-weight: 800; cursor: pointer; }
+.create-slice-page__primary { width: fit-content; border: 1px solid var(--app-button-primary-border); background: var(--app-primary-gradient); color: var(--app-accent-contrast); }
+.create-slice-page__secondary { border: 1px solid var(--app-border-accent); background: var(--app-input-bg); color: var(--app-text); }
+.create-slice-page__primary:disabled { cursor: not-allowed; opacity: .55; }
+.create-slice-page__notice, .create-slice-page__success { padding: 13px 15px; border-radius: 9px; }
+.create-slice-page__notice { border: 1px solid var(--app-warning-border); background: var(--app-warning-soft); }
+.create-slice-page__notice--error { border-color: var(--app-danger-border); background: var(--app-danger-soft); color: var(--app-danger); }
+.create-slice-page__success { color: var(--app-success); background: var(--app-accent-soft); }
+
+@media (max-width: 700px) {
+  .create-slice-summary, .create-slice-review, .create-slice-form { grid-template-columns: 1fr; }
+  .create-slice-form__full { grid-column: auto; }
+  .create-slice-page__automatic { align-items: stretch; flex-direction: column; }
+}
