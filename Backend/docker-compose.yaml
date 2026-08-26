@@ -59,6 +59,7 @@ services:
     command: gunicorn -b 0.0.0.0:8000 --workers 3 --timeout 600 --access-logfile - --reload "katana.app:create_app()"
     volumes:
       - "katana-prom-targets:/targets"
+      - "katana-k8s-creds:/katana-nbi/creds"
       - "${KATANA_BOOTSTRAP_DIR:-./templates/example_config_files/bootstrap}:/bootstrap:ro"
     ports:
       - "8000:8000"
@@ -226,5 +227,6 @@ volumes:
   katana-kafka-secrets: {}
   katana-prometheus: {}
   katana-prom-targets: {}
+  katana-k8s-creds: {}
   katana-grafana-templates: {}
   katana-alertmanager: {}

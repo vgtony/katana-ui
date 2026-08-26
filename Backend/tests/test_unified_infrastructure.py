@@ -1,6 +1,7 @@
 import ast
 import json
 import os
+import pickle
 import secrets
 import time
 from pathlib import Path
@@ -83,6 +84,76 @@ class PymongoStub:
     class errors:
         class DuplicateKeyError(Exception):
             pass
+
+
+class OsmUtilsStub:
+    class Osm:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+
+class KubernetesOsmClientTests(unittest.TestCase):
+    def test_registered_nfvo_tls_policy_and_credentials_are_reused(self):
+        mongo = MongoStub(
+            {
+                "nfvo": [
+                    {
+                        "_id": "db-nfvo",
+                        "id": "nfvo-osm-1",
+                        "nfvoip": "nbi.osm.example",
+                        "nfvousername": "stored-user",
+                        "nfvopassword": "stored-password",
+                        "tenantname": "admin",
+                        "tls_verify": False,
+                    }
+                ]
+            }
+        )
+        namespace = load_definitions(
+            "katana-nbi/katana/api/k8s.py",
+            {"_osm_client"},
+            {"mongoUtils": mongo, "osmUtils": OsmUtilsStub, "pickle": pickle},
+        )
+
+        client = namespace["_osm_client"](
+            ip="nbi.osm.example",
+            username="request-user",
+            password="request-password",
+        )
+
+        self.assertFalse(client.kwargs["verify"])
+        self.assertEqual(client.kwargs["username"], "stored-user")
+        self.assertEqual(client.kwargs["password"], "stored-password")
+
+    def test_vim_account_accepts_osm_id_and_katana_reference(self):
+        class OsmStub:
+            nfvo_id = "nfvo-osm-1"
+
+            @staticmethod
+            def listVims():
+                return [{"_id": "osm-account", "name": "openstack-account"}]
+
+        mongo = MongoStub(
+            {
+                "vim": [{"_id": "vim-db", "id": "vim-core", "name": "Core VIM"}],
+                "nfvo_vim_links": [
+                    {
+                        "nfvo_id": "nfvo-osm-1",
+                        "vim_id": "vim-core",
+                        "osm_vim_account_id": "linked-account",
+                    }
+                ],
+            }
+        )
+        namespace = load_definitions(
+            "katana-nbi/katana/api/k8s.py",
+            {"_vim_account_id"},
+            {"mongoUtils": mongo},
+        )
+
+        resolve = namespace["_vim_account_id"]
+        self.assertEqual(resolve(OsmStub(), "osm-account"), "osm-account")
+        self.assertEqual(resolve(OsmStub(), "vim-core"), "linked-account")
 
 
 class SliceConfigTests(unittest.TestCase):

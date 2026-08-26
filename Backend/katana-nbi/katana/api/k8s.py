@@ -3,6 +3,7 @@ import json
 import logging
 from marshal import dumps
 import os
+import pickle
 import time
 import uuid
 import werkzeug
@@ -23,6 +24,55 @@ handler = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
+
+
+def _osm_client(nfvo_id="", ip="", username="", password="", project_id="admin"):
+    """Reuse a registered NFVO, including its configured TLS trust policy."""
+    nfvo = mongoUtils.get("nfvo", nfvo_id) if nfvo_id else None
+    if not nfvo and nfvo_id:
+        nfvo = mongoUtils.find("nfvo", {"id": nfvo_id})
+    if not nfvo and ip:
+        nfvo = mongoUtils.find("nfvo", {"nfvoip": ip})
+    if nfvo:
+        stored = mongoUtils.find("nfvo_obj", {"id": nfvo["id"]})
+        if stored:
+            return pickle.loads(stored["obj"])
+        return osmUtils.Osm(
+            nfvo_id=nfvo["id"],
+            ip=nfvo["nfvoip"],
+            username=nfvo["nfvousername"],
+            password=nfvo["nfvopassword"],
+            project_id=nfvo["tenantname"],
+            verify=nfvo.get("ca_file") or nfvo.get("tls_verify", True),
+        )
+    return osmUtils.Osm(
+        nfvo_id=nfvo_id,
+        ip=ip,
+        username=username,
+        password=password,
+        project_id=project_id,
+    )
+
+
+def _vim_account_id(osm, reference):
+    """Resolve an OSM account UUID, account name, or Katana VIM reference."""
+    for account in osm.listVims():
+        account_id = account.get("_id") or account.get("id")
+        if reference in (account_id, account.get("name")):
+            return account_id
+
+    vim = None
+    for field in ("_id", "id", "name"):
+        vim = mongoUtils.find("vim", {field: reference})
+        if vim:
+            break
+    if not vim:
+        return None
+
+    link = mongoUtils.find(
+        "nfvo_vim_links", {"nfvo_id": osm.nfvo_id, "vim_id": vim["id"]}
+    )
+    return link.get("osm_vim_account_id") if link else None
 
 
 class K8SClusterView(FlaskView):
@@ -180,8 +230,6 @@ class K8SClusterView(FlaskView):
                 request.json["created_at"] = time.time()
 
                 logger.info("Adding a new Kubernetes cluster.")
-                logger.debug(f"Received payload: {request.json}")
-
                 # Validate required fields
                 for field in self.req_fields:
                     if field not in request.json:
@@ -189,11 +237,8 @@ class K8SClusterView(FlaskView):
                         return jsonify({"error": f"Missing required field '{field}'"}), 400
 
                 try:
-                    vim_name = request.json["vim_account"]
-                    vim_data = mongoUtils.find("vims", {"name": vim_name})
-
                     # Authenticate with OSM
-                    osm = osmUtils.Osm(
+                    osm = _osm_client(
                         nfvo_id=request.json.get("nfvo_id", ""),
                         ip=request.json.get("nfvo_ip", ""),
                         username=request.json.get("nfvo_username", ""),
@@ -202,26 +247,13 @@ class K8SClusterView(FlaskView):
                     )
                     osm.getToken()
 
-                    if not vim_data:
-                        logger.info(f"VIM '{vim_name}' not found. Creating a dummy VIM.")
-                        vim_id = osm.addVim(
-                            vimName=vim_name,
-                            vimPassword="dummy_password",
-                            vimType="dummy",
-                            vimUrl="http://dummy-vim-url",
-                            vimUser="dummy_user",
-                            secGroup="{}"
-                        )
-                        logger.info(f"Dummy VIM '{vim_name}' created with ID: {vim_id}")
-                        mongoUtils.add("vims", {
-                            "name": vim_name,
-                            "vim_id": vim_id,
-                            "type": "dummy",
-                            "created_at": time.time()
-                        })
-                    else:
-                        vim_id = vim_data["vim_id"]
-                        logger.info(f"VIM '{vim_name}' found with ID: {vim_id}")
+                    vim_reference = request.json["vim_account"]
+                    vim_id = _vim_account_id(osm, vim_reference)
+                    if not vim_id:
+                        return jsonify(
+                            {"error": f"VIM account '{vim_reference}' was not found in OSM"}
+                        ), 400
+                    logger.info(f"VIM '{vim_reference}' resolved to OSM account: {vim_id}")
 
                     request.json["vim_account"] = vim_id
 
@@ -233,7 +265,6 @@ class K8SClusterView(FlaskView):
 
                     with open(creds_path, "r") as creds_file:
                         creds_data = yaml.safe_load(creds_file)
-                        logger.debug(f"Parsed credentials: {creds_data}")
 
                     payload = {
                         "name": request.json["name"],
@@ -250,7 +281,9 @@ class K8SClusterView(FlaskView):
                         "Content-Type": "application/json",
                         "Authorization": f"Bearer {osm.token}"
                     }
-                    response = requests.post(osm_url, headers=headers, json=payload, verify=False)
+                    response = requests.post(
+                        osm_url, headers=headers, json=payload, verify=osm.verify
+                    )
                     logger.debug(f"OSM API response: {response.status_code}, {response.text}")
 
                     if response.status_code in [200, 201, 202]:
@@ -268,7 +301,12 @@ class K8SClusterView(FlaskView):
                                 if osm_cluster_id:
                                     request.json["osm_id"] = osm_cluster_id
 
-                            mongoUtils.add("k8sclusters", request.json)
+                            record = dict(request.json)
+                            record["nfvo_id"] = osm.nfvo_id
+                            record["nfvo_ip"] = osm.ip
+                            record.pop("nfvo_username", None)
+                            record.pop("nfvo_password", None)
+                            mongoUtils.add("k8sclusters", record)
                             logger.info(f"Successfully added Kubernetes cluster: {new_uuid}")
 
                             # Use request.json directly for dashboard creation.
@@ -310,7 +348,14 @@ class K8SClusterView(FlaskView):
             nfvo_password = cluster.get("nfvo_password")
             project_id = cluster.get("project_id", "admin")
 
-            if not nfvo_ip or not nfvo_username or not nfvo_password:
+            osm = _osm_client(
+                nfvo_id=cluster.get("nfvo_id", ""),
+                ip=nfvo_ip,
+                username=nfvo_username,
+                password=nfvo_password,
+                project_id=project_id,
+            )
+            if not osm.ip or not osm.username or not osm.password:
                 vim_account = mongoUtils.get("vim_accounts", cluster["vim_account"])
                 if not vim_account:
                     logger.error(f"NFVO details not found for Kubernetes cluster: {uuid}")
@@ -321,19 +366,18 @@ class K8SClusterView(FlaskView):
                 nfvo_password = vim_account["nfvopassword"]
                 project_id = vim_account.get("project_id", "admin")
 
-            osm = osmUtils.Osm(
-                nfvo_id=cluster.get("nfvo_id", ""),
-                ip=nfvo_ip,
-                username=nfvo_username,
-                password=nfvo_password,
-                project_id=project_id
-            )
+                osm = _osm_client(
+                    ip=nfvo_ip,
+                    username=nfvo_username,
+                    password=nfvo_password,
+                    project_id=project_id,
+                )
             osm.getToken()
 
             osm_cluster_id = cluster.get("osm_id", uuid)
             osm_url = f"https://{osm.ip}/osm/admin/v1/k8sclusters/{osm_cluster_id}"
             headers = {"Authorization": f"Bearer {osm.token}"}
-            response = requests.delete(osm_url, headers=headers, verify=False)
+            response = requests.delete(osm_url, headers=headers, verify=osm.verify)
             logger.debug(f"OSM API response: {response.status_code}, {response.text}")
 
             if response.status_code not in [200, 204]:
@@ -382,7 +426,7 @@ class K8SClusterView(FlaskView):
                 logger.error("Incomplete NFVO configuration.")
                 return jsonify({"error": "Incomplete NFVO configuration"}), 400
 
-            osm = osmUtils.Osm(
+            osm = _osm_client(
                 nfvo_id=nfvo["id"],
                 ip=osm_ip,
                 username=osm_username,
@@ -407,7 +451,9 @@ class K8SClusterView(FlaskView):
             }
 
             logger.debug(f"Sending payload to OSM: {osm_payload}")
-            response = requests.post(osm_url, headers=headers, json=osm_payload, verify=False)
+            response = requests.post(
+                osm_url, headers=headers, json=osm_payload, verify=osm.verify
+            )
             logger.debug(f"OSM API response: {response.status_code}, {response.text}")
 
             if response.status_code not in [200, 201]:
@@ -452,7 +498,7 @@ class K8SClusterView(FlaskView):
                 logger.error("Incomplete NFVO configuration.")
                 return jsonify({"error": "Incomplete NFVO configuration"}), 400
 
-            osm = osmUtils.Osm(
+            osm = _osm_client(
                 nfvo_id=nfvo["id"],
                 ip=osm_ip,
                 username=osm_username,
@@ -468,7 +514,7 @@ class K8SClusterView(FlaskView):
 
             osm_url = f"https://{osm_ip}/osm/nslcm/v1/ns_lcm_op_occs?nsInstanceId={nsInstanceId}"
             headers = {"Authorization": f"Bearer {osm.token}"}
-            response = requests.get(osm_url, headers=headers, verify=False)
+            response = requests.get(osm_url, headers=headers, verify=osm.verify)
             logger.debug(f"OSM API response: {response.status_code}, {response.text}")
 
             if response.status_code != 200:
@@ -514,7 +560,7 @@ class K8SClusterView(FlaskView):
                 logger.error("Incomplete NFVO configuration.")
                 return jsonify({"error": "Incomplete NFVO configuration"}), 400
 
-            osm = osmUtils.Osm(
+            osm = _osm_client(
                 nfvo_id=nfvo["id"],
                 ip=osm_ip,
                 username=osm_username,
@@ -536,7 +582,12 @@ class K8SClusterView(FlaskView):
 
             terminate_payload = {"terminationType": "FORCEFUL"}
             logger.debug(f"Sending termination request for NS Instance ID: {nsInstanceId}")
-            terminate_response = requests.post(terminate_url, headers=headers, json=terminate_payload, verify=False)
+            terminate_response = requests.post(
+                terminate_url,
+                headers=headers,
+                json=terminate_payload,
+                verify=osm.verify,
+            )
             logger.debug(f"OSM Termination API response: {terminate_response.status_code}, {terminate_response.text}")
 
             if terminate_response.status_code != 202:
@@ -545,7 +596,9 @@ class K8SClusterView(FlaskView):
 
             termination_status_url = f"https://{osm_ip}/osm/nslcm/v1/ns_instances/{nsInstanceId}"
             for attempt in range(10):
-                status_response = requests.get(termination_status_url, headers=headers, verify=False)
+                status_response = requests.get(
+                    termination_status_url, headers=headers, verify=osm.verify
+                )
                 if status_response.status_code == 404:
                     logger.info(f"Deployment with NS Instance ID {nsInstanceId} successfully deleted.")
                     return jsonify({"message": f"Deployment with NS Instance ID {nsInstanceId} successfully deleted."}), 200
