@@ -288,6 +288,20 @@ describe('DeploymentDraftService', () => {
     });
   });
 
+  it('keeps the uploaded K8s filename without storing credential contents', () => {
+    service.saveFormValue('k8s', 'k8s-credentials', {
+      fileName: 'lab-kubeconfig.yaml',
+      credentials: 'secret kubeconfig contents',
+    });
+
+    expect(service.getSavedFormSnapshot<{ fileName: string }>('k8s', 'k8s-credentials')).toEqual({
+      fileName: 'lab-kubeconfig.yaml',
+    });
+    expect(localStorage.getItem('katana-slice-manager.deployment-drafts')).not.toContain(
+      'secret kubeconfig contents',
+    );
+  });
+
   it('removes secrets from legacy draft storage when it is read', () => {
     localStorage.setItem(
       'katana-slice-manager.deployment-drafts',

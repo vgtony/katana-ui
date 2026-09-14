@@ -4,10 +4,8 @@ export interface K8sClusterRegistrationFormModel {
   schemaType: string;
   name: string;
   description: string;
+  nfvoId: string;
   vimAccount: string;
-  nfvoIp: string;
-  nfvoUsername: string;
-  nfvoPassword: string;
   k8sVersion: string;
   k8sNet1: string;
   namespace: string;

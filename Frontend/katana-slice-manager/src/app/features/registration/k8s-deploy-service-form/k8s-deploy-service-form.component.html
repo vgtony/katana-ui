@@ -8,16 +8,43 @@
     @if (restoreMessage) {
       <p class="registration-form__status" role="status">{{ restoreMessage }}</p>
     }
-    <label><span>NFVO ID</span><input type="text" formControlName="nfvoId" /></label>
-    <label><span>NSD ID</span><input type="text" formControlName="nsdId" /></label>
+    <label
+      ><span>NSD</span
+      ><select formControlName="nsdId" (change)="nsdChanged()">
+        <option value="">Select Kubernetes NSD</option>
+        @for (nsd of nsds; track nsd._id || catalogNsdId(nsd)) {
+          <option [value]="catalogNsdId(nsd)">{{ nsdLabel(nsd) }}</option>
+        }
+      </select></label
+    >
+    <label
+      ><span>Owning NFVO</span
+      ><input type="text" formControlName="nfvoId" readonly aria-readonly="true"
+    /></label>
     <label><span>NS name</span><input type="text" formControlName="nsName" /></label>
-    <label><span>VIM account ID</span><input type="text" formControlName="vimAccountId" /></label>
+    <label
+      ><span>Kubernetes cluster</span
+      ><select formControlName="vimAccountId">
+        <option value="">Select registered cluster</option>
+        @for (cluster of availableClusters(); track cluster._id) {
+          <option [value]="cluster.vim_account">{{ clusterLabel(cluster) }}</option>
+        }
+      </select></label
+    >
     <label class="registration-form__full"
       ><span>NS description</span><input type="text" formControlName="nsDescription"
     /></label>
-    <button type="submit" [disabled]="form.invalid || submitting">
+    <button type="submit" [disabled]="form.invalid || submitting || loadingInventory">
       {{ submitting ? 'Deploying to K8s...' : 'Deploy To K8s' }}
     </button>
+    @if (loadingInventory) {
+      <p class="registration-form__status" role="status">Loading Kubernetes targets and NSDs…</p>
+    }
+    @if (inventoryError) {
+      <p class="registration-form__status registration-form__status--error" role="alert">
+        {{ inventoryError }}
+      </p>
+    }
     @if (submitting) {
       <div class="registration-form__loader" role="status" aria-live="polite">
         <span class="registration-form__spinner" aria-hidden="true"></span>

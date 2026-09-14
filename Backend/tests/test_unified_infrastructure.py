@@ -93,6 +93,29 @@ class OsmUtilsStub:
 
 
 class KubernetesOsmClientTests(unittest.TestCase):
+    def test_nfvo_lookup_accepts_database_uuid_and_public_id(self):
+        mongo = MongoStub(
+            {"nfvo": [{"_id": "db-nfvo", "id": "nfvo-osm-1"}]}
+        )
+        find_nfvo = load_definitions(
+            "katana-nbi/katana/api/k8s.py",
+            {"_find_nfvo"},
+            {"mongoUtils": mongo},
+        )["_find_nfvo"]
+
+        self.assertEqual(find_nfvo("db-nfvo")["id"], "nfvo-osm-1")
+        self.assertEqual(find_nfvo("nfvo-osm-1")["_id"], "db-nfvo")
+
+    def test_new_cluster_identity_satisfies_the_unique_id_index(self):
+        identity = load_definitions(
+            "katana-nbi/katana/api/k8s.py",
+            {"_new_cluster_identity"},
+            {"time": time, "uuid": uuid},
+        )["_new_cluster_identity"]()
+
+        self.assertEqual(identity["id"], identity["_id"])
+        self.assertIsInstance(identity["created_at"], float)
+
     def test_registered_nfvo_tls_policy_and_credentials_are_reused(self):
         mongo = MongoStub(
             {
@@ -111,7 +134,7 @@ class KubernetesOsmClientTests(unittest.TestCase):
         )
         namespace = load_definitions(
             "katana-nbi/katana/api/k8s.py",
-            {"_osm_client"},
+            {"_find_nfvo", "_osm_client"},
             {"mongoUtils": mongo, "osmUtils": OsmUtilsStub, "pickle": pickle},
         )
 

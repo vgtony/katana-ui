@@ -8,9 +8,18 @@
     @if (restoreMessage) {
       <p class="registration-form__status" role="status">{{ restoreMessage }}</p>
     }
-    <label><span>Schema version</span><input type="text" formControlName="schemaVersion" /></label>
-    <label><span>Credentials file</span><input type="text" formControlName="credentials" /></label>
-    <label><span>Schema type</span><input type="text" formControlName="schemaType" /></label>
+    <label
+      ><span>Schema version</span
+      ><input type="text" formControlName="schemaVersion" readonly aria-readonly="true"
+    /></label>
+    <label
+      ><span>Credentials file</span
+      ><input type="text" formControlName="credentials" readonly aria-readonly="true"
+    /></label>
+    <label
+      ><span>Schema type</span
+      ><input type="text" formControlName="schemaType" readonly aria-readonly="true"
+    /></label>
     <label
       ><span>Name</span><input type="text" formControlName="name" placeholder="Microk8sCluster3"
     /></label>
@@ -21,12 +30,24 @@
         formControlName="description"
         placeholder="Isolated K8s cluster in mylocation"
     /></label>
-    <label><span>VIM account</span><input type="text" formControlName="vimAccount" /></label>
-    <label><span>NFVO IP</span><input type="text" formControlName="nfvoIp" /></label>
-    <label><span>NFVO username</span><input type="text" formControlName="nfvoUsername" /></label>
     <label
-      ><span>NFVO password</span><input type="password" formControlName="nfvoPassword"
-    /></label>
+      ><span>NFVO</span
+      ><select formControlName="nfvoId" (change)="nfvoChanged()">
+        <option value="">Select registered NFVO</option>
+        @for (nfvo of nfvos; track nfvo._id) {
+          <option [value]="nfvo.nfvo_id">{{ nfvo.nfvo_id }}</option>
+        }
+      </select></label
+    >
+    <label
+      ><span>VIM account</span
+      ><select formControlName="vimAccount">
+        <option value="">Select linked VIM</option>
+        @for (vim of vims; track vim._id) {
+          <option [value]="vim.vim_id">{{ vim.name }} · {{ vim.vim_id }}</option>
+        }
+      </select></label
+    >
     <label><span>K8s version</span><input type="text" formControlName="k8sVersion" /></label>
     <label
       ><span>K8s network (optional)</span
@@ -43,9 +64,17 @@
         >Enable helm-chart-v3 *</span
       ></label
     >
-    <button type="submit" [disabled]="form.invalid || submitting">
+    <button type="submit" [disabled]="form.invalid || submitting || loadingInventory">
       {{ submitting ? 'Registering K8s cluster...' : 'Register K8s Cluster' }}
     </button>
+    @if (loadingInventory) {
+      <p class="registration-form__status" role="status">Loading registered NFVOs and VIMs…</p>
+    }
+    @if (inventoryError) {
+      <p class="registration-form__status registration-form__status--error" role="alert">
+        {{ inventoryError }}
+      </p>
+    }
     @if (submitting) {
       <div class="registration-form__loader" role="status" aria-live="polite">
         <span class="registration-form__spinner" aria-hidden="true"></span>

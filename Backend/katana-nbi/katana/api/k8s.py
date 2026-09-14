@@ -26,11 +26,14 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
+def _find_nfvo(reference):
+    """Find an NFVO by its database UUID or public ID."""
+    return mongoUtils.get("nfvo", reference) or mongoUtils.find("nfvo", {"id": reference})
+
+
 def _osm_client(nfvo_id="", ip="", username="", password="", project_id="admin"):
     """Reuse a registered NFVO, including its configured TLS trust policy."""
-    nfvo = mongoUtils.get("nfvo", nfvo_id) if nfvo_id else None
-    if not nfvo and nfvo_id:
-        nfvo = mongoUtils.find("nfvo", {"id": nfvo_id})
+    nfvo = _find_nfvo(nfvo_id) if nfvo_id else None
     if not nfvo and ip:
         nfvo = mongoUtils.find("nfvo", {"nfvoip": ip})
     if nfvo:
@@ -75,6 +78,11 @@ def _vim_account_id(osm, reference):
     return link.get("osm_vim_account_id") if link else None
 
 
+def _new_cluster_identity():
+    cluster_id = str(uuid.uuid4())
+    return {"_id": cluster_id, "id": cluster_id, "created_at": time.time()}
+
+
 class K8SClusterView(FlaskView):
     route_prefix = "/api/"
     route_base = "/k8s"
@@ -90,8 +98,11 @@ class K8SClusterView(FlaskView):
             return_data = [
                 {
                     "_id": str(cluster["_id"]),
+                    "id": cluster.get("id", str(cluster["_id"])),
                     "name": cluster["name"],
+                    "nfvo_id": cluster.get("nfvo_id", ""),
                     "vim_account": cluster["vim_account"],
+                    "k8s_version": cluster.get("k8s_version", ""),
                     "created_at": cluster["created_at"],
                     "namespace": cluster.get("namespace", "default"),
                 }
@@ -225,9 +236,8 @@ class K8SClusterView(FlaskView):
 
             elif request.content_type == "application/json":
                 # Handle JSON payload for adding a Kubernetes cluster
-                new_uuid = str(uuid.uuid4())
-                request.json["_id"] = new_uuid
-                request.json["created_at"] = time.time()
+                request.json.update(_new_cluster_identity())
+                new_uuid = request.json["_id"]
 
                 logger.info("Adding a new Kubernetes cluster.")
                 # Validate required fields
@@ -312,7 +322,13 @@ class K8SClusterView(FlaskView):
                             # Use request.json directly for dashboard creation.
                             self.create_dashboard_for_cluster(request.json)
 
-                            return jsonify({"message": "Kubernetes cluster added successfully", "osm_response": osm_response}), 201
+                            return jsonify({
+                                "message": "Kubernetes cluster added successfully",
+                                "id": new_uuid,
+                                "nfvo_id": osm.nfvo_id,
+                                "vim_account": vim_id,
+                                "osm_response": osm_response,
+                            }), 201
                         except pymongo.errors.DuplicateKeyError:
                             logger.error(f"Cluster already exists: {request.json['name']}")
                             return jsonify({"error": f"Kubernetes cluster with name {request.json['name']} already exists"}), 400
@@ -412,7 +428,7 @@ class K8SClusterView(FlaskView):
                     logger.error(f"Missing required field: {field}")
                     return jsonify({"error": f"Missing required field '{field}'"}), 400
 
-            nfvo = mongoUtils.get("nfvo", data["nfvo_id"])
+            nfvo = _find_nfvo(data["nfvo_id"])
             if not nfvo:
                 logger.error(f"NFVO with ID {data['nfvo_id']} not found.")
                 return jsonify({"error": f"NFVO with ID {data['nfvo_id']} not found"}), 404

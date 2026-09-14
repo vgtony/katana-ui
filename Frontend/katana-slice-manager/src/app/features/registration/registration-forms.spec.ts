@@ -45,10 +45,8 @@ const formDefinitions: FormDefinition[] = [
       'schemaType',
       'name',
       'description',
+      'nfvoId',
       'vimAccount',
-      'nfvoIp',
-      'nfvoUsername',
-      'nfvoPassword',
       'k8sVersion',
       'namespace'
     ],
@@ -259,6 +257,7 @@ describe('Registration form components', () => {
     let httpTestingController: HttpTestingController;
 
     beforeEach(async () => {
+      localStorage.clear();
       await TestBed.configureTestingModule({
         imports: [K8sClusterRegistrationFormComponent],
         providers: [provideHttpClient(), provideHttpClientTesting()]
@@ -267,10 +266,26 @@ describe('Registration form components', () => {
       fixture = TestBed.createComponent(K8sClusterRegistrationFormComponent);
       httpTestingController = TestBed.inject(HttpTestingController);
       fixture.detectChanges();
+      httpTestingController.expectOne((req) => req.url.includes('/nfvo')).flush([
+        { _id: 'nfvo-db', nfvo_id: 'nfvo-lab', type: 'OSM', created_at: 1 }
+      ]);
+      httpTestingController.expectOne((req) => req.url.includes('/vim')).flush([
+        {
+          _id: 'vim-db',
+          vim_id: 'vim-lab',
+          name: 'Lab VIM',
+          type: 'openstack',
+          location: 'lab',
+          nfvo_ids: ['nfvo-lab'],
+          created_at: 1
+        }
+      ]);
+      fixture.detectChanges();
     });
 
     afterEach(() => {
       httpTestingController.verify();
+      localStorage.clear();
     });
 
     it('submits a blank optional K8s network as null', () => {
@@ -281,10 +296,8 @@ describe('Registration form components', () => {
         schemaType: 'k8scluster',
         name: 'microk8s-lab',
         description: 'Lab Kubernetes cluster',
+        nfvoId: 'nfvo-lab',
         vimAccount: 'vim-lab',
-        nfvoIp: 'nbi.10.0.0.1.nip.io',
-        nfvoUsername: 'admin',
-        nfvoPassword: 'admin',
         k8sVersion: 'v1.30.7',
         k8sNet1: '',
         namespace: 'default',
@@ -300,6 +313,7 @@ describe('Registration form components', () => {
 
       const request = httpTestingController.expectOne((req) => req.url.includes('/k8s'));
       expect(request.request.method).toBe('POST');
+      expect(request.request.body.nfvo_id).toBe('nfvo-lab');
       expect(request.request.body.nets.k8s_net1).toBeNull();
       request.flush({ message: 'Kubernetes cluster registered', id: 'k8s-1' });
     });

@@ -4,9 +4,22 @@ import { map } from 'rxjs/operators';
 import { K8sClusterRegistrationFormModel } from '../../../models/interfaces/k8s-cluster-registration-form.interface';
 import { KatanaApiBaseService } from './katana-api-base.service';
 
-interface KubernetesApiResponse {
+export interface KubernetesApiResponse {
   message: string;
   id?: string;
+  nfvo_id?: string;
+  vim_account?: string;
+}
+
+export interface K8sClusterSummary {
+  _id: string;
+  id: string;
+  name: string;
+  nfvo_id: string;
+  vim_account: string;
+  k8s_version: string;
+  namespace: string;
+  created_at: number;
 }
 
 export interface K8sDeployServiceFormApiPayload {
@@ -28,10 +41,8 @@ interface KubernetesApiPayload {
   schema_type: string;
   name: string;
   description: string;
+  nfvo_id: string;
   vim_account: string;
-  nfvo_ip: string;
-  nfvo_username: string;
-  nfvo_password: string;
   k8s_version: string;
   nets: {
     k8s_net1: string | null;
@@ -50,23 +61,23 @@ function toApiPayload(payload: K8sClusterRegistrationFormModel): KubernetesApiPa
     schema_type: payload.schemaType,
     name: payload.name,
     description: payload.description,
+    nfvo_id: payload.nfvoId,
     vim_account: payload.vimAccount,
-    nfvo_ip: payload.nfvoIp,
-    nfvo_username: payload.nfvoUsername,
-    nfvo_password: payload.nfvoPassword,
     k8s_version: payload.k8sVersion,
     nets: {
-      k8s_net1: payload.k8sNet1.trim() || null
+      k8s_net1: payload.k8sNet1.trim() || null,
     },
     namespace: payload.namespace,
     deployment_methods: {
       'juju-bundle': payload.jujuBundle,
-      'helm-chart-v3': payload.helmChartV3
-    }
+      'helm-chart-v3': payload.helmChartV3,
+    },
   };
 }
 
-function fromApiPayload(payload: Partial<KubernetesApiPayload> & Record<string, unknown>): K8sClusterRegistrationFormModel {
+function fromApiPayload(
+  payload: Partial<KubernetesApiPayload> & Record<string, unknown>,
+): K8sClusterRegistrationFormModel {
   const nets =
     payload['nets'] && typeof payload['nets'] === 'object' && !Array.isArray(payload['nets'])
       ? (payload['nets'] as Record<string, unknown>)
@@ -84,22 +95,20 @@ function fromApiPayload(payload: Partial<KubernetesApiPayload> & Record<string, 
     schemaType: String(payload['schema_type'] ?? ''),
     name: String(payload['name'] ?? ''),
     description: String(payload['description'] ?? ''),
+    nfvoId: String(payload['nfvo_id'] ?? ''),
     vimAccount: String(payload['vim_account'] ?? ''),
-    nfvoIp: String(payload['nfvo_ip'] ?? ''),
-    nfvoUsername: String(payload['nfvo_username'] ?? ''),
-    nfvoPassword: String(payload['nfvo_password'] ?? ''),
     k8sVersion: String(payload['k8s_version'] ?? ''),
     k8sNet1: String(nets['k8s_net1'] ?? ''),
     namespace: String(payload['namespace'] ?? 'default'),
     jujuBundle: Boolean(deploymentMethods['juju-bundle']),
-    helmChartV3: Boolean(deploymentMethods['helm-chart-v3'])
+    helmChartV3: Boolean(deploymentMethods['helm-chart-v3']),
   };
 }
 
 @Injectable({ providedIn: 'root' })
 export class KubernetesApiService extends KatanaApiBaseService {
-  getK8sClusters(): Observable<unknown[]> {
-    return this.http.get<unknown[]>(this.buildApiUrl('k8s'));
+  getK8sClusters(): Observable<K8sClusterSummary[]> {
+    return this.http.get<K8sClusterSummary[]>(this.buildApiUrl('k8s'));
   }
 
   registerK8sCluster(payload: K8sClusterRegistrationFormModel): Observable<KubernetesApiResponse> {
@@ -135,7 +144,7 @@ export class KubernetesApiService extends KatanaApiBaseService {
       nsdId: payload.nsdId,
       nsName: payload.nsName,
       nsDescription: payload.nsDescription,
-      vimAccountId: payload.vimAccountId
+      vimAccountId: payload.vimAccountId,
     };
 
     return this.http.post<K8sDeploymentResponse>(this.buildApiUrl('k8s', 'deploy'), requestPayload);
