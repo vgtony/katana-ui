@@ -4,11 +4,11 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { initialK8sClusterRegistrationFormModel } from '../../../models/k8s-cluster-registration-form.model';
 import { K8sClusterRegistrationFormModel } from '../../../models/interfaces/k8s-cluster-registration-form.interface';
-import { NfvoSummary, VimSummary } from '../../../models/interfaces/infrastructure.interface';
+import { NfvoSummary } from '../../../models/interfaces/infrastructure.interface';
 import {
   KubernetesApiService,
   NfvoApiService,
-  VimApiService,
+  OsmVimAccountSummary,
   getApiErrorMessage,
 } from '../../../shared/services/api';
 import { DeploymentDraftService } from '../../../shared/services/deployment-draft.service';
@@ -29,7 +29,6 @@ export class K8sClusterRegistrationFormComponent implements OnInit {
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly kubernetesApi = inject(KubernetesApiService);
   private readonly nfvoApi = inject(NfvoApiService);
-  private readonly vimApi = inject(VimApiService);
   private readonly deploymentDraftService = inject(DeploymentDraftService);
   readonly completed = output<void>();
   readonly failed = output<void>();
@@ -58,7 +57,8 @@ export class K8sClusterRegistrationFormComponent implements OnInit {
   protected loadingInventory = true;
   protected inventoryError = '';
   protected nfvos: NfvoSummary[] = [];
-  protected vims: VimSummary[] = [];
+  protected vims: OsmVimAccountSummary[] = [];
+  private vimRequestId = 0;
   protected submitMessage = '';
   protected submitError = '';
 
@@ -111,6 +111,7 @@ export class K8sClusterRegistrationFormComponent implements OnInit {
   }
 
   private loadVims(): void {
+    const requestId = ++this.vimRequestId;
     const nfvoId = this.form.controls.nfvoId.value?.trim();
     this.vims = [];
     this.inventoryError = '';
@@ -120,19 +121,21 @@ export class K8sClusterRegistrationFormComponent implements OnInit {
     }
 
     this.loadingInventory = true;
-    this.vimApi.getVims(nfvoId).subscribe({
+    this.kubernetesApi.getOsmVimAccounts(nfvoId).subscribe({
       next: (vims) => {
+        if (requestId !== this.vimRequestId) return;
         this.vims = vims;
         const selected = this.form.controls.vimAccount.value;
-        if (!vims.some((vim) => vim.vim_id === selected)) {
-          this.form.controls.vimAccount.setValue(vims.length === 1 ? vims[0].vim_id : '');
+        if (!vims.some((vim) => vim.id === selected)) {
+          this.form.controls.vimAccount.setValue(vims.length === 1 ? vims[0].id : '');
         }
         this.loadingInventory = false;
         this.changeDetectorRef.markForCheck();
       },
       error: (error: unknown) => {
+        if (requestId !== this.vimRequestId) return;
         this.loadingInventory = false;
-        this.inventoryError = getApiErrorMessage(error, 'Unable to load linked VIMs.');
+        this.inventoryError = getApiErrorMessage(error, 'Unable to load active OSM VIMs.');
         this.changeDetectorRef.markForCheck();
       },
     });

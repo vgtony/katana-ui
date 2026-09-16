@@ -22,6 +22,13 @@ export interface K8sClusterSummary {
   created_at: number;
 }
 
+export interface OsmVimAccountSummary {
+  id: string;
+  name: string;
+  type: string;
+  k8s_cluster_count: number;
+}
+
 export interface K8sDeployServiceFormApiPayload {
   nfvo_id: string;
   nsdId: string;
@@ -107,6 +114,10 @@ function fromApiPayload(
 
 @Injectable({ providedIn: 'root' })
 export class KubernetesApiService extends KatanaApiBaseService {
+  getOsmVimAccounts(nfvoId: string): Observable<OsmVimAccountSummary[]> {
+    return this.http.get<OsmVimAccountSummary[]>(this.buildApiUrl('k8s', 'vim-accounts', nfvoId));
+  }
+
   getK8sClusters(): Observable<K8sClusterSummary[]> {
     return this.http.get<K8sClusterSummary[]>(this.buildApiUrl('k8s'));
   }

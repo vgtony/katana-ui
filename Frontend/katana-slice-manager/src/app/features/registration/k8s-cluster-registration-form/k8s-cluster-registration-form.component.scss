@@ -1,5 +1,3 @@
-
-
 .registration-form__header h3,
 .registration-form__header p,
 .registration-form__eyebrow {
@@ -46,7 +44,8 @@
 }
 
 .registration-form__grid input[type='text'],
-.registration-form__grid input[type='password'] {
+.registration-form__grid input[type='password'],
+.registration-form__grid select {
   width: 100%;
   padding: 0.9rem 1rem;
   border-radius: 14px;

@@ -40,11 +40,11 @@
       </select></label
     >
     <label
-      ><span>VIM account</span
+      ><span>OSM VIM account</span
       ><select formControlName="vimAccount">
-        <option value="">Select linked VIM</option>
-        @for (vim of vims; track vim._id) {
-          <option [value]="vim.vim_id">{{ vim.name }} · {{ vim.vim_id }}</option>
+        <option value="">Select an enabled OSM VIM</option>
+        @for (vim of vims; track vim.id) {
+          <option [value]="vim.id">{{ vim.name }} · {{ vim.id }}</option>
         }
       </select></label
     >
@@ -68,7 +68,7 @@
       {{ submitting ? 'Registering K8s cluster...' : 'Register K8s Cluster' }}
     </button>
     @if (loadingInventory) {
-      <p class="registration-form__status" role="status">Loading registered NFVOs and VIMs…</p>
+      <p class="registration-form__status" role="status">Loading NFVOs and enabled OSM VIMs…</p>
     }
     @if (inventoryError) {
       <p class="registration-form__status registration-form__status--error" role="alert">

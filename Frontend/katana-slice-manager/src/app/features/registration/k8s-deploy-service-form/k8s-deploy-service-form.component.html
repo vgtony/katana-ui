@@ -23,13 +23,19 @@
     /></label>
     <label><span>NS name</span><input type="text" formControlName="nsName" /></label>
     <label
-      ><span>Kubernetes cluster</span
+      ><span>OSM VIM account</span
       ><select formControlName="vimAccountId">
-        <option value="">Select registered cluster</option>
-        @for (cluster of availableClusters(); track cluster._id) {
-          <option [value]="cluster.vim_account">{{ clusterLabel(cluster) }}</option>
+        <option value="">Select an enabled OSM VIM with a Kubernetes cluster</option>
+        @for (vim of vims; track vim.id) {
+          <option [value]="vim.id" [disabled]="vim.k8s_cluster_count === 0">
+            {{ vimLabel(vim) }}
+          </option>
         }
-      </select></label
+      </select>
+      <small
+        >VIMs with no OSM-registered Kubernetes cluster are shown but unavailable for
+        deployment.</small
+      ></label
     >
     <label class="registration-form__full"
       ><span>NS description</span><input type="text" formControlName="nsDescription"
@@ -38,7 +44,9 @@
       {{ submitting ? 'Deploying to K8s...' : 'Deploy To K8s' }}
     </button>
     @if (loadingInventory) {
-      <p class="registration-form__status" role="status">Loading Kubernetes targets and NSDs…</p>
+      <p class="registration-form__status" role="status">
+        Loading Kubernetes targets, enabled OSM VIMs, and NSDs…
+      </p>
     }
     @if (inventoryError) {
       <p class="registration-form__status registration-form__status--error" role="alert">

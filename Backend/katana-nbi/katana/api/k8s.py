@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+from collections import Counter
 from marshal import dumps
 import os
 import pickle
@@ -83,10 +84,57 @@ def _new_cluster_identity():
     return {"_id": cluster_id, "id": cluster_id, "created_at": time.time()}
 
 
+def _osm_vim_options(vims, clusters):
+    """Expose enabled OSM VIMs without returning their credentials."""
+    cluster_counts = Counter(
+        cluster.get("vim_account") for cluster in clusters if isinstance(cluster, dict)
+    )
+    options = []
+    for vim in vims:
+        if not isinstance(vim, dict):
+            continue
+        account_id = vim.get("_id") or vim.get("id")
+        state = (vim.get("_admin") or {}).get("operationalState")
+        if not account_id or str(state).upper() != "ENABLED":
+            continue
+        options.append({
+            "id": account_id,
+            "name": vim.get("name") or account_id,
+            "type": vim.get("vim_type", ""),
+            "k8s_cluster_count": cluster_counts[account_id],
+        })
+    return options
+
+
 class K8SClusterView(FlaskView):
     route_prefix = "/api/"
     route_base = "/k8s"
     req_fields = ["name", "vim_account", "k8s_version", "credentials"]
+
+    @route('/vim-accounts/<nfvo_id>', methods=['GET'])
+    def osm_vim_accounts(self, nfvo_id):
+        """Read enabled OSM VIM accounts and their Kubernetes-cluster associations."""
+        nfvo = _find_nfvo(nfvo_id)
+        if not nfvo:
+            return jsonify({"error": f"NFVO with ID {nfvo_id} not found"}), 404
+        try:
+            osm = _osm_client(nfvo_id=nfvo["id"])
+            osm.getToken()
+            vims = osm.listVims()
+            response = requests.get(
+                f"https://{osm.ip}/osm/admin/v1/k8sclusters",
+                headers={"Authorization": f"Bearer {osm.token}"},
+                verify=osm.verify,
+                timeout=max(osm.timeout, osmUtils.OSM_AUTH_TIMEOUT),
+            )
+            response.raise_for_status()
+            clusters = yaml.safe_load(response.text) or []
+            if not isinstance(clusters, list):
+                raise ValueError("OSM Kubernetes cluster list is invalid")
+            return jsonify(_osm_vim_options(vims, clusters)), 200
+        except Exception:
+            logger.exception("Unable to load active OSM VIM accounts")
+            return jsonify({"error": "Unable to load active OSM VIM accounts"}), 502
 
     def index(self):
         """
@@ -455,6 +503,12 @@ class K8SClusterView(FlaskView):
                 logger.exception(f"Error obtaining OSM token: {e}")
                 return jsonify({"error": "Failed to authenticate with OSM"}), 400
 
+            vim_account_id = _vim_account_id(osm, data["vimAccountId"])
+            if not vim_account_id:
+                return jsonify(
+                    {"error": f"VIM account '{data['vimAccountId']}' was not found in OSM"}
+                ), 400
+
             osm_url = f"https://{osm_ip}/osm/nslcm/v1/ns_instances_content"
             headers = {
                 "Content-Type": "application/json",
@@ -463,7 +517,7 @@ class K8SClusterView(FlaskView):
             osm_payload = {
                 "nsName": data["nsName"],
                 "nsdId": data["nsdId"],
-                "vimAccountId": data["vimAccountId"]
+                "vimAccountId": vim_account_id
             }
 
             logger.debug(f"Sending payload to OSM: {osm_payload}")

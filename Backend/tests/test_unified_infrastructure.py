@@ -1,4 +1,5 @@
 import ast
+from collections import Counter
 import json
 import os
 import pickle
@@ -93,6 +94,34 @@ class OsmUtilsStub:
 
 
 class KubernetesOsmClientTests(unittest.TestCase):
+    def test_osm_vim_options_show_enabled_accounts_and_cluster_counts_without_secrets(self):
+        options = load_definitions(
+            "katana-nbi/katana/api/k8s.py",
+            {"_osm_vim_options"},
+            {"Counter": Counter},
+        )["_osm_vim_options"](
+            [
+                {
+                    "_id": "vim-ready",
+                    "name": "MrKrabsVIM",
+                    "vim_type": "dummy",
+                    "vim_password": "secret",
+                    "_admin": {"operationalState": "ENABLED"},
+                },
+                {
+                    "_id": "vim-empty",
+                    "name": "MrKrabsVIM2",
+                    "_admin": {"operationalState": "ENABLED"},
+                },
+                {"_id": "vim-error", "_admin": {"operationalState": "ERROR"}},
+            ],
+            [{"vim_account": "vim-ready"}],
+        )
+
+        self.assertEqual([item["id"] for item in options], ["vim-ready", "vim-empty"])
+        self.assertEqual([item["k8s_cluster_count"] for item in options], [1, 0])
+        self.assertNotIn("vim_password", options[0])
+
     def test_nfvo_lookup_accepts_database_uuid_and_public_id(self):
         mongo = MongoStub(
             {"nfvo": [{"_id": "db-nfvo", "id": "nfvo-osm-1"}]}

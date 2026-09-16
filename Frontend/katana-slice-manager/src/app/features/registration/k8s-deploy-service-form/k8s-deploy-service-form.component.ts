@@ -10,6 +10,7 @@ import {
   CatalogApiService,
   K8sClusterSummary,
   KubernetesApiService,
+  OsmVimAccountSummary,
   getApiErrorMessage,
   getApiErrorType,
 } from '../../../shared/services/api';
@@ -59,6 +60,8 @@ export class K8sDeployServiceFormComponent implements OnInit {
   protected inventoryError = '';
   protected nsds: NsdSummary[] = [];
   protected clusters: K8sClusterSummary[] = [];
+  protected vims: OsmVimAccountSummary[] = [];
+  private vimRequestId = 0;
   protected submitSucceeded = false;
   protected submitMessage = '';
   protected submitError = '';
@@ -93,7 +96,7 @@ export class K8sDeployServiceFormComponent implements OnInit {
         );
         this.clusters = clusters;
         this.syncSelection();
-        this.loadingInventory = false;
+        this.loadOsmVims();
         this.changeDetectorRef.markForCheck();
       },
       error: (error: unknown) => {
@@ -111,7 +114,7 @@ export class K8sDeployServiceFormComponent implements OnInit {
     const selected = this.selectedNsd();
     this.form.controls.nfvoId.setValue(String(selected?.nfvo_id ?? ''));
     this.form.controls.vimAccountId.setValue('');
-    this.selectOnlyCluster();
+    this.loadOsmVims();
   }
 
   protected catalogNsdId(nsd: NsdSummary): string {
@@ -129,8 +132,8 @@ export class K8sDeployServiceFormComponent implements OnInit {
     return this.clusters.filter((cluster) => !nfvoId || cluster.nfvo_id === nfvoId);
   }
 
-  protected clusterLabel(cluster: K8sClusterSummary): string {
-    return `${cluster.name} · ${cluster.namespace}`;
+  protected vimLabel(vim: OsmVimAccountSummary): string {
+    return `${vim.name} · ${vim.id} (${vim.k8s_cluster_count} K8s clusters)`;
   }
 
   private syncSelection(): void {
@@ -141,17 +144,49 @@ export class K8sDeployServiceFormComponent implements OnInit {
       this.form.controls.nsdId.setValue(this.catalogNsdId(this.nsds[0]));
       this.form.controls.nfvoId.setValue(String(this.nsds[0].nfvo_id ?? ''));
     }
-    this.selectOnlyCluster();
   }
 
-  private selectOnlyCluster(): void {
+  private selectDefaultVim(): void {
     const clusters = this.availableClusters();
+    const vims = this.vims.filter((vim) => vim.k8s_cluster_count > 0);
     const selected = this.form.controls.vimAccountId.value;
-    if (!clusters.some((cluster) => cluster.vim_account === selected)) {
+    if (!vims.some((vim) => vim.id === selected)) {
+      const clusterDefault = clusters.length === 1 ? clusters[0].vim_account : '';
       this.form.controls.vimAccountId.setValue(
-        clusters.length === 1 ? clusters[0].vim_account : '',
+        vims.some((vim) => vim.id === clusterDefault)
+          ? clusterDefault
+          : vims.length === 1
+            ? vims[0].id
+            : '',
       );
     }
+  }
+
+  private loadOsmVims(): void {
+    const requestId = ++this.vimRequestId;
+    const nfvoId = this.form.controls.nfvoId.value?.trim();
+    this.vims = [];
+    this.inventoryError = '';
+    if (!nfvoId) {
+      this.loadingInventory = false;
+      return;
+    }
+    this.loadingInventory = true;
+    this.kubernetesApi.getOsmVimAccounts(nfvoId).subscribe({
+      next: (vims) => {
+        if (requestId !== this.vimRequestId) return;
+        this.vims = vims;
+        this.selectDefaultVim();
+        this.loadingInventory = false;
+        this.changeDetectorRef.markForCheck();
+      },
+      error: (error: unknown) => {
+        if (requestId !== this.vimRequestId) return;
+        this.loadingInventory = false;
+        this.inventoryError = getApiErrorMessage(error, 'Unable to load active OSM VIMs.');
+        this.changeDetectorRef.markForCheck();
+      },
+    });
   }
 
   private selectedNsd(): NsdSummary | null {
