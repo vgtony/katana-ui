@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { finalize, map } from 'rxjs';
 import { NsdSummary, VimSummary } from '../../models/interfaces/infrastructure.interface';
 import {
   NestRecord,
@@ -14,6 +14,7 @@ import {
 } from '../../shared/nest-file.utils';
 import {
   CatalogApiService,
+  KubernetesApiService,
   SliceApiService,
   VimApiService,
   getApiErrorMessage,
@@ -40,6 +41,8 @@ export class CreateSlicePageComponent implements OnInit {
   private readonly sliceApi = inject(SliceApiService);
   private readonly catalogApi = inject(CatalogApiService);
   private readonly vimApi = inject(VimApiService);
+  private readonly kubernetesApi = inject(KubernetesApiService);
+  private readonly uploadedServices = new WeakMap<FormGroup, NestRecord>();
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly vimOptions = new WeakMap<FormGroup, VimSummary[]>();
   private readonly targetLoading = new WeakSet<FormGroup>();
@@ -147,6 +150,13 @@ export class CreateSlicePageComponent implements OnInit {
     );
   }
 
+  protected helmSummary(row: FormGroup): string {
+    const config = this.uploadedServices.get(row)?.['helm_configuration'];
+    return isNestRecord(config)
+      ? `Helm profile: ${config['profile']} · SD: ${config['sd']} · KDU: ${config['kdu_name']}`
+      : '';
+  }
+
   protected isLoadingTargets(row: FormGroup): boolean {
     return this.targetLoading.has(row);
   }
@@ -156,15 +166,15 @@ export class CreateSlicePageComponent implements OnInit {
     if (serverError) return serverError;
     const nsd = this.selectedNsd(row);
     const runtime = this.nsdRuntime(nsd);
-    if (nsd && runtime !== 'openstack') {
-      return `NSD runtime ${runtime || 'unknown'} is not supported by the OpenStack VIM inventory.`;
+    if (nsd && !['openstack', 'kubernetes'].includes(runtime)) {
+      return `NSD runtime ${runtime || 'unknown'} is not supported.`;
     }
     if (
       row.get('nfvoId')?.value &&
       !this.isLoadingTargets(row) &&
       !this.placementOptions(row).length
     ) {
-      return 'No linked OpenStack VIM is available for this NSD and NFVO.';
+      return 'No linked target with a registered location is available for this NSD and NFVO.';
     }
     if (row.touched && row.invalid)
       return 'Select an NSD, enter an NS name, choose a placement, and explicitly select a target.';
@@ -229,16 +239,16 @@ export class CreateSlicePageComponent implements OnInit {
         : [];
       for (const service of services) {
         const value = isNestRecord(service) ? service : {};
-        this.rows.push(
-          this.createServiceGroup({
-            nsdId: firstString(value, ['nsd-id', 'nsd_id', 'nsdId']),
-            nsName: firstString(value, ['ns-name', 'ns_name', 'nsName']),
-            nfvoId: firstString(value, ['nfvo-id', 'nfvo_id', 'nfvoId']),
-            placement: firstString(value, ['placement']),
-            target: firstString(value, ['target']),
-            optional: Boolean(value['optional']),
-          }),
-        );
+        const row = this.createServiceGroup({
+          nsdId: firstString(value, ['nsd-id', 'nsd_id', 'nsdId']),
+          nsName: firstString(value, ['ns-name', 'ns_name', 'nsName']),
+          nfvoId: firstString(value, ['nfvo-id', 'nfvo_id', 'nfvoId']),
+          placement: firstString(value, ['placement']),
+          target: firstString(value, ['target']),
+          optional: Boolean(value['optional']),
+        });
+        this.uploadedServices.set(row, value);
+        this.rows.push(row);
       }
       if (!this.rows.length) this.addService();
       for (const row of this.rows.controls) this.syncRowWithCatalog(row);
@@ -281,7 +291,25 @@ export class CreateSlicePageComponent implements OnInit {
     this.vimOptions.set(row, []);
     if (!nfvoId) return;
     this.targetLoading.add(row);
-    this.vimApi.getVims(nfvoId).subscribe({
+    const inventory =
+      this.nsdRuntime(this.selectedNsd(row)) === 'kubernetes'
+        ? this.kubernetesApi.getK8sClusters().pipe(
+            map((clusters): VimSummary[] =>
+              clusters
+                .filter((cluster) => cluster.nfvo_id === nfvoId)
+                .map((cluster) => ({
+                  _id: cluster._id,
+                  vim_id: cluster.id,
+                  name: cluster.name,
+                  type: 'kubernetes',
+                  location: cluster.location ?? '',
+                  nfvo_ids: [cluster.nfvo_id],
+                  created_at: cluster.created_at,
+                })),
+            ),
+          )
+        : this.vimApi.getVims(nfvoId);
+    inventory.subscribe({
       next: (vims) => {
         this.vimOptions.set(row, vims);
         this.targetLoading.delete(row);
@@ -320,12 +348,9 @@ export class CreateSlicePageComponent implements OnInit {
     const existingDescriptor = isNestRecord(payload['service_descriptor'])
       ? payload['service_descriptor']
       : {};
-    const existingRows = Array.isArray(existingDescriptor['ns_list'])
-      ? existingDescriptor['ns_list']
-      : [];
     existingDescriptor['ns_list'] = this.rows.getRawValue().map((raw, index) => {
       const value = raw as ServiceRowValue;
-      const existing = isNestRecord(existingRows[index]) ? { ...existingRows[index] } : {};
+      const existing = { ...this.uploadedServices.get(this.rows.at(index)) };
       for (const key of [
         'nsd-id',
         'nsd_id',

@@ -1,3 +1,4 @@
+import json
 import logging
 import logging.handlers
 import uuid
@@ -87,16 +88,17 @@ class Osm:
                 self.getToken()
         return vim_id
 
-    def instantiateNs(self, nsName, nsdId, vimAccountId):
+    def instantiateNs(self, nsName, nsdId, vimAccountId, additionalParamsForVnf=None):
         """
         Instantiates a NS on the OSM
         Returns the NS ID
         """
         osm_url = f"https://{self.ip}:9999/osm/nslcm/v1/ns_instances_content"
 
-        data = "{{ nsName: {0}, nsdId: {1}, vimAccountId: {2} }}".format(
-            nsName, nsdId, vimAccountId
-        )
+        payload = {"nsName": nsName, "nsdId": nsdId, "vimAccountId": vimAccountId}
+        if additionalParamsForVnf:
+            payload["additionalParamsForVnf"] = additionalParamsForVnf
+        data = json.dumps(payload)
         while True:
             headers = {
                 "Content-Type": "application/yaml",

@@ -73,7 +73,9 @@
           <span class="create-slice-page__step">2</span>
           <div>
             <h3>Network services</h3>
-            <p>Select NSD, owning NFVO, placement, and linked VIM for every row.</p>
+            <p>
+              Select NSD, owning NFVO, placement, and linked infrastructure target for every row.
+            </p>
           </div>
         </div>
         <button type="button" class="create-slice-page__secondary" (click)="addService()">
@@ -124,7 +126,7 @@
                 </select></label
               >
               <label
-                ><span>Target VIM *</span
+                ><span>Target infrastructure *</span
                 ><select formControlName="target">
                   <option value="">Select target</option>
                   @for (vim of targetsFor(row); track vim.vim_id) {
@@ -140,8 +142,11 @@
             </div>
             @if (isLoadingTargets(row)) {
               <p class="create-slice-page__notice" role="status">
-                Loading VIMs linked to this NFVO…
+                Loading targets linked to this NFVO…
               </p>
+            }
+            @if (helmSummary(row); as settings) {
+              <p>{{ settings }}</p>
             }
             @if (rowError(row); as error) {
               <p class="create-slice-page__notice create-slice-page__notice--error" role="alert">
@@ -162,7 +167,8 @@
         <div>
           <h3>Review and deploy</h3>
           <p>
-            Only existing NFVO and VIM IDs are submitted. Targets are never selected automatically.
+            Only existing NFVO and infrastructure IDs are submitted. Targets are never selected
+            automatically.
           </p>
         </div>
       </div>

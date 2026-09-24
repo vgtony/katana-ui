@@ -12,6 +12,7 @@ export interface KubernetesApiResponse {
 }
 
 export interface K8sClusterSummary {
+  location?: string;
   _id: string;
   id: string;
   name: string;

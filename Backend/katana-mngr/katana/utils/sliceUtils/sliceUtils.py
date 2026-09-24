@@ -575,7 +575,11 @@ def add_slice(nest_req):
         selected_vim = ns["placement_loc"]["vim"]
         nfvo_vim_account = vim_dict[selected_vim]["nfvo_vim_account"][ns["nfvo-id"]]
         try:
-            nfvo_inst_ns = target_nfvo_obj.instantiateNs(ns["ns-name"], ns["nsd-id"], nfvo_vim_account)
+            nfvo_inst_ns = target_nfvo_obj.instantiateNs(
+                ns["ns-name"], ns["nsd-id"], nfvo_vim_account,
+                **({"additionalParamsForVnf": ns["additionalParamsForVnf"]}
+                   if ns.get("additionalParamsForVnf") else {}),
+            )
         except Exception as exc:
             message = _osm_error_message(exc, "OSM NS instantiation failed")
             logger.exception("OSM NS instantiation failed")
@@ -591,6 +595,7 @@ def add_slice(nest_req):
             "vim": selected_vim,
             "status": "Started",
             "deployment_runtime": ns.get("deployment_runtime"),
+            **{key: copy.deepcopy(ns[key]) for key in ("helm_configuration", "additionalParamsForVnf") if key in ns},
         }
         # Check if this the first slice of a sharing list
         if ns["shared_function"] == 1:
@@ -1203,7 +1208,11 @@ def update_slice(nest_id, updates):
                 )
             # Start again the NS
             nfvo_vim_account = nest["vim_list"][restart_ns["vim"]]["nfvo_vim_account"][restart_ns["nfvo-id"]]
-            nfvo_inst_ns_id = target_nfvo_obj.instantiateNs(restart_ns["ns-name"], restart_ns["nsd-id"], nfvo_vim_account)
+            nfvo_inst_ns_id = target_nfvo_obj.instantiateNs(
+                restart_ns["ns-name"], restart_ns["nsd-id"], nfvo_vim_account,
+                **({"additionalParamsForVnf": restart_ns["additionalParamsForVnf"]}
+                   if restart_ns.get("additionalParamsForVnf") else {}),
+            )
             # Update the vnfr
             insr = target_nfvo_obj.getNsr(nfvo_inst_ns_id)
             while insr["operational-status"] != "running" or insr["config-status"] != "configured":
@@ -1250,6 +1259,9 @@ def update_slice(nest_id, updates):
                 new_ns["ns-name"] = updates["details"]["ns_name"]
                 new_ns["nfvo-id"] = updates["details"]["nfvo_id"]
                 new_ns["target"] = updates["details"]["target"]
+                for field in ("helm_configuration", "additionalParamsForVnf"):
+                    if field in updates["details"]:
+                        new_ns[field] = copy.deepcopy(updates["details"][field])
                 new_ns["shared_function"] = 0
                 nsd = mongoUtils.find("nsd", {"nsd-id": new_ns["nsd-id"]})
             except KeyError as e:
@@ -1323,7 +1335,11 @@ def update_slice(nest_id, updates):
             target_nfvo_obj = pickle.loads(mongoUtils.find("nfvo_obj", {"id": new_ns["nfvo-id"]})["obj"])
             selected_vim = new_ns["placement_loc"]["vim"]
             nfvo_vim_account = vim_dict[selected_vim]["nfvo_vim_account"][new_ns["nfvo-id"]]
-            nfvo_inst_ns = target_nfvo_obj.instantiateNs(new_ns["ns-name"], new_ns["nsd-id"], nfvo_vim_account)
+            nfvo_inst_ns = target_nfvo_obj.instantiateNs(
+                new_ns["ns-name"], new_ns["nsd-id"], nfvo_vim_account,
+                **({"additionalParamsForVnf": new_ns["additionalParamsForVnf"]}
+                   if new_ns.get("additionalParamsForVnf") else {}),
+            )
             nest["ns_inst_info"][new_ns["ns-id"]][new_ns["location"]] = {
                 "nfvo_inst_ns": nfvo_inst_ns,
                 "nfvo-id": new_ns["nfvo-id"],
@@ -1332,6 +1348,7 @@ def update_slice(nest_id, updates):
                 "nsd-id": new_ns["nsd-id"],
                 "vim": selected_vim,
                 "status": "Started",
+                **{key: copy.deepcopy(new_ns[key]) for key in ("helm_configuration", "additionalParamsForVnf") if key in new_ns},
             }
             nest["conf_comp"]["nf"].append(new_ns["nsd-id"])
             time.sleep(4)

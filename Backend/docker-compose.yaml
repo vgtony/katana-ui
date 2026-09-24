@@ -67,6 +67,7 @@ services:
       PYTHONWARNINGS: "ignore:Unverified HTTPS request"
       KATANA_MONITORING: ${KATANA_MONITORING:-}
       APEX: ${APEX:-}
+      KATANA_FREE5GC_NEST_NSD_IDS: ${KATANA_FREE5GC_NEST_NSD_IDS:-}
     restart: always
     depends_on:
       - kafka

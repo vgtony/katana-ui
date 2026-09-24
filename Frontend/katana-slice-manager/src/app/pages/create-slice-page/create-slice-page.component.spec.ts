@@ -1,7 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of } from 'rxjs';
-import { CatalogApiService, SliceApiService, VimApiService } from '../../shared/services/api';
+import {
+  CatalogApiService,
+  KubernetesApiService,
+  SliceApiService,
+  VimApiService,
+} from '../../shared/services/api';
 import { CreateSlicePageComponent } from './create-slice-page.component';
 
 describe('CreateSlicePageComponent', () => {
@@ -40,6 +45,7 @@ describe('CreateSlicePageComponent', () => {
       imports: [CreateSlicePageComponent],
       providers: [
         provideRouter([]),
+        { provide: KubernetesApiService, useValue: { getK8sClusters: () => of([]) } },
         { provide: SliceApiService, useValue: { createUnifiedSlice } },
         { provide: CatalogApiService, useValue: { getNsList: () => of([nsd]) } },
         { provide: VimApiService, useValue: { getVims: vi.fn(() => of(linkedVims)) } },
@@ -141,5 +147,67 @@ describe('CreateSlicePageComponent', () => {
     component.deploy();
 
     expect(createUnifiedSlice).not.toHaveBeenCalled();
+  });
+  it('keeps uploaded SD settings with their service when a row is removed', async () => {
+    const component = TestBed.createComponent(CreateSlicePageComponent).componentInstance as any;
+    await component.loadNest({
+      name: 'nest.json',
+      text: async () =>
+        JSON.stringify({
+          base_slice_descriptor: {},
+          service_descriptor: {
+            ns_list: ['000002', 'abcdef'].map((sd) => ({
+              'nsd-id': 'nsd-1',
+              'ns-name': `service-${sd}`,
+              'nfvo-id': 'osm-1',
+              placement: 'core',
+              target: 'core-1',
+              helm_configuration: {
+                profile: 'free5gc-sd-v1',
+                sd,
+                member_vnf_index: 'free5gc',
+                kdu_name: 'free5gc',
+              },
+            })),
+          },
+        }),
+    });
+    component.removeService(0);
+    const payload = component.buildPayload();
+    expect(payload.service_descriptor.ns_list).toHaveLength(1);
+    expect(payload.service_descriptor.ns_list[0].helm_configuration.sd).toBe('abcdef');
+    expect(component.helmSummary(component.rows.at(0))).toContain('abcdef');
+    expect(component.nestDocument.service_descriptor.ns_list[0].helm_configuration.sd).toBe(
+      '000002',
+    );
+  });
+
+  it('lists Kubernetes targets linked to the NSD owner and location', () => {
+    const component = TestBed.createComponent(CreateSlicePageComponent).componentInstance as any;
+    const cluster = {
+      _id: 'db',
+      id: 'k8s-1',
+      name: 'Edge',
+      nfvo_id: 'osm-1',
+      location: 'edge',
+      vim_account: 'account',
+      k8s_version: '',
+      namespace: 'default',
+      created_at: 1,
+    };
+    vi.spyOn(TestBed.inject(KubernetesApiService), 'getK8sClusters').mockReturnValue(
+      of([cluster, { ...cluster, id: 'other', nfvo_id: 'osm-2' }]),
+    );
+    component.nsds = [{ ...nsd, deployment_runtime: 'kubernetes' }];
+    component.nestDocument = {};
+    component.addService();
+    const row = component.rows.at(0);
+    row.patchValue({ nsdId: 'nsd-1', nsName: 'free5gc' });
+    component.nsdChanged(row);
+    expect(component.placementOptions(row)).toEqual(['edge']);
+    row.patchValue({ placement: 'edge', target: 'k8s-1' });
+    expect(component.targetsFor(row).map((target: any) => target.vim_id)).toEqual(['k8s-1']);
+    expect(component.rowError(row)).toBe('');
+    expect(component.canDeploy).toBe(true);
   });
 });

@@ -153,6 +153,7 @@ class K8SClusterView(FlaskView):
                     "k8s_version": cluster.get("k8s_version", ""),
                     "created_at": cluster["created_at"],
                     "namespace": cluster.get("namespace", "default"),
+                    "location": cluster.get("location", ""),
                 }
                 for cluster in k8s_data
             ]

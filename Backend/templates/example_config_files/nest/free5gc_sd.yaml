@@ -1,0 +1,26 @@
+# Replace these identifiers with registered Katana resources before deployment.
+# helm_configuration is a Katana extension; quote SD to preserve leading zeroes.
+base_slice_descriptor:
+  base_slice_des_id: free5gc-sd-000002
+  delay_tolerance: true
+  network_DL_throughput:
+    guaranteed: 200000
+  isolation: 3
+  coverage: [edge]
+service_descriptor:
+  ns_list:
+    - nsd-id: REPLACE_WITH_ADAPTED_NSD_ID
+      ns-name: free5gc-sd-000002
+      nfvo-id: REPLACE_WITH_NFVO_ID
+      target: REPLACE_WITH_KUBERNETES_TARGET_ID
+      placement: edge
+      optional: false
+      helm_configuration:
+        profile: free5gc-sd-v1
+        member_vnf_index: "free5gc"
+        kdu_name: free5gc
+        sd: "000002"
+test_descriptor:
+  performance_monitoring: false
+  performance_prediction: false
+  probe_list: []

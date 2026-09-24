@@ -268,16 +268,17 @@ class Osm:
                 time.sleep(interval)
         raise OsmRequestError(f"OSM VIM account {vim_id} did not become ready")
 
-    def instantiateNs(self, nsName, nsdId, vimAccountId):
+    def instantiateNs(self, nsName, nsdId, vimAccountId, additionalParamsForVnf=None):
         """
         Instantiates a NS on the OSM
         Returns the NS ID
         """
         osm_url = f"https://{self.ip}/osm/nslcm/v1/ns_instances_content"
 
-        data = "{{ nsName: {0}, nsdId: {1}, vimAccountId: {2} }}".format(
-            nsName, nsdId, vimAccountId
-        )
+        payload = {"nsName": nsName, "nsdId": nsdId, "vimAccountId": vimAccountId}
+        if additionalParamsForVnf:
+            payload["additionalParamsForVnf"] = additionalParamsForVnf
+        data = json.dumps(payload)
         write_timeout = max(self.timeout, OSM_WRITE_TIMEOUT)
         for attempt in range(1, OSM_REQUEST_ATTEMPTS + 1):
             if not self.token:
