@@ -7,3 +7,8 @@ agents.md
 amari.md
 PROXMOX_MONITORING_WORKFLOW.md
 proxmox_monitoring.md
+
+# Python caches and local virtual environments
+__pycache__/
+*.py[cod]
+.venv*/
