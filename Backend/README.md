@@ -632,3 +632,5 @@ sudo katana proxmox vm-add -f proxmox_vms.yaml
 
 
 For detailed deployment instructions, see [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).
+
+To upload packaged Helm charts through Katana's UI, see [Helm chart upload setup](docs/helm-chart-upload.md).

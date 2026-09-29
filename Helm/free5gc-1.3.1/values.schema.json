@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "global": {
+      "type": "object",
+      "properties": {
+        "katanaNestSd": {
+          "description": "Override the existing SST 1 / SD 010203 slice. Preserve leading zeroes with a quoted string.",
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{6}$",
+          "not": { "pattern": "^[fF]{6}$" }
+        }
+      }
+    }
+  }
+}

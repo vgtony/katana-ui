@@ -1,0 +1,4 @@
+# These are the Helm values generated from helm_configuration.sd in a NEST.
+# The complete NEST example is in Backend/templates/example_config_files/nest/.
+global:
+  katanaNestSd: "000002"

@@ -1,4 +1,11 @@
 {
+  "/api/helm": {
+    "target": "http://localhost:8000",
+    "secure": false,
+    "changeOrigin": true,
+    "proxyTimeout": 360000,
+    "timeout": 360000
+  },
   "/api": {
     "target": "http://localhost:8000",
     "secure": false,

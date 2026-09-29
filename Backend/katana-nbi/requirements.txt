@@ -1,4 +1,4 @@
-Flask
+Flask>=3.1,<4
 
 # API.
 flask-classful
@@ -34,6 +34,7 @@ paramiko
 # Proxmox API client
 proxmoxer
 requests
+requests-toolbelt>=1.0,<2
 
 # Kubernetes Python client (used by kubernetesUtils)
 kubernetes

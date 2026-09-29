@@ -18,6 +18,7 @@ export class SidebarComponent {
     { icon: 'deployment', label: 'Create Slice', route: '/slices/create' },
     { icon: 'deployment', label: 'Deployments', route: '/deployment' },
     { icon: 'infrastructure', label: 'Infrastructure', route: '/infrastructure' },
+    { icon: 'deployment', label: 'Helm charts', route: '/helm-charts' },
     {
       icon: 'infrastructure',
       label: 'Time-0 Setup',

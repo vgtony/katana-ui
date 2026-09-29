@@ -12,3 +12,4 @@ proxmox_monitoring.md
 __pycache__/
 *.py[cod]
 .venv*/
+/.env.helm-upload

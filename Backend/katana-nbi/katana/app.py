@@ -26,6 +26,7 @@ from katana.api import (
     PaoAlertView,
 )
 from katana.api.proxmox import ProxmoxView
+from katana.api.helm import configure_helm, helm
 
 def create_app():
     """
@@ -36,6 +37,8 @@ def create_app():
     # Load configuration
     app.config.from_object("config.settings")
     app.config.from_pyfile("settings.py", silent=True)
+    configure_helm(app)
+    app.register_blueprint(helm)
 
     # Enable CORS with restrictions
     CORS(app, resources={r"/api/*": {"origins": "*"}})  # Adjust origins for production

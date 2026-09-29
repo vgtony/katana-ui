@@ -1,0 +1,64 @@
+name: Upload Helm chart
+
+on:
+  push:
+    branches: [ueransim-free5gc]
+    paths: ['dist/*.tgz']
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Filename already committed under dist/ (e.g. free5gc-1.3.1.tgz)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  upload:
+    # This runner must reach the private VM and pass its Nginx source-IP allowlist.
+    runs-on: [self-hosted, linux, helm-upload]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Upload packaged charts
+        shell: bash
+        env:
+          HELM_UPLOAD_TOKEN: ${{ secrets.HELM_UPLOAD_TOKEN }}
+          HELM_UPLOAD_ENDPOINT: ${{ vars.HELM_UPLOAD_ENDPOINT || 'http://10.160.101.73/api/charts' }}
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+          PACKAGE_NAME: ${{ inputs.package }}
+        run: |
+          set -euo pipefail
+          : "${HELM_UPLOAD_TOKEN:?Set the HELM_UPLOAD_TOKEN Actions secret}"
+          if [[ ! -d dist || -L dist ]]; then
+            echo 'Expected a real dist/ directory containing committed chart packages.' >&2
+            exit 1
+          fi
+          if [[ "$EVENT_NAME" == workflow_dispatch ]]; then
+            if [[ "$PACKAGE_NAME" != *.tgz || "$PACKAGE_NAME" == */* ]]; then
+              echo 'Provide a .tgz filename inside dist/, without directory components.' >&2
+              exit 1
+            fi
+            bash .github/scripts/upload-helm-chart.sh "dist/$PACKAGE_NAME"
+          else
+            if [[ "$BEFORE_SHA" == 0000000000000000000000000000000000000000 ]]; then
+              echo 'New branch: use Run workflow to select a package; historical archives are not uploaded automatically.' >&2
+              exit 1
+            fi
+            changed=$(mktemp)
+            trap 'rm -f -- "$changed"' EXIT
+            git diff --no-renames --name-only --diff-filter=AM -z "$BEFORE_SHA" "$AFTER_SHA" -- ':(top,glob)dist/*.tgz' > "$changed"
+            failures=0
+            while IFS= read -r -d '' chart; do
+              printf 'Uploading %s\n' "$chart"
+              bash .github/scripts/upload-helm-chart.sh "$chart" || failures=1
+            done < "$changed"
+            exit "$failures"
+          fi

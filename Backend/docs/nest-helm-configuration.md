@@ -42,22 +42,23 @@ additionalParamsForVnf:
 
 Clients cannot supply `additionalParamsForVnf` directly through this NEST endpoint. Generated settings are saved in the slice service record and reused on restart. API AddNS accepts the same `helm_configuration` under its `details` object. This is configuration at instantiation, not a live SD migration.
 
-## One-time chart preparation
+## Chart source and packaging
 
-The adapter supports the reviewed upstream commit
+The original base is preserved at `Helm/free5gc-1.2.11` and checked against a file checksum manifest. The adapted chart is now included in this repository at `Helm/free5gc-1.3.1`. Edit and debug it alongside the frontend and backend; see [Helm development](../../Helm/README.md). The imported source is based on upstream commit
 [`c1ec95612010f844f8ae399bc2f019a8730ff239`](https://github.com/vgtony/free5gc-chart/tree/c1ec95612010f844f8ae399bc2f019a8730ff239).
-It verifies hashes of the relevant values and templates and refuses different versions. It copies the chart into a new directory, preserves upstream license headers, wraps the relevant ConfigMap templates and adds `global.katanaNestSd`. The source is never edited. Changes to another upstream version need a mapping review, not just bypassing the hashes.
 
 From the repository root, with Python 3, Helm and PyYAML available:
 
 ```sh
-python3 Backend/tools/prepare_free5gc_nest_chart.py /path/to/reviewed-free5gc /tmp/free5gc-nest
-python3 Backend/tools/check_free5gc_nest_chart.py /path/to/reviewed-free5gc
-helm lint /tmp/free5gc-nest
-helm package /tmp/free5gc-nest --destination /tmp
+python3 Backend/tools/check_free5gc_nest_chart.py
+helm lint Helm/free5gc-1.3.1
+mkdir -p Helm/dist
+helm package Helm/free5gc-1.3.1 --destination Helm/dist
 ```
 
-This produces `free5gc-1.2.11-katana.1.tgz`. Publish this version once to your chart repository, or bundle it in your KNF package using your OSM release's supported packaging workflow. Update/onboard the KNF descriptor once to reference that chart. Reuse the NS package if its VNFD references remain valid; update it once if you change those identifiers. Do not overwrite chart contents under an existing version.
+The original `prepare_free5gc_nest_chart.py SOURCE DESTINATION` tool remains available to reproduce the adaptation from the reviewed upstream checkout. It checks the source hashes and overlays the maintained 1.3.1 template changes. It must not be run against the already-adapted local chart. Future upstream updates require reviewing the SD mapping.
+
+This produces `free5gc-1.3.1.tgz`. Publish this version once to your chart repository, or bundle it in your KNF package using your OSM release's supported packaging workflow. Update/onboard the KNF descriptor once to reference that chart. Reuse the NS package if its VNFD references remain valid; update it once if you change those identifiers. Do not overwrite chart contents under an existing version.
 
 Only after the NSD references this adapted chart, enable it in the NBI environment:
 

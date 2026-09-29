@@ -1,0 +1,6 @@
+/dist/
+/debug/
+*.private.yaml
+.DS_Store
+__pycache__/
+*.py[cod]

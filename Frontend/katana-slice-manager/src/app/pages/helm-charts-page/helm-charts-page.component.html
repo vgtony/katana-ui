@@ -1,0 +1,152 @@
+<section class="helm-page">
+  <header class="helm-card helm-heading">
+    <div>
+      <h1>Helm charts</h1>
+      <p>Upload packaged charts to your repository and browse available versions.</p>
+    </div>
+    @if (signedIn()) {
+      <button type="button" (click)="signOut()" [disabled]="uploading() || loading()">
+        Sign out
+      </button>
+    }
+  </header>
+
+  @if (!signedIn()) {
+    <form class="helm-card" (ngSubmit)="signIn()">
+      <h2>Chart administrator sign in</h2>
+      <p>Use the chart administrator account configured for Katana.</p>
+      <label for="helm-username">Username</label>
+      <input
+        id="helm-username"
+        name="username"
+        [(ngModel)]="username"
+        autocomplete="username"
+        maxlength="128"
+        required
+        [disabled]="loading()"
+      />
+      <label for="helm-password">Password</label>
+      <input
+        id="helm-password"
+        name="password"
+        type="password"
+        [(ngModel)]="password"
+        autocomplete="current-password"
+        maxlength="1024"
+        required
+        [disabled]="loading()"
+      />
+      <button type="submit" [disabled]="loading() || !username.trim() || !password">
+        {{ loading() ? 'Signing in…' : 'Sign in' }}
+      </button>
+    </form>
+  }
+
+  @if (catalogueError()) {
+    <p class="helm-error" role="alert">{{ catalogueError() }}</p>
+  }
+  @if (uploadError()) {
+    <p class="helm-error" role="alert">{{ uploadError() }}</p>
+  }
+
+  @if (signedIn()) {
+    <form class="helm-card" (ngSubmit)="upload(chartInput)" [attr.aria-busy]="uploading()">
+      <h2>Upload a chart</h2>
+      <p>
+        Choose a .tgz package, up to {{ catalogue().max_bytes / 1048576 | number: '1.0-2' }} MiB.
+        Each chart version can be published once.
+      </p>
+      <label for="helm-file">Chart package (.tgz)</label>
+      <input
+        #chartInput
+        id="helm-file"
+        type="file"
+        accept=".tgz,application/gzip"
+        [disabled]="uploading()"
+        (change)="selectFile($event)"
+        aria-describedby="helm-file-details"
+      />
+      <p id="helm-file-details">
+        @if (selectedFile(); as file) {
+          {{ file.name }} · {{ file.size / 1048576 | number: '1.0-3' }} MiB
+        } @else {
+          No file selected.
+        }
+      </p>
+      @if (fileError()) {
+        <p class="helm-error" role="alert">{{ fileError() }}</p>
+      }
+      <button
+        type="submit"
+        [disabled]="!selectedFile() || !!fileError() || uploading() || loading()"
+      >
+        {{ uploading() ? 'Uploading…' : 'Upload chart' }}
+      </button>
+      @if (uploading()) {
+        <div role="status" aria-live="polite">
+          <progress aria-label="Uploading chart"></progress>
+          <p>Uploading and validating your chart…</p>
+        </div>
+      }
+      @if (uploaded(); as result) {
+        <div class="helm-success" role="status">
+          <strong>Uploaded {{ result.name }} {{ result.version }}</strong>
+          <p>
+            SHA-256: <code>{{ result.sha256 }}</code>
+          </p>
+          <a [href]="result.url" target="_blank" rel="noopener noreferrer">{{ result.url }}</a>
+        </div>
+      }
+    </form>
+
+    <section class="helm-card" aria-labelledby="helm-catalogue" [attr.aria-busy]="loading()">
+      <div class="helm-heading">
+        <h2 id="helm-catalogue">Repository catalogue</h2>
+        <button type="button" (click)="refresh()" [disabled]="loading() || uploading()">
+          Refresh catalogue
+        </button>
+      </div>
+      @if (loading()) {
+        <p role="status">Loading chart versions…</p>
+      }
+      @if (!catalogue().charts.length && !loading()) {
+        <p>No charts have been published yet.</p>
+      } @else if (catalogue().charts.length) {
+        <label for="helm-chart">Chart</label>
+        <select id="helm-chart" [ngModel]="chartName()" (ngModelChange)="selectChart($event)">
+          @for (chart of catalogue().charts; track chart.name) {
+            <option [value]="chart.name">{{ chart.name }}</option>
+          }
+        </select>
+        <label for="helm-version">Version (newest first)</label>
+        <select
+          id="helm-version"
+          [ngModel]="chartVersion()"
+          (ngModelChange)="chartVersion.set($event)"
+        >
+          @for (version of currentChart()?.versions ?? []; track version.version) {
+            <option [value]="version.version">{{ version.version }}</option>
+          }
+        </select>
+        @if (currentVersion(); as version) {
+          <p>{{ version.description }}</p>
+          <dl>
+            <dt>App version</dt>
+            <dd>{{ version.appVersion || '—' }}</dd>
+            <dt>Published</dt>
+            <dd>{{ version.created || '—' }}</dd>
+            <dt>SHA-256</dt>
+            <dd>
+              <code>{{ version.digest || '—' }}</code>
+            </dd>
+          </dl>
+          @if (version.url) {
+            <a [href]="version.url" target="_blank" rel="noopener noreferrer"
+              >Download {{ chartName() }} {{ version.version }}</a
+            >
+          }
+        }
+      }
+    </section>
+  }
+</section>

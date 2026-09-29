@@ -1,8 +1,33 @@
-import { HttpParams } from '@angular/common/http';
+import { HttpContext, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { NsdSummary } from '../../../models/interfaces/infrastructure.interface';
 import { KatanaApiBaseService } from './katana-api-base.service';
+import { SKIP_HTTP_ACTIVITY } from '../../interceptors/http-activity.interceptor';
+
+export interface HelmChartVersion {
+  version: string;
+  appVersion: string;
+  description: string;
+  digest: string;
+  created: string;
+  url: string;
+}
+
+export interface HelmCatalogue {
+  charts: { name: string; versions: HelmChartVersion[] }[];
+  max_bytes: number;
+}
+
+export interface HelmUploadResult {
+  name: string;
+  version: string;
+  filename: string;
+  size: number;
+  sha256: string;
+  url: string;
+  request_id: string;
+}
 
 export interface NsListQuery {
   nfvoId?: string;
@@ -11,6 +36,22 @@ export interface NsListQuery {
 
 @Injectable({ providedIn: 'root' })
 export class CatalogApiService extends KatanaApiBaseService {
+  getHelmCharts(authorization: string): Observable<HelmCatalogue> {
+    return this.http.get<HelmCatalogue>(this.buildApiUrl('helm', 'charts'), {
+      headers: { Authorization: authorization },
+      context: new HttpContext().set(SKIP_HTTP_ACTIVITY, true),
+    });
+  }
+
+  uploadHelmChart(file: File, authorization: string): Observable<HelmUploadResult> {
+    const payload = new FormData();
+    payload.append('chart', file);
+    return this.http.post<HelmUploadResult>(this.buildApiUrl('helm', 'charts'), payload, {
+      headers: { Authorization: authorization },
+      context: new HttpContext().set(SKIP_HTTP_ACTIVITY, true),
+    });
+  }
+
   getGsts(): Observable<unknown[]> {
     return this.http.get<unknown[]>(this.buildApiUrl('gst'));
   }

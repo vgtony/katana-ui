@@ -1,0 +1,76 @@
+{{- if not (has .Values.ue.config.opType (list "OP" "OPC")) }}
+{{- fail "ue.config.opType must be OP or OPC and match the supplied subscriber credential" }}
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ueransim.fullname" . }}-ue-config
+  labels:
+    {{- include "ueransim.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ue
+data:
+  ue-config.yaml: |-
+    supi: {{ .Values.ue.config.supi | quote }}
+    mcc: {{ .Values.ue.config.mcc | quote }}
+    mnc: {{ .Values.ue.config.mnc | quote }}
+    protectionScheme: {{ .Values.ue.config.protectionScheme }}
+    homeNetworkPublicKey: {{ .Values.ue.config.homeNetworkPublicKey | quote }}
+    homeNetworkPublicKeyId: {{ .Values.ue.config.homeNetworkPublicKeyId }}
+    routingIndicator: {{ .Values.ue.config.routingIndicator | quote }}
+
+    # Replaced in memory from the selected authentication Secret by the container wrapper.
+    key: '__UE_KEY__'
+    op: '__UE_OP__'
+    opType: {{ .Values.ue.config.opType | quote }}
+    amf: {{ .Values.ue.config.amf | quote }}
+    imei: {{ .Values.ue.config.imei | quote }}
+    imeiSv: {{ .Values.ue.config.imeiSv | quote }}
+
+    tunNetmask: {{ .Values.ue.config.tunNetmask | quote }}
+    # A pod is already isolated by its network namespace. Keeping the TUN
+    # device in that namespace makes it directly accessible via kubectl exec.
+    useNamespace: false
+    nsNamePrefix: ueransim
+
+    gnbSearchList:
+      - {{ include "ueransim.fullname" . }}-gnb
+
+    uacAic:
+      mps: false
+      mcs: false
+    uacAcc:
+      normalClass: 0
+      class11: false
+      class12: false
+      class13: false
+      class14: false
+      class15: false
+
+    sessions:
+      {{- range .Values.ue.config.sessions }}
+      - type: {{ .type | quote }}
+        apn: {{ .apn | quote }}
+        slice:
+          sst: {{ .slice.sst }}
+          sd: 0x{{ include "katana.nest.sd" (dict "root" $ "slice" .slice) }}
+      {{- end }}
+
+    configured-nssai:
+      {{- range .Values.ue.config.configuredNssai }}
+      - sst: {{ .sst }}
+        sd: 0x{{ include "katana.nest.sd" (dict "root" $ "slice" .) }}
+      {{- end }}
+
+    default-nssai:
+      {{- range .Values.ue.config.defaultNssai }}
+      - sst: {{ .sst }}
+        sd: 0x{{ include "katana.nest.sd" (dict "root" $ "slice" .) }}
+      {{- end }}
+
+    integrity:
+      {{- toYaml .Values.ue.config.integrity | nindent 6 }}
+    ciphering:
+      {{- toYaml .Values.ue.config.ciphering | nindent 6 }}
+    integrityMaxRate:
+      uplink: full
+      downlink: full

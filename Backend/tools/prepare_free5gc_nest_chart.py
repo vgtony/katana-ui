@@ -6,7 +6,7 @@ from pathlib import Path
 import shutil
 
 UPSTREAM_COMMIT = "c1ec95612010f844f8ae399bc2f019a8730ff239"
-VERSION = "1.2.11-katana.1"
+VERSION = "1.3.1"
 CONFIGMAPS = (
     "charts/free5gc-amf/templates/amf-configmap.yaml",
     "charts/free5gc-smf/templates/smf-configmap.yaml",
@@ -32,30 +32,6 @@ SOURCE_HASHES = {'Chart.yaml': '9000404f4086bb392f6a6317fc4db3d1466dc8717015b824
  'charts/ueransim/values.yaml': '000255225789ec6a016484cd853913142ce7294b5aff871fa9b34ea0ab87170c',
  'values.yaml': '7fc9c2ae65cbf0fba03ef79477f089b81fa9f727043a133be9f13c9ae6ce385c'}
 
-HELPER = r'''{{/*
-ponytail: this profile changes the reviewed SST 1 / SD 010203 fields only.
-Re-review the mapping and source hashes when supporting another chart or SST.
-The core configs are YAML strings, so preserve their formatting and quote SDs.
-*/}}
-{{- define "katana.nest.config" -}}
-{{- $text := .text -}}
-{{- if hasKey .root.Values.global "katanaNestSd" -}}
-  {{- $sd := .root.Values.global.katanaNestSd -}}
-  {{- if not (kindIs "string" $sd) -}}
-    {{- fail "global.katanaNestSd must be a quoted six-digit hexadecimal string" -}}
-  {{- end -}}
-  {{- if or (not (regexMatch "^[0-9a-fA-F]{6}$" $sd)) (eq (lower $sd) "ffffff") -}}
-    {{- fail "global.katanaNestSd must be six hexadecimal digits other than FFFFFF" -}}
-  {{- end -}}
-  {{- $sd = lower $sd -}}
-  {{- $text = regexReplaceAll `(?m)(\bsd:[ \t]+)010203([ \t]*(#[^\n]*)?$)` $text (printf `${1}"%s"${2}` $sd) -}}
-  {{- $text = regexReplaceAll `(?m)(\bsd:[ \t]+)0x010203([ \t]*$)` $text (printf `${1}0x%s${2}` $sd) -}}
-  {{- $text = regexReplaceAll `("sd"[ \t]*:[ \t]*")010203(")` $text (printf `${1}%s${2}` $sd) -}}
-{{- end -}}
-{{- $text -}}
-{{- end -}}
-'''
-
 
 def prepare(source, destination):
     source, destination = Path(source).resolve(), Path(destination).resolve()
@@ -66,13 +42,10 @@ def prepare(source, destination):
             raise ValueError(f"Unreviewed chart file: {name}; use commit {UPSTREAM_COMMIT}")
     # copytree refuses to overwrite an existing destination.
     shutil.copytree(source, destination, ignore=shutil.ignore_patterns('.git', 'dist'))
-    for index, name in enumerate(CONFIGMAPS):
-        path = destination / name
-        template = f"katana.nest.original.{index}"
-        path.write_text('{{- define "' + template + '" -}}\n' + path.read_text()
-                        + '\n{{- end -}}\n{{ include "katana.nest.config" (dict "root" . "text" (include "'
-                        + template + '" .)) }}\n')
-    (destination / "templates/_katana_nest.tpl").write_text(HELPER)
+    # The versioned chart is the source of truth for the maintained adaptation.
+    adapted = Path(__file__).resolve().parents[2] / "Helm/free5gc-1.3.1"
+    for name in (*CONFIGMAPS, "templates/_katana_nest.tpl", "values.schema.json"):
+        shutil.copy2(adapted / name, destination / name)
     chart = destination / "Chart.yaml"
     chart.write_text(chart.read_text().replace("version: 1.2.11\n", f"version: {VERSION}\n"))
     return destination

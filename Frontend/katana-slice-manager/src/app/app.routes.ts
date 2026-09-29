@@ -60,6 +60,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'helm-charts',
+        loadComponent: () =>
+          import('./pages/helm-charts-page/helm-charts-page.component').then(
+            (m) => m.HelmChartsPageComponent,
+          ),
+      },
+      {
         path: 'admin/infrastructure/bootstrap',
         loadComponent: () =>
           import('./pages/infrastructure-bootstrap-page/infrastructure-bootstrap-page.component').then(

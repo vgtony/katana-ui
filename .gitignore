@@ -1,0 +1,8 @@
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+
+# Generated Python files and local virtual environments
+__pycache__/
+*.py[cod]
+.venv*/

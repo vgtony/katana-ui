@@ -1,0 +1,27 @@
+{{- if .Values.nodeSelector }}
+UERANSIM is restricted to node(s) matching:
+{{ toYaml .Values.nodeSelector | indent 2 }}
+{{- else }}
+UERANSIM has no hostname-specific node selector; Kubernetes selects the worker.
+{{- end }}
+{{- if .Values.ue.auth.create }}
+Helm manages UE authentication Secret {{ include "ueransim.authSecretName" . }}.
+{{- else }}
+Ensure external UE authentication Secret {{ include "ueransim.authSecretName" . }} exists.
+{{- end }}
+
+Check the workloads:
+  kubectl -n {{ .Release.Namespace }} get pods -l app.kubernetes.io/instance={{ .Release.Name }},app.kubernetes.io/name={{ include "ueransim.name" . }} -o wide
+
+Follow registration:
+  kubectl -n {{ .Release.Namespace }} logs deployment/{{ include "ueransim.fullname" . }}-gnb -f
+  kubectl -n {{ .Release.Namespace }} logs deployment/{{ include "ueransim.fullname" . }}-ue -f
+
+Test the UE data plane after uesimtun0 appears:
+  kubectl -n {{ .Release.Namespace }} exec deployment/{{ include "ueransim.fullname" . }}-ue -- ping -I uesimtun0 -c 4 8.8.8.8
+
+{{- if .Values.provisioning.enabled }}
+The UE init container creates the matching free5GC subscriber before nr-ue starts.
+Inspect provisioning:
+  kubectl -n {{ .Release.Namespace }} logs deployment/{{ include "ueransim.fullname" . }}-ue -c provision-subscriber
+{{- end }}
