@@ -2,6 +2,12 @@ import { ChangeDetectorRef, Component, NgZone, OnInit, inject, output } from '@a
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize, forkJoin } from 'rxjs';
+import {
+  NestRecord,
+  firstString,
+  isNestRecord,
+  parseStructuredFile,
+} from '../../../shared/nest-file.utils';
 import { initialK8sDeployServiceFormModel } from '../../../models/k8s-deploy-service-form.model';
 import { K8sDeployServiceFormModel } from '../../../models/interfaces/k8s-deploy-service-form.interface';
 import { NsdSummary } from '../../../models/interfaces/infrastructure.interface';
@@ -10,6 +16,7 @@ import {
   CatalogApiService,
   K8sClusterSummary,
   KubernetesApiService,
+  LocationApiService,
   OsmVimAccountSummary,
   getApiErrorMessage,
   getApiErrorType,
@@ -34,6 +41,13 @@ export class K8sDeployServiceFormComponent implements OnInit {
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly kubernetesApi = inject(KubernetesApiService);
   private readonly catalogApi = inject(CatalogApiService);
+  private readonly locationApi = inject(LocationApiService);
+  protected locations: NestRecord[] = [];
+  protected nest: NestRecord | null = null;
+  protected nestService: NestRecord | null = null;
+  protected nestFileName = '';
+  protected nestError = '';
+  private inventoryLoaded = false;
   private readonly deploymentDraftService = inject(DeploymentDraftService);
   readonly deployed = output<DeploymentAttemptEvent>();
   private readonly clusterSnapshot =
@@ -79,22 +93,28 @@ export class K8sDeployServiceFormComponent implements OnInit {
       this.deploymentDraftService.saveFormValue(
         'k8s',
         'k8s-deploy',
-        this.form.getRawValue(),
+        { ...this.form.getRawValue(), nestRequired: !!this.nestFileName },
         'draft',
       );
     });
   }
 
   ngOnInit(): void {
+    if (this.savedModel.nestRequired)
+      this.nestError =
+        'Re-upload the NEST for this saved deployment, or remove NEST configuration to deploy chart defaults.';
     forkJoin({
       nsds: this.catalogApi.getNsList(),
       clusters: this.kubernetesApi.getK8sClusters(),
+      locations: this.locationApi.getLocations(),
     }).subscribe({
-      next: ({ nsds, clusters }) => {
+      next: ({ nsds, clusters, locations }) => {
         this.nsds = nsds.filter(
           (nsd) => String(nsd.deployment_runtime ?? '').toLowerCase() === 'kubernetes',
         );
         this.clusters = clusters;
+        this.locations = locations.filter(isNestRecord);
+        this.inventoryLoaded = true;
         this.syncSelection();
         this.loadOsmVims();
         this.changeDetectorRef.markForCheck();
@@ -108,6 +128,119 @@ export class K8sDeployServiceFormComponent implements OnInit {
         this.changeDetectorRef.markForCheck();
       },
     });
+  }
+
+  protected async onNestSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.nest = null;
+    this.nestService = null;
+    this.nestError = 'Reading NEST file…';
+    this.nestFileName = file.name;
+    try {
+      const nest = parseStructuredFile(await file.text());
+      const descriptor = nest['service_descriptor'];
+      const services = isNestRecord(descriptor) ? descriptor['ns_list'] : null;
+      if (!Array.isArray(services) || services.length !== 1 || !isNestRecord(services[0])) {
+        throw new Error(
+          'This deployment requires exactly one service in service_descriptor.ns_list.',
+        );
+      }
+      const service = services[0];
+      const config = service['helm_configuration'];
+      if (
+        !isNestRecord(config) ||
+        config['profile'] !== 'free5gc-sd-v1' ||
+        typeof config['sd'] !== 'string' ||
+        !/^[0-9a-fA-F]{6}$/.test(config['sd']) ||
+        config['sd'].toLowerCase() === 'ffffff'
+      ) {
+        throw new Error(
+          'NEST requires the free5gc-sd-v1 profile and a quoted six-digit SD other than FFFFFF.',
+        );
+      }
+      const name = firstString(service, ['ns-name'], firstString(nest, ['name']));
+      if (!name) throw new Error('NEST requires a service name in ns-name or name.');
+      this.nestError = '';
+      this.nest = nest;
+      this.nestService = service;
+      this.form.patchValue({
+        nsName: name,
+        nsDescription: firstString(
+          service,
+          ['description'],
+          firstString(nest, ['description'], `NEST deployment: ${name}`),
+        ),
+      });
+      if (this.inventoryLoaded) {
+        this.syncSelection();
+        this.loadOsmVims();
+      }
+    } catch (error) {
+      this.nestError = error instanceof Error ? error.message : 'Unable to read NEST.';
+    } finally {
+      input.value = '';
+      this.changeDetectorRef.markForCheck();
+    }
+  }
+
+  protected clearNest(): void {
+    this.nest = null;
+    this.nestService = null;
+    this.nestFileName = '';
+    this.nestError = '';
+    this.deploymentDraftService.saveFormValue(
+      'k8s',
+      'k8s-deploy',
+      { ...this.form.getRawValue(), nestRequired: false },
+      'draft',
+    );
+  }
+
+  protected nestSelectionError(): string {
+    const service = this.nestService;
+    if (!service) return '';
+    if (service['nsd-id'] && service['nsd-id'] !== this.form.controls.nsdId.value)
+      return 'The NEST NSD is not selected or is not available in OSM.';
+    if (service['nfvo-id'] && service['nfvo-id'] !== this.form.controls.nfvoId.value)
+      return 'The selected NSD does not belong to the NEST NFVO.';
+    if (
+      service['target'] &&
+      !this.availableClusters().some(
+        (cluster) =>
+          cluster.id === service['target'] &&
+          cluster.vim_account === this.form.controls.vimAccountId.value,
+      )
+    )
+      return 'The NEST target does not match the selected OSM VIM account.';
+    return '';
+  }
+
+  protected helmValues(): string {
+    const config = this.nestService?.['helm_configuration'];
+    return isNestRecord(config)
+      ? JSON.stringify({ global: { katanaNestSd: String(config['sd']).toLowerCase() } }, null, 2)
+      : '';
+  }
+
+  protected locationLabel(): string {
+    const clusters = this.availableClusters().filter(
+      (cluster) => cluster.vim_account === this.form.controls.vimAccountId.value,
+    );
+    const direct = [...new Set(clusters.map((cluster) => cluster.location).filter(Boolean))];
+    if (direct.length) return direct.join(', ');
+    const linked = this.locations.filter(
+      (location) =>
+        Array.isArray(location['vims']) &&
+        clusters.some((cluster) => (location['vims'] as unknown[]).includes(cluster.id)),
+    );
+    return (
+      (linked.length ? linked : this.locations)
+        .map((location) => firstString(location, ['id', 'name']))
+        .filter(Boolean)
+        .join(', ') || 'No registered location returned'
+    );
   }
 
   protected nsdChanged(): void {
@@ -137,18 +270,29 @@ export class K8sDeployServiceFormComponent implements OnInit {
   }
 
   private syncSelection(): void {
+    const explicit = this.nestService?.['nsd-id'];
+    if (typeof explicit === 'string' && explicit) this.form.controls.nsdId.setValue(explicit);
     const selected = this.selectedNsd();
     if (selected) {
       this.form.controls.nfvoId.setValue(String(selected.nfvo_id ?? ''));
-    } else if (this.nsds.length === 1) {
-      this.form.controls.nsdId.setValue(this.catalogNsdId(this.nsds[0]));
-      this.form.controls.nfvoId.setValue(String(this.nsds[0].nfvo_id ?? ''));
+    } else if (!explicit) {
+      const candidates = this.nsds.filter(
+        (nsd) => !this.nestService?.['nfvo-id'] || nsd.nfvo_id === this.nestService['nfvo-id'],
+      );
+      if (candidates.length === 1) {
+        this.form.controls.nsdId.setValue(this.catalogNsdId(candidates[0]));
+        this.form.controls.nfvoId.setValue(String(candidates[0].nfvo_id ?? ''));
+      }
     }
   }
 
   private selectDefaultVim(): void {
     const clusters = this.availableClusters();
     const vims = this.vims.filter((vim) => vim.k8s_cluster_count > 0);
+    const nestTarget = this.nestService?.['target'];
+    const match = nestTarget ? clusters.find((cluster) => cluster.id === nestTarget) : null;
+    if (match && vims.some((vim) => vim.id === match.vim_account))
+      this.form.controls.vimAccountId.setValue(match.vim_account);
     const selected = this.form.controls.vimAccountId.value;
     if (!vims.some((vim) => vim.id === selected)) {
       const clusterDefault = clusters.length === 1 ? clusters[0].vim_account : '';
@@ -199,7 +343,18 @@ export class K8sDeployServiceFormComponent implements OnInit {
     this.submitMessage = '';
     this.submitError = '';
 
-    if (this.form.invalid) {
+    if (
+      this.form.invalid ||
+      this.loadingInventory ||
+      this.inventoryError ||
+      this.nestError ||
+      this.nestSelectionError() ||
+      this.submitting ||
+      !this.selectedNsd() ||
+      !this.vims.some(
+        (vim) => vim.id === this.form.controls.vimAccountId.value && vim.k8s_cluster_count > 0,
+      )
+    ) {
       this.form.markAllAsTouched();
       return;
     }
@@ -207,7 +362,10 @@ export class K8sDeployServiceFormComponent implements OnInit {
     this.submitting = true;
 
     this.kubernetesApi
-      .deployK8sService(this.form.getRawValue() as K8sDeployServiceFormModel)
+      .deployK8sService({
+        ...(this.form.getRawValue() as K8sDeployServiceFormModel),
+        ...(this.nest ? { nest: this.nest } : {}),
+      })
       .pipe(
         finalize(() =>
           this.ngZone.run(() => {
@@ -221,7 +379,7 @@ export class K8sDeployServiceFormComponent implements OnInit {
             this.deploymentDraftService.saveFormValue(
               'k8s',
               'k8s-deploy',
-              this.form.getRawValue(),
+              { ...this.form.getRawValue(), nestRequired: !!this.nest },
               'active',
             );
             this.submitSucceeded = true;

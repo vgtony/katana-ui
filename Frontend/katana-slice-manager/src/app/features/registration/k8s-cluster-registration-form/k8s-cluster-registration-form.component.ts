@@ -1,12 +1,15 @@
 import { ChangeDetectorRef, Component, NgZone, OnInit, inject, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { finalize } from 'rxjs';
+import { finalize, forkJoin } from 'rxjs';
+import { firstString, isNestRecord } from '../../../shared/nest-file.utils';
 import { initialK8sClusterRegistrationFormModel } from '../../../models/k8s-cluster-registration-form.model';
 import { K8sClusterRegistrationFormModel } from '../../../models/interfaces/k8s-cluster-registration-form.interface';
 import { NfvoSummary } from '../../../models/interfaces/infrastructure.interface';
 import {
   KubernetesApiService,
+  KubernetesApiResponse,
+  LocationApiService,
   NfvoApiService,
   OsmVimAccountSummary,
   getApiErrorMessage,
@@ -29,8 +32,10 @@ export class K8sClusterRegistrationFormComponent implements OnInit {
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
   private readonly kubernetesApi = inject(KubernetesApiService);
   private readonly nfvoApi = inject(NfvoApiService);
+  private readonly locationApi = inject(LocationApiService);
+  protected locations: string[] = [];
   private readonly deploymentDraftService = inject(DeploymentDraftService);
-  readonly completed = output<void>();
+  readonly completed = output<KubernetesApiResponse>();
   readonly failed = output<void>();
   private readonly credentialsSnapshot =
     this.deploymentDraftService.getSavedFormSnapshot<K8sCredentialsSnapshot>(
@@ -49,7 +54,7 @@ export class K8sClusterRegistrationFormComponent implements OnInit {
   protected readonly savedState = this.deploymentDraftService.getFormState('k8s', 'k8s-cluster');
   protected readonly restoreMessage =
     this.savedState === 'active'
-      ? 'Active K8s cluster registration loaded. Update it only if you want to replace it.'
+      ? 'Saved cluster details loaded. Submitting registers a new cluster. Existing clusters are available in the Kubernetes deployment configuration.'
       : this.savedState === 'draft'
         ? 'Saved K8s cluster draft restored.'
         : '';
@@ -67,6 +72,10 @@ export class K8sClusterRegistrationFormComponent implements OnInit {
     credentials: [this.model.credentials, Validators.required],
     schemaType: [this.model.schemaType, Validators.required],
     name: [this.model.name, Validators.required],
+    location: [
+      this.model.location ?? '',
+      [Validators.required, Validators.pattern(/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,63}$/)],
+    ],
     description: [this.model.description, Validators.required],
     nfvoId: [this.model.nfvoId, Validators.required],
     vimAccount: [this.model.vimAccount, Validators.required],
@@ -89,8 +98,20 @@ export class K8sClusterRegistrationFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.nfvoApi.getNfvos().subscribe({
-      next: (nfvos) => {
+    forkJoin({
+      nfvos: this.nfvoApi.getNfvos(),
+      locations: this.locationApi.getLocations(),
+    }).subscribe({
+      next: ({ nfvos, locations }) => {
+        this.locations = locations
+          .filter(isNestRecord)
+          .map((location) => firstString(location, ['id', 'name']))
+          .filter(Boolean);
+        if (!this.locations.includes(this.form.controls.location.value ?? '')) {
+          this.form.controls.location.setValue(
+            this.locations.length === 1 ? this.locations[0] : '',
+          );
+        }
         this.nfvos = nfvos;
         if (!this.form.controls.nfvoId.value && nfvos.length === 1) {
           this.form.controls.nfvoId.setValue(nfvos[0].nfvo_id);
@@ -178,7 +199,7 @@ export class K8sClusterRegistrationFormComponent implements OnInit {
             this.submitMessage = response.id
               ? `${response.message}. Cluster id: ${response.id}.`
               : response.message;
-            this.completed.emit();
+            this.completed.emit(response);
           });
         },
         error: (error: unknown) => {

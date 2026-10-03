@@ -5,6 +5,7 @@ export const initialK8sClusterRegistrationFormModel: K8sClusterRegistrationFormM
   credentials: '',
   schemaType: 'k8scluster',
   name: '',
+  location: '',
   description: '',
   nfvoId: '',
   vimAccount: '',

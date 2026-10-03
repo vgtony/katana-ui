@@ -34,6 +34,7 @@ describe('K8s registration flow defaults', () => {
     );
     httpTestingController = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
+    httpTestingController.expectOne((req) => req.url.endsWith('/location')).flush([{ id: 'edge' }]);
 
     expect((fixture.componentInstance as any).form.value.credentials).toBe(
       'uploaded-kubeconfig.yaml',
@@ -52,6 +53,7 @@ describe('K8s registration flow defaults', () => {
     );
     httpTestingController = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
+    httpTestingController.expectOne((req) => req.url.endsWith('/location')).flush([{ id: 'edge' }]);
     httpTestingController
       .expectOne((req) => req.url.includes('/nfvo'))
       .flush([
@@ -83,9 +85,18 @@ describe('K8s registration flow defaults', () => {
     expect((fixture.componentInstance as any).form.value.vimAccount).toBe(
       '90eb8a68-ae7d-4741-8118-160940be9f3e',
     );
+    const component = fixture.componentInstance as any;
+    component.form.patchValue({ name: 'cluster', description: 'test', credentials: 'config.yaml' });
+    expect(component.form.value.location).toBe('edge');
+    component.submit();
+    const registration = httpTestingController.expectOne(
+      (req) => req.method === 'POST' && req.url.endsWith('/k8s'),
+    );
+    expect(registration.request.body.location).toBe('edge');
+    registration.flush({ message: 'Registered', id: 'cluster' });
   });
 
-  it('lists live OSM VIMs and disables those without Kubernetes clusters for deployment', async () => {
+  it('loads OSM inventory and passes parsed NEST values through the existing deployment endpoint', async () => {
     await TestBed.configureTestingModule({
       imports: [K8sDeployServiceFormComponent],
       providers: [provideHttpClient(), provideHttpClientTesting()],
@@ -96,6 +107,7 @@ describe('K8s registration flow defaults', () => {
     );
     httpTestingController = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
+    httpTestingController.expectOne((req) => req.url.endsWith('/location')).flush([{ id: 'edge' }]);
     httpTestingController
       .expectOne((req) => req.url.includes('/nslist'))
       .flush([
@@ -166,5 +178,41 @@ describe('K8s registration flow defaults', () => {
     expect((fixture.componentInstance as any).form.value.vimAccountId).toBe(
       'post-time-0-osm-vim-id',
     );
+    const component = fixture.componentInstance as any;
+    await component.onNestSelected({
+      target: {
+        value: '',
+        files: [
+          {
+            name: 'nest.yaml',
+            text: async () => `name: free5gc-sd-000002
+service_descriptor:
+  ns_list:
+    - ns-name: free5gc-sd-000002
+      helm_configuration:
+        profile: free5gc-sd-v1
+        member_vnf_index: free5gc
+        kdu_name: free5gc
+        sd: "000002"
+`,
+          },
+        ],
+      },
+    });
+    httpTestingController
+      .expectOne((req) => req.url.endsWith('/k8s/vim-accounts/nfvo-lab'))
+      .flush([{ id: 'post-time-0-osm-vim-id', name: 'OSM VIM', k8s_cluster_count: 8 }]);
+    expect(component.form.value.nsName).toBe('free5gc-sd-000002');
+    expect(component.form.value.nfvoId).toBe('nfvo-lab');
+    expect(component.locationLabel()).toBe('edge');
+    expect(component.helmValues()).toContain('000002');
+    component.submit();
+    const deploy = httpTestingController.expectOne((req) => req.url.endsWith('/k8s/deploy'));
+    expect(deploy.request.body.nest.service_descriptor.ns_list[0].helm_configuration.sd).toBe(
+      '000002',
+    );
+    expect(deploy.request.body.nsdId).toBe('nsd-k8s');
+    expect(deploy.request.body.vimAccountId).toBe('post-time-0-osm-vim-id');
+    deploy.flush({ message: 'Accepted', osm_response: { id: 'instance' } });
   });
 });

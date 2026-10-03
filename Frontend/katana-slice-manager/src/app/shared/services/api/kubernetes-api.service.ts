@@ -12,6 +12,7 @@ export interface KubernetesApiResponse {
 }
 
 export interface K8sClusterSummary {
+  type?: string;
   location?: string;
   _id: string;
   id: string;
@@ -31,6 +32,7 @@ export interface OsmVimAccountSummary {
 }
 
 export interface K8sDeployServiceFormApiPayload {
+  nest?: Record<string, unknown>;
   nfvo_id: string;
   nsdId: string;
   nsName: string;
@@ -44,6 +46,7 @@ export interface K8sDeploymentResponse {
 }
 
 interface KubernetesApiPayload {
+  location: string;
   schema_version: string;
   credentials: string;
   schema_type: string;
@@ -68,6 +71,7 @@ function toApiPayload(payload: K8sClusterRegistrationFormModel): KubernetesApiPa
     credentials: payload.credentials,
     schema_type: payload.schemaType,
     name: payload.name,
+    location: payload.location.trim().toLowerCase(),
     description: payload.description,
     nfvo_id: payload.nfvoId,
     vim_account: payload.vimAccount,
@@ -102,6 +106,7 @@ function fromApiPayload(
     credentials: String(payload['credentials'] ?? ''),
     schemaType: String(payload['schema_type'] ?? ''),
     name: String(payload['name'] ?? ''),
+    location: String(payload['location'] ?? ''),
     description: String(payload['description'] ?? ''),
     nfvoId: String(payload['nfvo_id'] ?? ''),
     vimAccount: String(payload['vim_account'] ?? ''),
@@ -121,6 +126,12 @@ export class KubernetesApiService extends KatanaApiBaseService {
 
   getK8sClusters(): Observable<K8sClusterSummary[]> {
     return this.http.get<K8sClusterSummary[]>(this.buildApiUrl('k8s'));
+  }
+
+  setK8sLocation(id: string, location: string): Observable<KubernetesApiResponse> {
+    return this.http.patch<KubernetesApiResponse>(this.buildApiUrl('k8s', id, 'location'), {
+      location,
+    });
   }
 
   registerK8sCluster(payload: K8sClusterRegistrationFormModel): Observable<KubernetesApiResponse> {
@@ -150,6 +161,7 @@ export class KubernetesApiService extends KatanaApiBaseService {
     nsName: string;
     nsDescription: string;
     vimAccountId: string;
+    nest?: Record<string, unknown>;
   }): Observable<K8sDeploymentResponse> {
     const requestPayload: K8sDeployServiceFormApiPayload = {
       nfvo_id: payload.nfvoId,
@@ -157,6 +169,7 @@ export class KubernetesApiService extends KatanaApiBaseService {
       nsName: payload.nsName,
       nsDescription: payload.nsDescription,
       vimAccountId: payload.vimAccountId,
+      ...(payload.nest ? { nest: payload.nest } : {}),
     };
 
     return this.http.post<K8sDeploymentResponse>(this.buildApiUrl('k8s', 'deploy'), requestPayload);

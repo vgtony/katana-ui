@@ -107,9 +107,9 @@ export class DeploymentPageComponent implements OnInit {
   protected readonly deploymentOptions: DeploymentOption[] = [
     {
       id: 'k8s',
-      label: 'K8s Deploy',
+      label: 'Kubernetes deployment',
       shortLabel: 'K8s',
-      description: 'Kubernetes deployment flow.',
+      description: 'Deploy using OSM inventory and optional NEST configuration.',
       requirementsTitle: 'K8s registrations',
       requirementsDescription: 'Finish the registrations, then deploy.',
       requirements: [
@@ -552,6 +552,8 @@ export class DeploymentPageComponent implements OnInit {
   }
 
   protected canAccessStepTwo(): boolean {
+    const clusters = this.getInventorySection('k8s');
+    if (this.selectedOption.id === 'k8s' && !clusters.loading && !clusters.error && clusters.rows.length) return true;
     return this.selectedOption.requirements.every((requirement) =>
       this.isRequirementComplete(requirement.id)
     );
@@ -1188,6 +1190,10 @@ export class DeploymentPageComponent implements OnInit {
           loading: false,
           error: null
         });
+        if (key === 'k8s' && items.length && this.selectedOption.id === 'k8s') {
+          this.currentStep = this.getDeployStepNumber();
+        }
+        this.changeDetectorRef.markForCheck();
       },
       error: (error: unknown) => {
         this.patchInventorySection(key, {

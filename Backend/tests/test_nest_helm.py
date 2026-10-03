@@ -65,6 +65,52 @@ class NestHelmTests(unittest.TestCase):
             records['nsd']['deployment_runtime'] = 'openstack'
             self.assertEqual(validate(None, {'service_descriptor': {'ns_list': [copy.deepcopy(service)]}})[1][1], 400)
 
+    def test_kubernetes_deployment_reuses_nsd_and_passes_nest_overrides(self):
+        translate = runpy.run_path(str(NEST_PATH))['deployment_nest_parameters']
+        nest = {'service_descriptor': {'ns_list': [{'helm_configuration': config()}]}}
+        self.assertEqual(translate(nest, 'nsd', 'osm', []), free5gc_parameters(config()))
+        for field, value in [('nsd-id', 'other'), ('nfvo-id', 'other'), ('target', 'missing'), ('placement', 'missing'), ('additionalParamsForVnf', [])]:
+            invalid = copy.deepcopy(nest)
+            invalid['service_descriptor']['ns_list'][0][field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                translate(invalid, 'nsd', 'osm', [])
+        for invalid in (None, {}, {'service_descriptor': {'ns_list': [{}, {}]}}):
+            with self.assertRaises(ValueError):
+                translate(invalid, 'nsd', 'osm', [])
+
+        with self.assertRaises(ValueError):
+            translate({'service_descriptor': {'ns_list': [{'target': 'a', 'helm_configuration': config()}]}}, 'nsd', 'osm', [{'id': 'a'}, {'id': 'b'}])
+
+        request = SimpleNamespace(is_json=True, json={
+            'nsName': 'from-yaml', 'nsDescription': 'description', 'nsdId': 'nsd',
+            'nfvo_id': 'osm', 'vimAccountId': 'vim', 'nest': nest,
+        })
+        nfvo = dict(id='osm', nfvoip='osm', nfvousername='user', nfvopassword='password', tenantname='project')
+        mongo = Mock()
+        mongo.find.return_value = {'nfvo_id': 'osm', 'deployment_runtime': 'kubernetes'}
+        mongo.find_all.return_value = []
+        post = Mock(return_value=Mock(status_code=202, text='accepted', json=lambda: {'id': 'instance'}))
+        deploy = load_method('katana-nbi/katana/api/k8s.py', 'deploy', {
+            'request': request, 'jsonify': lambda value: value, 'logger': Mock(),
+            '_find_nfvo': lambda value: nfvo, '_osm_client': lambda **kwargs: Mock(token='token', verify=True),
+            '_vim_account_id': lambda *args: 'vim', 'mongoUtils': mongo,
+            'requests': SimpleNamespace(post=post), 'os': os,
+        })
+        module = ModuleType('katana.shared_utils.nestHelm')
+        module.deployment_nest_parameters = translate
+        with patch.dict(sys.modules, {'katana.shared_utils.nestHelm': module}), patch.dict(os.environ, {'KATANA_FREE5GC_NEST_NSD_IDS': 'nsd'}):
+            self.assertEqual(deploy(None)[1], 202)
+            self.assertEqual(post.call_args.kwargs['json'], {
+                'nsName': 'from-yaml', 'nsDescription': 'description', 'nsdId': 'nsd',
+                'vimAccountId': 'vim', 'additionalParamsForVnf': free5gc_parameters(config()),
+            })
+            post.reset_mock()
+            with patch.dict(os.environ, {'KATANA_FREE5GC_NEST_NSD_IDS': ''}):
+                self.assertEqual(deploy(None)[1], 400)
+            mongo.find.return_value['nfvo_id'] = 'different-owner'
+            self.assertEqual(deploy(None)[1], 400)
+            post.assert_not_called()
+
     def test_all_osm_clients_serialize_parameters_and_quoted_names(self):
         paths = ('katana-mngr/katana/shared_utils/nfvoUtils/osmUtils.py',
                  'katana-nbi/katana/shared_utils/nfvoUtils/osmUtils.py',

@@ -13,3 +13,4 @@ __pycache__/
 *.py[cod]
 .venv*/
 /.env.helm-upload
+/.env

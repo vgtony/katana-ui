@@ -2,12 +2,13 @@
   <header class="infrastructure-page__hero">
     <div>
       <p class="infrastructure-page__eyebrow">Infrastructure</p>
-      <h2>NFVO and VIM inventory</h2>
+      <h2>NFVO and deployment target inventory</h2>
       <p>Deployment targets are registered and linked by administrators during Time-0 setup.</p>
     </div>
     <div class="infrastructure-page__actions">
       <button type="button" (click)="refresh()" [disabled]="loading">Refresh</button>
       <a routerLink="/admin/infrastructure/bootstrap">Administrator setup</a>
+      <a routerLink="/deployment/k8s">Register Kubernetes cluster</a>
     </div>
   </header>
 
@@ -98,6 +99,72 @@
         </div>
       } @else {
         <p>No OpenStack VIMs are registered.</p>
+      }
+    </section>
+    <section class="infrastructure-card">
+      <div class="infrastructure-card__heading">
+        <h3>Kubernetes clusters</h3>
+        <span>{{ clusters.length }}</span>
+      </div>
+      <p>
+        Assign a missing location here to use an existing cluster for NEST deployment. This updates
+        Katana's inventory without re-registering the cluster in OSM.
+      </p>
+      @if (clusters.length) {
+        <div class="infrastructure-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Cluster</th>
+                <th scope="col">NFVO</th>
+                <th scope="col">Location</th>
+                <th scope="col">Availability</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (cluster of clusters; track cluster._id) {
+                <tr>
+                  <td>{{ cluster.name }}<br />{{ cluster.id }}</td>
+                  <td>{{ cluster.nfvo_id || 'Missing NFVO' }}</td>
+                  <td>
+                    @if (!cluster.location || cluster.type !== 'kubernetes') {
+                      <label [for]="'location-' + cluster._id">Deployment location</label>
+                      <input
+                        #locationInput
+                        [id]="'location-' + cluster._id"
+                        [value]="cluster.location || ''"
+                        [readOnly]="!!cluster.location"
+                        placeholder="edge"
+                        maxlength="64"
+                      />
+                      <button
+                        type="button"
+                        [disabled]="savingLocation || !cluster.nfvo_id || !cluster.vim_account"
+                        (click)="saveLocation(cluster, locationInput.value)"
+                      >
+                        Save location
+                      </button>
+                    } @else {
+                      {{ cluster.location }}
+                    }
+                  </td>
+                  <td>
+                    {{
+                      cluster.location &&
+                      cluster.type === 'kubernetes' &&
+                      cluster.nfvo_id &&
+                      cluster.vim_account
+                        ? 'Registered for deployment'
+                        : 'Registration metadata incomplete'
+                    }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p>No Kubernetes clusters are registered.</p>
       }
     </section>
   }

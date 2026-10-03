@@ -5,6 +5,29 @@
   </div>
 
   <form class="registration-form__grid" [formGroup]="form" (ngSubmit)="submit()">
+    <label class="registration-form__full"
+      ><span>NEST file (YAML or JSON)</span
+      ><input
+        type="file"
+        accept=".yaml,.yml,.json"
+        (change)="onNestSelected($event)"
+        [disabled]="submitting"
+    /></label>
+    @if (nestFileName || nestError) {
+      <p>
+        {{ nestFileName }}
+        <button type="button" (click)="clearNest()" [disabled]="submitting">Remove NEST</button>
+      </p>
+    }
+    @if (nestError || nestSelectionError()) {
+      <p class="registration-form__status registration-form__status--error" role="alert">
+        {{ nestError || nestSelectionError() }}
+      </p>
+    }
+    <p class="registration-form__full">
+      NSDs and VIM accounts come from OSM. The owning NFVO is filled from the selected NSD. A unique
+      matching resource is selected automatically.
+    </p>
     @if (restoreMessage) {
       <p class="registration-form__status" role="status">{{ restoreMessage }}</p>
     }
@@ -21,6 +44,7 @@
       ><span>Owning NFVO</span
       ><input type="text" formControlName="nfvoId" readonly aria-readonly="true"
     /></label>
+    <p class="registration-form__full">Registered Katana location: {{ locationLabel() }}</p>
     <label><span>NS name</span><input type="text" formControlName="nsName" /></label>
     <label
       ><span>OSM VIM account</span
@@ -40,7 +64,24 @@
     <label class="registration-form__full"
       ><span>NS description</span><input type="text" formControlName="nsDescription"
     /></label>
-    <button type="submit" [disabled]="form.invalid || submitting || loadingInventory">
+    @if (helmValues(); as values) {
+      <div class="registration-form__full">
+        <h4>NEST Helm values</h4>
+        <pre>{{ values }}</pre>
+        <p>These values are passed to OSM using the existing published free5gc chart.</p>
+      </div>
+    }
+    <button
+      type="submit"
+      [disabled]="
+        form.invalid ||
+        submitting ||
+        loadingInventory ||
+        !!inventoryError ||
+        !!nestError ||
+        !!nestSelectionError()
+      "
+    >
       {{ submitting ? 'Deploying to K8s...' : 'Deploy To K8s' }}
     </button>
     @if (loadingInventory) {

@@ -23,6 +23,15 @@
     <label
       ><span>Name</span><input type="text" formControlName="name" placeholder="Microk8sCluster3"
     /></label>
+    <label
+      ><span>Registered Katana location</span
+      ><select formControlName="location">
+        <option value="">Select registered location</option>
+        @for (location of locations; track location) {
+          <option [value]="location">{{ location }}</option>
+        }
+      </select></label
+    >
     <label class="registration-form__full"
       ><span>Description</span
       ><input

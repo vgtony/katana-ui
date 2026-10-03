@@ -1,19 +1,21 @@
-# Replace these identifiers with registered Katana resources before deployment.
-# helm_configuration is a Katana extension; quote SD to preserve leading zeroes.
+# Upload in Deployments -> Kubernetes -> Deploy Configuration.
+# OSM NSD/VIM and Katana NFVO/location are resolved from existing inventory.
+# No placeholder infrastructure IDs are needed. If several match, select one.
+# member_vnf_index and kdu_name must match your onboarded descriptors.
+name: free5gc-sd-000002
+description: free5GC deployment with SD 000002
 base_slice_descriptor:
   base_slice_des_id: free5gc-sd-000002
   delay_tolerance: true
   network_DL_throughput:
+    # Required by the existing mapper; this does not enforce throughput.
     guaranteed: 200000
   isolation: 3
-  coverage: [edge]
+  # No geographic constraint is requested by this example.
+  coverage: []
 service_descriptor:
   ns_list:
-    - nsd-id: REPLACE_WITH_ADAPTED_NSD_ID
-      ns-name: free5gc-sd-000002
-      nfvo-id: REPLACE_WITH_NFVO_ID
-      target: REPLACE_WITH_KUBERNETES_TARGET_ID
-      placement: edge
+    - ns-name: free5gc-sd-000002
       optional: false
       helm_configuration:
         profile: free5gc-sd-v1

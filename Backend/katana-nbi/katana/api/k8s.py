@@ -16,7 +16,7 @@ import requests  # type: ignore
 
 from katana.shared_utils.mongoUtils import mongoUtils
 from katana.shared_utils.nfvoUtils import osmUtils
-from katana.shared_utils.infrastructureUtils import InfrastructureError, ensure_infrastructure
+from katana.shared_utils.infrastructureUtils import InfrastructureError, ensure_infrastructure, kubernetes_location, set_kubernetes_location
 
 # Logging Parameters
 logger = logging.getLogger(__name__)
@@ -154,6 +154,7 @@ class K8SClusterView(FlaskView):
                     "created_at": cluster["created_at"],
                     "namespace": cluster.get("namespace", "default"),
                     "location": cluster.get("location", ""),
+                    "type": cluster.get("type", ""),
                 }
                 for cluster in k8s_data
             ]
@@ -162,6 +163,21 @@ class K8SClusterView(FlaskView):
         except Exception as e:
             logger.exception("Error fetching Kubernetes clusters")
             return f"Error: {str(e)}", 500
+
+    @route('/<uuid>/location', methods=['PATCH'])
+    def assign_location(self, uuid):
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict) or set(data) != {"location"}:
+            return jsonify({"error": "Supply a location only"}), 400
+        cluster = mongoUtils.get("k8sclusters", uuid) or mongoUtils.find("k8sclusters", {"id": uuid})
+        if not cluster:
+            return jsonify({"error": "Kubernetes cluster not found"}), 404
+        try:
+            record = set_kubernetes_location(cluster, data["location"])
+        except InfrastructureError as exc:
+            return jsonify({"error": str(exc)}), exc.status_code
+        return jsonify({"id": record["id"], "location": record["location"],
+                        "message": "Kubernetes deployment location saved"}), 200
 
     def get(self, uuid):
         """
@@ -285,7 +301,12 @@ class K8SClusterView(FlaskView):
 
             elif request.content_type == "application/json":
                 # Handle JSON payload for adding a Kubernetes cluster
+                try:
+                    location_id = kubernetes_location(request.json.get("location"))
+                except InfrastructureError as exc:
+                    return jsonify({"error": str(exc)}), exc.status_code
                 request.json.update(_new_cluster_identity())
+                request.json.update({"type": "kubernetes", "location": location_id})
                 new_uuid = request.json["_id"]
 
                 logger.info("Adding a new Kubernetes cluster.")
@@ -304,6 +325,8 @@ class K8SClusterView(FlaskView):
                         password=request.json.get("nfvo_password", ""),
                         project_id=request.json.get("project_id", "admin"),
                     )
+                    if not osm.nfvo_id or not mongoUtils.find("nfvo", {"id": osm.nfvo_id}):
+                        return jsonify({"error": "Register and select the owning NFVO before registering the cluster"}), 400
                     osm.getToken()
 
                     vim_reference = request.json["vim_account"]
@@ -366,6 +389,7 @@ class K8SClusterView(FlaskView):
                             record.pop("nfvo_username", None)
                             record.pop("nfvo_password", None)
                             mongoUtils.add("k8sclusters", record)
+                            set_kubernetes_location(record, location_id)
                             logger.info(f"Successfully added Kubernetes cluster: {new_uuid}")
 
                             # Use request.json directly for dashboard creation.
@@ -469,11 +493,12 @@ class K8SClusterView(FlaskView):
                 return jsonify({"error": "Invalid content type, JSON expected"}), 400
 
             data = request.json
-            logger.debug(f"Deployment payload received: {data}")
+            if not isinstance(data, dict):
+                return jsonify({"error": "Deployment request must be an object"}), 400
 
             required_fields = ["nsName", "nsdId", "vimAccountId", "nfvo_id"]
             for field in required_fields:
-                if field not in data:
+                if not isinstance(data.get(field), str) or not data[field].strip():
                     logger.error(f"Missing required field: {field}")
                     return jsonify({"error": f"Missing required field '{field}'"}), 400
 
@@ -521,13 +546,28 @@ class K8SClusterView(FlaskView):
                 "vimAccountId": vim_account_id
             }
 
-            logger.debug(f"Sending payload to OSM: {osm_payload}")
+            if "nest" in data:
+                from katana.shared_utils.nestHelm import deployment_nest_parameters
+                nsd = mongoUtils.find("nsd", {"nsd-id": data["nsdId"]})
+                if not nsd or nsd.get("nfvo_id") != nfvo["id"] or nsd.get("deployment_runtime") != "kubernetes":
+                    return jsonify({"error": "Select a Kubernetes NSD owned by this NFVO"}), 400
+                enabled = [value.strip() for value in os.getenv("KATANA_FREE5GC_NEST_NSD_IDS", "").split(",")]
+                if data["nsdId"] not in enabled:
+                    return jsonify({"error": "This NSD is not enabled for the configurable free5gc chart"}), 400
+                clusters = list(mongoUtils.find_all("k8sclusters", {"nfvo_id": nfvo["id"], "vim_account": vim_account_id}))
+                try:
+                    osm_payload["additionalParamsForVnf"] = deployment_nest_parameters(data["nest"], data["nsdId"], nfvo["id"], clusters)
+                except ValueError as exc:
+                    return jsonify({"error": str(exc)}), 400
+            if data.get("nsDescription"):
+                osm_payload["nsDescription"] = data["nsDescription"]
+            logger.debug("Sending Kubernetes deployment request to OSM")
             response = requests.post(
                 osm_url, headers=headers, json=osm_payload, verify=osm.verify
             )
             logger.debug(f"OSM API response: {response.status_code}, {response.text}")
 
-            if response.status_code not in [200, 201]:
+            if response.status_code not in [200, 201, 202]:
                 logger.error(f"Failed to deploy NS: {response.text}")
                 return jsonify({"error": f"Failed to deploy NS: {response.text}"}), response.status_code
 

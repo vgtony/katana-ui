@@ -15,7 +15,6 @@ export class SidebarComponent {
     { icon: 'monitoring', label: 'Monitoring', route: '/monitoring' },
     { icon: 'history', label: 'History', route: '/history' },
     { icon: 'proxmox', label: 'Proxmox', route: '/proxmox-monitoring' },
-    { icon: 'deployment', label: 'Create Slice', route: '/slices/create' },
     { icon: 'deployment', label: 'Deployments', route: '/deployment' },
     { icon: 'infrastructure', label: 'Infrastructure', route: '/infrastructure' },
     { icon: 'deployment', label: 'Helm charts', route: '/helm-charts' },

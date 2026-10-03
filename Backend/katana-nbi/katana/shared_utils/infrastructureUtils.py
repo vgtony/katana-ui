@@ -1,3 +1,4 @@
+import re
 import pickle
 import time
 import uuid
@@ -112,6 +113,29 @@ def _add_location_target(location, infrastructure_id):
     if infrastructure_id not in location["vims"]:
         location["vims"].append(infrastructure_id)
         mongoUtils.update("location", location["_id"], location)
+
+
+def kubernetes_location(value):
+    if not isinstance(value, str) or not re.fullmatch(r"[a-z0-9][a-z0-9_.-]{0,63}", value.strip().lower()):
+        raise InfrastructureError("Kubernetes location is required: use 1–64 letters, digits, dots, underscores or hyphens")
+    return value.strip().lower()
+
+
+def set_kubernetes_location(cluster, value):
+    """Complete legacy Katana metadata without re-registering anything in OSM."""
+    location_id = kubernetes_location(value)
+    if cluster.get("location") and cluster["location"].lower() != location_id:
+        raise InfrastructureError("This cluster already has a location; changing deployment placement is not supported here", 409)
+    if not cluster.get("nfvo_id") or not cluster.get("vim_account"):
+        raise InfrastructureError("Cluster requires its registered NFVO and OSM VIM account before assigning a location")
+    if not mongoUtils.find("nfvo", {"id": cluster["nfvo_id"]}):
+        raise InfrastructureError("The cluster's NFVO is not registered")
+    record = dict(cluster, id=cluster.get("id") or str(cluster["_id"]),
+                  type="kubernetes", location=location_id)
+    location = _ensure_location(location_id)
+    mongoUtils.update("k8sclusters", cluster["_id"], record)
+    _add_location_target(location, record["id"])
+    return record
 
 
 def _register_openstack(data, location):

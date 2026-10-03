@@ -1,18 +1,20 @@
 # NEST-driven free5GC deployment
 
-## Plan and first implementation
+## Deployment workflow
 
-1. Accept a small, validated per-service NEST extension for SD selection.
-2. Translate it into OSM Helm instantiation parameters; preserve it during creation, AddNS and restart.
-3. Preserve settings in the NEST upload UI and allow selection of registered Kubernetes targets.
-4. Adapt the reviewed free5GC chart once, keeping existing settings as defaults.
-5. Verify rendered configuration and mocked orchestration locally, then run a live OSM acceptance deployment.
+Use **Deployments → Kubernetes → Deploy Configuration**. The separate Create Slice page has been removed; old links redirect here.
 
-Steps 1–4 are implemented with local checks for step 5. Live OSM/Kubernetes acceptance is still required. This feature creates new service instances using reusable package definitions. It does not upgrade an already running instance when a NEST file changes.
+1. Upload the configurable chart once and onboard the corresponding KNF/NSD in OSM (see below).
+2. Open Kubernetes deployment. Registered clusters allow you to proceed without uploading credentials again.
+3. Upload the example NEST. Katana reads the service name, description and SD from YAML.
+4. Katana loads NSDs, their owning NFVOs, live OSM VIM accounts and registered locations. A sole eligible choice is selected automatically; choose from the existing dropdowns if several resources are available.
+5. Review the Helm values and deploy. Katana sends the NEST-derived values through the existing `/api/k8s/deploy` endpoint to OSM. The chart name and packages stay unchanged.
+
+An accepted request is not proof that the service is running. Check OSM deployment status and Kubernetes workloads. This creates a new service instance, not an upgrade of an existing instance.
 
 ## NEST input
 
-Start from `../templates/example_config_files/nest/free5gc_sd.yaml`. Replace its NSD, NFVO, target and placement with registered Katana identifiers. The added service field is a **Katana extension**, not a claim to implement every GSMA NEST attribute:
+Start from `../templates/example_config_files/nest/free5gc_sd.yaml`. It intentionally contains no blank infrastructure identifiers: these come from inventory. Optional explicit NSD/NFVO references must match the selected deployment. The added service field is a **Katana extension**, not a claim to implement every GSMA NEST attribute:
 
 ```yaml
 helm_configuration:
@@ -26,7 +28,7 @@ helm_configuration:
 
 The profile changes the chart's existing SST 1 / SD 010203 entries. SD remains a six-character hexadecimal string, including leading zeroes. Integers, unknown fields, unsupported profiles and reserved `FFFFFF` are rejected. Keep the NEST's `delay_tolerance: true` for the current mapper's SST 1 selection. Other SSTs, DNNs, QoS fields and subscriber identities are outside this profile.
 
-The upload page displays the profile, SD and KDU. To change the requested SD, edit the uploaded NEST. Settings stay attached to their service when another row is removed. A Kubernetes target must have a registered `location`, `type: kubernetes`, owning NFVO and OSM VIM account mapping in Katana's unified infrastructure registry. Legacy cluster records without location/type need that registration completed before this flow can select them. Location must also be registered in Katana.
+The deployment form previews the generated Helm values. Invalid YAML or missing supported configuration blocks deployment with an error. Change SD in the NEST and upload it again. After refreshing the page, re-upload the NEST before deploying; its contents are not persisted in browser drafts.
 
 Katana generates:
 
@@ -40,7 +42,7 @@ additionalParamsForVnf:
             katanaNestSd: "000002"
 ```
 
-Clients cannot supply `additionalParamsForVnf` directly through this NEST endpoint. Generated settings are saved in the slice service record and reused on restart. API AddNS accepts the same `helm_configuration` under its `details` object. This is configuration at instantiation, not a live SD migration.
+Clients cannot supply `additionalParamsForVnf` directly through this NEST endpoint. The existing legacy slice API also supports this profile and preserves its parameters on restart; the Kubernetes deployment flow uses OSM service instances directly. This is configuration at instantiation, not a live SD migration.
 
 ## Chart source and packaging
 
@@ -81,11 +83,11 @@ PYTHONPATH=Backend python3 -m unittest discover -s Backend/tests -q
 From `Frontend/katana-slice-manager`:
 
 ```sh
-npm test -- --watch=false --include=src/app/pages/create-slice-page/create-slice-page.component.spec.ts
+npm test -- --watch=false --include=src/app/features/registration/k8s-registration-flow.spec.ts
 npm run build
 ```
 
-The chart check renders defaults and two SD values, decodes core/UE/gNB/subscriber configuration, verifies the intended SDs and that other settings stay unchanged, and rejects invalid values. The backend checks cover validation, OSM request serialization and restart. UI checks cover Kubernetes selection and service-row removal.
+The chart check renders defaults and two SD values, decodes core/UE/gNB/subscriber configuration, verifies the intended SDs and that other settings stay unchanged, and rejects invalid values. The backend checks cover validation, OSM request serialization and restart. UI checks cover inventory selection, YAML parsing and the deployment request.
 
 Before enabling a production NSD, confirm your installed OSM release accepts the documented KDU parameter structure. Deploy a test NEST with `000002`, inspect the OSM request and live ConfigMaps/subscriber data, confirm UE registration and a PDU session, then restart and confirm the SD persists. Test a second SD in a separate safe environment or after termination. The upstream chart contains fixed networking and subscriber defaults; concurrent deployments are not proven isolated by this feature.
 
@@ -93,4 +95,10 @@ SD identifies a slice together with SST; it does not enforce throughput, jitter,
 
 OSM parameter reference: [KDU instantiation parameters](https://osm.etsi.org/docs/user-guide/develop/vnf-onboarding/05-quickstarts.html#particularize-your-instantiation-parameters).
 
-Local verification on 2026-09-23: 61 backend tests and 6 upload-page tests passed; TypeScript `tsc --noEmit -p tsconfig.app.json`, Helm lint, packaging and the decoded chart configuration check passed. Production `ng build` aborted inside Node with `SIGABRT` (exit 134) without a diagnostic, including with fewer build workers. Production bundle verification and live OSM acceptance therefore remain outstanding.
+## Existing cluster locations
+
+Locations and NFVOs are loaded from Katana; they do not belong in the NEST example as empty fields. New cluster registration offers the registered locations in a dropdown and selects the sole location automatically.
+
+For legacy clusters missing their location association, **Infrastructure → Kubernetes clusters → Save location** repairs Katana metadata without uploading credentials or registering the cluster again. This is only needed to repair missing metadata; the Kubernetes deployment form does not repeat the old Create Slice target-registration gate.
+
+Live OSM acceptance and production bundle verification remain required before release.

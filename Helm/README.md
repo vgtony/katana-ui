@@ -41,10 +41,10 @@ Inspect the ConfigMap data in that file. Generated manifests can include subscri
 ## Trace a NEST through the application
 
 1. Start the frontend using its [development instructions](../Frontend/katana-slice-manager/README.md), connected to your running Katana backend.
-2. Upload [free5gc_sd.yaml](../Backend/templates/example_config_files/nest/free5gc_sd.yaml) after replacing its resource IDs.
-3. Inspect the create-slice HTTP request in browser developer tools: the selected service should contain `helm_configuration.sd: "000002"`.
-4. In the NBI, follow `Backend/katana-nbi/katana/api/slice.py` and `shared_utils/nestHelm.py`. Validation generates `additionalParamsForVnf` containing `global.katanaNestSd`.
-5. In the manager, follow `Backend/katana-mngr/katana/utils/sliceUtils/sliceUtils.py` into `shared_utils/nfvoUtils/osmUtils.py`. These send the values to OSM and preserve them for restart.
+2. Open **Deployments → Kubernetes → Deploy Configuration** and upload [free5gc_sd.yaml](../Backend/templates/example_config_files/nest/free5gc_sd.yaml). Infrastructure choices come from inventory.
+3. Inspect the `/api/k8s/deploy` request in browser developer tools: `nest.service_descriptor.ns_list[0].helm_configuration.sd` should be `"000002"`.
+4. In the NBI, follow `Backend/katana-nbi/katana/api/k8s.py` and `shared_utils/nestHelm.py`. Validation generates `additionalParamsForVnf` containing `global.katanaNestSd`.
+5. The deployment endpoint sends these parameters with the selected NSD and VIM to OSM; the published chart is reused.
 6. Compare the local rendered ConfigMaps with OSM's deployed ConfigMaps. Keep tokens and subscriber secrets out of shared debug logs.
 
 ## Package changes for OSM

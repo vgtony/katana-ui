@@ -45,13 +45,7 @@ export const routes: Routes = [
             (m) => m.MonitoringPageComponent,
           ),
       },
-      {
-        path: 'slices/create',
-        loadComponent: () =>
-          import('./pages/create-slice-page/create-slice-page.component').then(
-            (m) => m.CreateSlicePageComponent,
-          ),
-      },
+      { path: 'slices/create', redirectTo: 'deployment/k8s', pathMatch: 'full' },
       {
         path: 'infrastructure',
         loadComponent: () =>
@@ -87,7 +81,7 @@ export const routes: Routes = [
             (m) => m.DeploymentPageComponent,
           ),
       },
-      { path: 'deployment/slice', redirectTo: 'slices/create', pathMatch: 'full' },
+      { path: 'deployment/slice', redirectTo: 'deployment/k8s', pathMatch: 'full' },
       {
         path: 'deployment/:option',
         loadComponent: () =>
