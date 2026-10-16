@@ -206,6 +206,8 @@ service_descriptor:
     expect(component.form.value.nfvoId).toBe('nfvo-lab');
     expect(component.locationLabel()).toBe('edge');
     expect(component.helmValues()).toContain('000002');
+    const emitted: unknown[] = [];
+    component.deployed.subscribe((value: unknown) => emitted.push(value));
     component.submit();
     const deploy = httpTestingController.expectOne((req) => req.url.endsWith('/k8s/deploy'));
     expect(deploy.request.body.nest.service_descriptor.ns_list[0].helm_configuration.sd).toBe(
@@ -214,5 +216,6 @@ service_descriptor:
     expect(deploy.request.body.nsdId).toBe('nsd-k8s');
     expect(deploy.request.body.vimAccountId).toBe('post-time-0-osm-vim-id');
     deploy.flush({ message: 'Accepted', osm_response: { id: 'instance' } });
+    expect(emitted).toEqual([{ status: 'accepted', osmResponse: { id: 'instance' } }]);
   });
 });

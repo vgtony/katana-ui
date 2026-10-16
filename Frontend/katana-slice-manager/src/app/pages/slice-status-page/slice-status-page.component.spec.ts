@@ -76,6 +76,34 @@ describe('SliceStatusPageComponent', () => {
     expect(markForCheck).toHaveBeenCalled();
   });
 
+  it('stops after three timed-out status requests without reporting deployment failure', () => {
+    vi.useFakeTimers();
+    try {
+      const fixture = TestBed.createComponent(SliceStatusPageComponent);
+      vi.advanceTimersByTime(100000);
+      const component = fixture.componentInstance as any;
+      expect(component.polling).toBe(false);
+      expect(component.pollError).toBeTruthy();
+      expect(component.failed).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('bounds polling even when the service remains in progress', () => {
+    vi.useFakeTimers();
+    try {
+      TestBed.inject(SliceApiService).pollSlice = () => of({ status: 'Provisioning' });
+      const fixture = TestBed.createComponent(SliceStatusPageComponent);
+      vi.advanceTimersByTime(20 * 60 * 1000);
+      const component = fixture.componentInstance as any;
+      expect(component.polling).toBe(false);
+      expect(component.pollMessage).toContain('still be running');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('submits AddNS with owner and explicit linked target', () => {
     const fixture = TestBed.createComponent(SliceStatusPageComponent);
     const component = fixture.componentInstance as any;

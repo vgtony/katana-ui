@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { DashboardRow, DashboardSection } from '../../models/interfaces/dashboard.interface';
+import { redactStoredSecrets } from '../storage-redaction.utils';
 import {
   CatalogApiService,
   EmsApiService,
@@ -161,7 +162,7 @@ export class DashboardDataService {
     payload: unknown,
     error: string | null
   ): DashboardSection {
-    const rows = this.toRows(payload);
+    const rows = this.toRows(redactStoredSecrets(payload));
     const columns = rows.flatMap((row) => Object.keys(row)).filter((value, index, array) => {
       return array.indexOf(value) === index;
     });

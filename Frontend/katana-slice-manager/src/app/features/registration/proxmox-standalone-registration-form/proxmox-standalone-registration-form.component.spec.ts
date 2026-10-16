@@ -117,7 +117,9 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
     fixture.detectChanges();
   }
 
-  it('reuses an unchanged active standalone registration instead of posting duplicate requests', () => {
+  it('revalidates saved inventory without registering the cluster again', () => {
+    connectMock.mockReturnValue(of({ nodes: activeSnapshot.nodes, servers: activeSnapshot.servers }));
+    getOverviewMock.mockReturnValue(of({ remaining_resources: activeSnapshot.overview }));
     draftService.saveFormValue(
       'proxmox-standalone',
       'proxmox-standalone',
@@ -134,11 +136,24 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
     fixture.detectChanges();
 
     expect(createClusterMock).not.toHaveBeenCalled();
-    expect(connectMock).not.toHaveBeenCalled();
-    expect(getOverviewMock).not.toHaveBeenCalled();
+    expect(connectMock).toHaveBeenCalledTimes(1);
+    expect(getOverviewMock).toHaveBeenCalledTimes(1);
     expect(draftService.getFormState('proxmox-standalone', 'proxmox-standalone')).toBe('active');
-    expect(component['submitMessage']).toContain('Using the existing Antares overview.');
+    expect(component['submitMessage']).toContain('Saved Proxmox registration verified');
     expect(completedSpy).toHaveBeenCalled();
+  });
+
+  it('blocks stale saved registration after backend credentials expire', () => {
+    draftService.saveFormValue('proxmox-standalone', 'proxmox-standalone', activeSnapshot, 'active');
+    connectMock.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 401 })));
+    createComponent();
+    const completed = vi.spyOn(component.completed, 'emit');
+    component['submit']();
+    expect(completed).not.toHaveBeenCalled();
+    expect(component['submitError']).toBeTruthy();
+    expect(component['resultsView']).toBeNull();
+    expect(draftService.getFormState('proxmox-standalone', 'proxmox-standalone')).toBe('draft');
+    expect(createClusterMock).not.toHaveBeenCalled();
   });
 
   it('refreshes a restored active registration when its saved server cards only contain placeholders', () => {
@@ -184,7 +199,7 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
 
     component['form'].setValue({
       url: 'https://proxmox.example:8006',
-      verifySsl: false,
+      verifySsl: true,
       authMethod: 'password',
       username: 'root@pam',
       password: 'secret',
@@ -215,6 +230,7 @@ describe('ProxmoxStandaloneRegistrationFormComponent interaction', () => {
     fixture.detectChanges();
 
     expect(createClusterMock).toHaveBeenCalledTimes(1);
+    expect(createClusterMock.mock.calls[0][0].verify_ssl).toBe(true);
     expect(connectMock).not.toHaveBeenCalled();
     expect(getOverviewMock).not.toHaveBeenCalled();
     expect(component['submitting']).toBe(false);

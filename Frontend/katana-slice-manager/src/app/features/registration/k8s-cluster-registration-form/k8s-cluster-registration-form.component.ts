@@ -163,6 +163,7 @@ export class K8sClusterRegistrationFormComponent implements OnInit {
   }
 
   protected submit(): void {
+    if (this.submitting || this.loadingInventory || this.inventoryError) return;
     this.submitMessage = '';
     this.submitError = '';
 

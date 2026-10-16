@@ -46,6 +46,7 @@ def create_consumer(topic_name, bootstrap_servers=None):
                 time.sleep(5)
             else:
                 logger.error(KafkaError)
+                raise
         else:
             logger.info("New consumer")
             exit = True
@@ -70,6 +71,7 @@ def create_producer(bootstrap_servers=None):
                 time.sleep(5)
             else:
                 logger.error(KafkaError)
+                raise
         else:
             logger.info("New producer")
             exit = True
@@ -101,6 +103,7 @@ def create_topic(topic_name, bootstrap_servers=None):
                 time.sleep(5)
             else:
                 logger.error(KafkaError)
+                raise
         else:
             exit = True
             tries = 30

@@ -1,4 +1,7 @@
 <section class="deployment-page">
+  @if (deploymentDraftService.storageUnavailable() || deploymentHistoryService.storageUnavailable()) {
+    <p role="alert">Browser storage is unavailable. Drafts and history are kept only in this tab and will be lost on reload.</p>
+  }
 
   <header class="deployment-page__hero">
     <p class="deployment-page__eyebrow">Deployment</p>

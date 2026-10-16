@@ -13,7 +13,6 @@ export interface NavigationItem {
     | 'history'
     | 'monitoring'
     | 'deployment'
-    | 'proxmox'
     | 'infrastructure';
   label: string;
   route: string;

@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, DestroyRef, NgZone, effect, inject, input, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Subscription, finalize, switchMap, takeWhile, timer } from 'rxjs';
+import { Subscription, exhaustMap, finalize, takeUntil, takeWhile, timeout, timer } from 'rxjs';
 import { initialProxmoxVmCreationFormModel } from '../../../models/proxmox-vm-creation-form.model';
 import {
   ProxmoxVmCreationFormModel,
@@ -31,6 +31,7 @@ import { DeploymentDraftService } from '../../../shared/services/deployment-draf
 export interface DeploymentAttemptEvent {
   status: DeploymentPackStatus;
   errorType?: string;
+  osmResponse?: unknown;
 }
 
 @Component({
@@ -185,6 +186,7 @@ export class ProxmoxVmCreationFormComponent {
   }
 
   protected submit(): void {
+    if (this.submitting || this.waitingForVmIp) return;
     this.stopVmIpPolling();
     this.waitingForVmIp = false;
     this.vmIpStatusMessage = '';
@@ -572,7 +574,7 @@ export class ProxmoxVmCreationFormComponent {
   ): void {
     const vmIpRequest = this.buildVmIpRequest(response, request);
 
-    if (!vmIpRequest) {
+    if (!vmIpRequest || response.results.every((result) => !result.started)) {
       this.completeSuccessfulDeployment(this.buildProvisionSuccessMessage(response, request));
       return;
     }
@@ -581,8 +583,9 @@ export class ProxmoxVmCreationFormComponent {
     this.vmIpStatusMessage = this.buildPendingVmIpMessage(vmIpRequest);
     this.vmIpPollingSubscription = timer(0, this.vmIpPollIntervalMs)
       .pipe(
-        switchMap(() => this.proxmoxApi.getVmIp(vmIpRequest)),
+        exhaustMap(() => this.proxmoxApi.getVmIp(vmIpRequest).pipe(timeout(30000))),
         takeWhile((vmIpResponse) => vmIpResponse.ip_status !== 'ready', true),
+        takeUntil(timer(120000)),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
@@ -601,6 +604,11 @@ export class ProxmoxVmCreationFormComponent {
           this.ngZone.run(() => {
             this.completeSuccessfulDeployment(this.buildProvisionSuccessMessage(response, request));
           });
+        },
+        complete: () => {
+          if (this.waitingForVmIp && !this.destroyRef.destroyed) {
+            this.completeSuccessfulDeployment(this.buildProvisionSuccessMessage(response, request));
+          }
         }
       });
   }

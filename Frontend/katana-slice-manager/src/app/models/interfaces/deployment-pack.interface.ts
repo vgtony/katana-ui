@@ -7,7 +7,7 @@ export interface DeploymentPackRequirement {
   status: 'done';
 }
 
-export type DeploymentPackStatus = 'done' | 'failed';
+export type DeploymentPackStatus = 'accepted' | 'done' | 'failed';
 
 export interface DeploymentPack {
   id: string;
@@ -17,6 +17,7 @@ export interface DeploymentPack {
   shortLabel: string;
   status: DeploymentPackStatus;
   errorType?: string;
+  osmResponse?: unknown;
   completedAt: string;
   finalConfigurationLabel: string;
   requirements: DeploymentPackRequirement[];

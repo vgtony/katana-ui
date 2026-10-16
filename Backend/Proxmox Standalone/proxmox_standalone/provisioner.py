@@ -182,10 +182,19 @@ class ProxmoxProvisioner:
         if not isinstance(vm_defs, list) or not vm_defs:
             raise ValueError("VM config must include a non-empty 'vms' list")
 
+        specs = [VmSpec.from_dict(item) for item in vm_defs]
         results = []
-        for item in vm_defs:
-            spec = VmSpec.from_dict(item)
-            results.append(self.provision_vm(spec))
+        for spec in specs:
+            self.pending_vm = None
+            try:
+                results.append(self.provision_vm(spec))
+            except Exception as exc:
+                completed = [{"node": result.get("node", self.node), "vmid": result["vmid"]} for result in results]
+                error_type = ValueError if isinstance(exc, ValueError) else ProxmoxAPIError
+                raise error_type(
+                    f"Provisioning failed for {spec.name}: {exc}. Completed VMs: {completed}. "
+                    f"Possibly created VM: {self.pending_vm}. Inspect these resources before retrying."
+                ) from exc
 
         return {
             "cluster": self.cluster_config.get("name"),
@@ -196,6 +205,7 @@ class ProxmoxProvisioner:
 
     def provision_vm(self, vm: VmSpec) -> Dict[str, Any]:
         vmid = self.client.next_vmid()
+        self.pending_vm = {"node": vm.target or self.node, "vmid": vmid}
         clone_task = None
         create_task = None
         source = "template-clone" if vm.template is not None else "fresh-create"

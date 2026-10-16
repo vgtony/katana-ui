@@ -269,10 +269,13 @@ describe('Registration form components', () => {
       httpTestingController.expectOne((req) => req.url.includes('/nfvo')).flush([
         { _id: 'nfvo-db', nfvo_id: 'nfvo-lab', type: 'OSM', created_at: 1 }
       ]);
-      httpTestingController.expectOne((req) => req.url.includes('/vim')).flush([
+      httpTestingController.expectOne((req) => req.url.endsWith('/location')).flush([
+        { id: 'lab', description: 'Lab' }
+      ]);
+      httpTestingController.expectOne((req) => req.url.includes('/vim-accounts/')).flush([
         {
-          _id: 'vim-db',
-          vim_id: 'vim-lab',
+          id: 'vim-lab',
+          k8s_cluster_count: 0,
           name: 'Lab VIM',
           type: 'openstack',
           location: 'lab',
@@ -295,6 +298,7 @@ describe('Registration form components', () => {
         credentials: 'creds.yaml',
         schemaType: 'k8scluster',
         name: 'microk8s-lab',
+        location: 'lab',
         description: 'Lab Kubernetes cluster',
         nfvoId: 'nfvo-lab',
         vimAccount: 'vim-lab',
@@ -311,7 +315,7 @@ describe('Registration form components', () => {
       submitButton.click();
       fixture.detectChanges();
 
-      const request = httpTestingController.expectOne((req) => req.url.includes('/k8s'));
+      const request = httpTestingController.expectOne((req) => req.method === 'POST' && req.url.endsWith('/k8s'));
       expect(request.request.method).toBe('POST');
       expect(request.request.body.nfvo_id).toBe('nfvo-lab');
       expect(request.request.body.nets.k8s_net1).toBeNull();
@@ -678,6 +682,11 @@ describe('Registration form components', () => {
         node: 'pve-01',
         vmid: 123
       });
+      vi.advanceTimersByTime(8000);
+      expect(pendingIpRequest.cancelled).toBe(false);
+      component.submit();
+      httpTestingController.expectNone((req) => req.url.includes('/proxmox/provision'));
+      httpTestingController.expectNone((req) => req.url.includes('/proxmox/vm-ip'));
       pendingIpRequest.flush({
         cluster: 'prod-cluster-01',
         node: 'pve-01',
@@ -712,6 +721,26 @@ describe('Registration form components', () => {
       expect(fixture.nativeElement.textContent).toContain('VM Deployed. IP: 10.160.101.55');
       httpTestingController.expectNone((req) => req.url.includes('/proxmox/list-vms'));
       vi.useRealTimers();
+    });
+
+    it('bounds guest IP discovery while preserving completed provisioning', () => {
+      vi.useFakeTimers();
+      try {
+        const component = fixture.componentInstance as any;
+        const emit = vi.spyOn(component.deployed, 'emit');
+        component.startVmIpLookup({ node: 'pve', results: [{ vmid: 123, started: true }] }, { vms: [] });
+        for (let elapsed = 0; elapsed < 120000; elapsed += 4000) {
+          vi.advanceTimersByTime(elapsed === 0 ? 0 : 4000);
+          httpTestingController.expectOne((req) => req.url.includes('/proxmox/vm-ip')).flush({ ip_status: 'pending' });
+        }
+        vi.advanceTimersByTime(4000);
+        expect(component.waitingForVmIp).toBe(false);
+        expect(component.submitMessage).toContain('IP: unavailable');
+        expect(emit).toHaveBeenCalledTimes(1);
+        httpTestingController.expectNone((req) => req.url.includes('/proxmox/vm-ip'));
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('allows deploying without custom bridge values', () => {

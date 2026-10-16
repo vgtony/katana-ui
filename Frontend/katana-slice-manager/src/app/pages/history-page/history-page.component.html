@@ -1,4 +1,7 @@
 <section class="history-page">
+  @if (historyService.storageUnavailable()) {
+    <p role="alert">Browser storage is unavailable. History is kept only in this tab and will be lost on reload.</p>
+  }
   <header class="history-page__hero">
     <p class="history-page__eyebrow">History</p>
     <div class="history-page__hero-row">
@@ -28,6 +31,12 @@
 
             <div class="history-page__card-copy">
               <p class="history-page__deployment">{{ pack.optionLabel }}</p>
+              @if (pack.osmResponse) {
+                <details>
+                  <summary>OSM acceptance response</summary>
+                  <pre>{{ pack.osmResponse | json }}</pre>
+                </details>
+              }
             </div>
 
             <div class="history-page__requirements">
@@ -49,7 +58,7 @@
       <section class="history-page__empty">
         <h3>No deployment packs yet</h3>
         <p>
-          Start a deployment from the guided flow and each completed or failed attempt will appear
+          Start a deployment from the guided flow and each accepted, completed, or failed attempt will appear
           here automatically.
         </p>
         <a class="history-page__link" routerLink="/deployment/slice">Open Deployment</a>

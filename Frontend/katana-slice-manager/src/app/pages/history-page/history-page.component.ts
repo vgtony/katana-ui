@@ -1,4 +1,4 @@
-import { AsyncPipe, DatePipe } from '@angular/common';
+import { AsyncPipe, DatePipe, JsonPipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { DeploymentPack } from '../../models/interfaces/deployment-pack.interface';
@@ -7,12 +7,12 @@ import { DeploymentHistoryService } from '../../shared/services/deployment-histo
 
 @Component({
   selector: 'app-history-page',
-  imports: [AsyncPipe, DatePipe, RouterLink],
+  imports: [AsyncPipe, DatePipe, JsonPipe, RouterLink],
   templateUrl: './history-page.component.html',
   styleUrl: './history-page.component.scss'
 })
 export class HistoryPageComponent {
-  private readonly historyService = inject(DeploymentHistoryService);
+  protected readonly historyService = inject(DeploymentHistoryService);
   private readonly deploymentDraftService = inject(DeploymentDraftService);
   private readonly router = inject(Router);
 
@@ -32,6 +32,7 @@ export class HistoryPageComponent {
   }
 
   protected getPackStatusLabel(pack: DeploymentPack): string {
-    return pack.status === 'failed' ? pack.errorType ?? 'Failed' : 'Done';
+    if (pack.status === 'accepted') return 'Accepted — readiness not verified';
+    return pack.status === 'failed' ? pack.errorType ?? 'Failed' : 'Operation completed';
   }
 }

@@ -193,6 +193,7 @@ export class AmarisoftSliceDeploymentFormComponent {
   }
 
   protected preview(): void {
+    if (this.submittingPreview || this.submittingPlan || this.submittingApply) return;
     this.submitMessage = '';
     this.submitError = '';
 
@@ -228,6 +229,7 @@ export class AmarisoftSliceDeploymentFormComponent {
   }
 
   protected savePlan(): void {
+    if (this.submittingPreview || this.submittingPlan || this.submittingApply) return;
     this.submitMessage = '';
     this.submitError = '';
 
@@ -273,6 +275,7 @@ export class AmarisoftSliceDeploymentFormComponent {
   }
 
   protected applyPlan(): void {
+    if (this.submittingPreview || this.submittingPlan || this.submittingApply) return;
     this.submitMessage = '';
     this.submitError = '';
 

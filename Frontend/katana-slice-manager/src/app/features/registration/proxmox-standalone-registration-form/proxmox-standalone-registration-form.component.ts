@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ChangeDetectorRef, Component, NgZone, OnInit, input, inject, output } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, NgZone, OnInit, input, inject, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { catchError, finalize, of, switchMap } from 'rxjs';
@@ -108,6 +108,7 @@ export class ProxmoxStandaloneRegistrationFormComponent implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
   private readonly ngZone = inject(NgZone);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly proxmoxApi = inject(ProxmoxApiService);
   private readonly deploymentDraftService = inject(DeploymentDraftService);
 
@@ -415,11 +416,16 @@ export class ProxmoxStandaloneRegistrationFormComponent implements OnInit {
   }
 
   protected submit(): void {
+    if (this.submitting) return;
     this.submitSucceeded = false;
     this.submitMessage = '';
     this.submitError = '';
 
     if (this.isUsingLoadedActiveRegistration() && this.resultsView) {
+      if (this.currentSnapshot.selectedDatacenter) {
+        this.refreshRestoredOverview(true);
+        return;
+      }
       this.submitSucceeded = true;
       this.submitMessage = this.resultsView.selectedDatacenter
         ? `Using the existing ${this.resultsView.selectedDatacenter.name} overview.`
@@ -596,7 +602,8 @@ export class ProxmoxStandaloneRegistrationFormComponent implements OnInit {
     return {
       url,
       username,
-      password: value.password
+      password: value.password,
+      verify_ssl: value.verifySsl
     };
   }
 
@@ -961,7 +968,7 @@ export class ProxmoxStandaloneRegistrationFormComponent implements OnInit {
     );
   }
 
-  private refreshRestoredOverview(): void {
+  private refreshRestoredOverview(completeOnSuccess = false): void {
     const datacenterId = this.stringify(this.currentSnapshot.selectedDatacenter?.['id']);
     const datacenterName = this.stringify(this.currentSnapshot.selectedDatacenter?.['name']);
 
@@ -993,8 +1000,9 @@ export class ProxmoxStandaloneRegistrationFormComponent implements OnInit {
         finalize(() => {
           this.submitting = false;
           this.loadingMessage = '';
-          this.changeDetectorRef.detectChanges();
-        })
+          if (!this.destroyRef.destroyed) this.changeDetectorRef.detectChanges();
+        }),
+        takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
         next: ({ connectResponse, overviewResponse }) => {
@@ -1019,9 +1027,20 @@ export class ProxmoxStandaloneRegistrationFormComponent implements OnInit {
             snapshot,
             'active'
           );
+          if (completeOnSuccess) {
+            this.submitSucceeded = true;
+            this.submitMessage = 'Saved Proxmox registration verified against current inventory.';
+            this.completed.emit();
+          }
           this.changeDetectorRef.detectChanges();
         },
-        error: () => {
+        error: (error: unknown) => {
+          this.savedState = 'draft';
+          this.resultsView = null;
+          this.selectedVmTargets = [];
+          this.submitError = getApiErrorMessage(error, 'Saved Proxmox registration could not be verified. Reconnect before deploying.');
+          this.deploymentDraftService.deactivateForm('proxmox-standalone', 'proxmox-standalone');
+          this.failed.emit();
           this.changeDetectorRef.detectChanges();
         }
       });

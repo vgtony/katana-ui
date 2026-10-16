@@ -384,7 +384,7 @@ export class K8sDeployServiceFormComponent implements OnInit {
             );
             this.submitSucceeded = true;
             this.submitMessage = response.message || 'Deployment request sent successfully.';
-            this.deployed.emit({ status: 'done' });
+            this.deployed.emit({ status: 'accepted', osmResponse: response.osm_response });
           });
         },
         error: (error: unknown) => {

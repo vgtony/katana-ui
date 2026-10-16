@@ -98,7 +98,9 @@ class AmarisoftSlicesView(FlaskView):
         if not record:
             return f"Error: No such Amarisoft slice: {uuid}", 404
 
-        delete_result = self._delete_from_targets(record)
+        delete_result = {} if record.get("status") == "planned" else self._delete_from_targets(record)
+        if any(not result.get("ok") for result in delete_result.values()):
+            return dumps({"_id": uuid, "deleted": False, "target_results": delete_result}), 502
         mongoUtils.delete(self.collection, uuid)
         return dumps({"_id": uuid, "deleted": True, "target_results": delete_result}), 200
 

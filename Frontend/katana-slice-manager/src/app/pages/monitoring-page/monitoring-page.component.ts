@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, DestroyRef, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { asyncScheduler, catchError, forkJoin, map, observeOn, of, switchMap } from 'rxjs';
+import { Subscription, asyncScheduler, catchError, forkJoin, map, observeOn, of, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   SliceApiService,
@@ -43,6 +43,8 @@ export class MonitoringPageComponent {
   private readonly sliceApi = inject(SliceApiService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
+  private chartRequest?: Subscription;
+  private logsRequest?: Subscription;
   private readonly chartWidth = 720;
   private readonly chartHeight = 220;
   private readonly chartPadding = 18;
@@ -291,7 +293,7 @@ export class MonitoringPageComponent {
     this.loadingLogs = true;
     this.logsError = '';
 
-    this.sliceApi
+    this.logsRequest = this.sliceApi
       .getSliceLogs(this.selectedSliceId, this.selectedCard?.links?.['logs'])
       .pipe(
         catchError(() => {
@@ -334,6 +336,11 @@ export class MonitoringPageComponent {
   }
 
   private loadChart(): void {
+    this.chartRequest?.unsubscribe();
+    this.loadingChart = false;
+    this.chartSeries = [];
+    this.chartMin = null;
+    this.chartMax = null;
     if (!this.selectedSliceId || !this.selectedMetric) {
       this.chartSeries = [];
       return;
@@ -345,7 +352,7 @@ export class MonitoringPageComponent {
     this.loadingChart = true;
     this.chartError = '';
 
-    this.sliceApi
+    this.chartRequest = this.sliceApi
       .getSliceMonitoringRange(this.selectedSliceId, this.selectedMetric, start, end)
       .pipe(
         catchError(() => {
@@ -363,6 +370,10 @@ export class MonitoringPageComponent {
   }
 
   private resetDetail(): void {
+    this.chartRequest?.unsubscribe();
+    this.logsRequest?.unsubscribe();
+    this.loadingChart = false;
+    this.loadingLogs = false;
     this.loadingDetail = false;
     this.detailError = '';
     this.chartError = '';

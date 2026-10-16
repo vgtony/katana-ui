@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import {
   DeploymentFormKey,
   DeploymentFormSnapshots,
@@ -71,6 +71,9 @@ function emptyValueOf(value: unknown): unknown {
 
 @Injectable({ providedIn: 'root' })
 export class DeploymentDraftService {
+  readonly storageUnavailable = signal(false);
+  private memoryDrafts: DeploymentStoredDraftMap = {};
+  private memoryContext: DeploymentHistoryContext | null = null;
   getSavedFormSnapshot<T extends object>(
     optionId: DeploymentOption['id'],
     formKey: DeploymentFormKey,
@@ -221,7 +224,12 @@ export class DeploymentDraftService {
   }
 
   clearHistoryContext(): void {
-    this.getStorage()?.removeItem(DEPLOYMENT_HISTORY_CONTEXT_STORAGE_KEY);
+    this.memoryContext = null;
+    try {
+      this.getStorage()?.removeItem(DEPLOYMENT_HISTORY_CONTEXT_STORAGE_KEY);
+    } catch {
+      this.storageUnavailable.set(true);
+    }
   }
 
   private toStorableValue(value: unknown): unknown | null {
@@ -246,35 +254,29 @@ export class DeploymentDraftService {
   }
 
   private readDrafts(): DeploymentStoredDraftMap {
-    const storage = this.getStorage();
-    const rawValue = storage?.getItem(DEPLOYMENT_DRAFT_STORAGE_KEY);
-
-    if (!rawValue) {
-      return {};
-    }
-
     try {
-      const parsedValue = JSON.parse(rawValue) as DeploymentStoredDraftMap;
-      if (!parsedValue || typeof parsedValue !== 'object') {
-        return {};
-      }
-
-      const redactedValue = redactStoredSecrets(parsedValue);
-      const serializedValue = JSON.stringify(redactedValue);
-      if (serializedValue !== rawValue) {
-        storage?.setItem(DEPLOYMENT_DRAFT_STORAGE_KEY, serializedValue);
-      }
-      return redactedValue;
-    } catch {
-      return {};
+      const storage = this.getStorage();
+      if (!storage) return this.memoryDrafts;
+      const rawValue = storage.getItem(DEPLOYMENT_DRAFT_STORAGE_KEY);
+      if (!rawValue) return this.memoryDrafts = {};
+      const parsedValue: unknown = JSON.parse(rawValue);
+      if (!isRecord(parsedValue)) return this.memoryDrafts = {};
+      this.memoryDrafts = redactStoredSecrets(parsedValue);
+      if (JSON.stringify(this.memoryDrafts) !== rawValue) this.writeDrafts(this.memoryDrafts);
+      return this.memoryDrafts;
+    } catch (error) {
+      if (!(error instanceof SyntaxError)) this.storageUnavailable.set(true);
+      return this.memoryDrafts;
     }
   }
 
   private writeDrafts(drafts: DeploymentStoredDraftMap): void {
-    this.getStorage()?.setItem(
-      DEPLOYMENT_DRAFT_STORAGE_KEY,
-      JSON.stringify(redactStoredSecrets(drafts)),
-    );
+    this.memoryDrafts = redactStoredSecrets(drafts);
+    try {
+      this.getStorage()?.setItem(DEPLOYMENT_DRAFT_STORAGE_KEY, JSON.stringify(this.memoryDrafts));
+    } catch {
+      this.storageUnavailable.set(true);
+    }
   }
 
   private isMissingHistorySnapshot(
@@ -286,36 +288,37 @@ export class DeploymentDraftService {
   }
 
   private readHistoryContext(): DeploymentHistoryContext | null {
-    const storage = this.getStorage();
-    const rawValue = storage?.getItem(DEPLOYMENT_HISTORY_CONTEXT_STORAGE_KEY);
-
-    if (!rawValue) {
-      return null;
-    }
-
     try {
-      const parsedValue = JSON.parse(rawValue) as DeploymentHistoryContext;
-
-      if (
-        parsedValue &&
-        typeof parsedValue === 'object' &&
-        typeof parsedValue.optionId === 'string' &&
-        Array.isArray(parsedValue.formKeys)
-      ) {
-        return parsedValue;
-      }
-    } catch {
-      return null;
+      const storage = this.getStorage();
+      if (!storage) return this.memoryContext;
+      const rawValue = storage.getItem(DEPLOYMENT_HISTORY_CONTEXT_STORAGE_KEY);
+      if (!rawValue) return this.memoryContext = null;
+      const value: unknown = JSON.parse(rawValue);
+      this.memoryContext = isRecord(value) && typeof value['optionId'] === 'string' &&
+        Array.isArray(value['formKeys']) && value['formKeys'].every((key) => typeof key === 'string')
+          ? value as unknown as DeploymentHistoryContext : null;
+      return this.memoryContext;
+    } catch (error) {
+      if (!(error instanceof SyntaxError)) this.storageUnavailable.set(true);
+      return this.memoryContext;
     }
-
-    return null;
   }
 
   private writeHistoryContext(context: DeploymentHistoryContext): void {
-    this.getStorage()?.setItem(DEPLOYMENT_HISTORY_CONTEXT_STORAGE_KEY, JSON.stringify(context));
+    this.memoryContext = context;
+    try {
+      this.getStorage()?.setItem(DEPLOYMENT_HISTORY_CONTEXT_STORAGE_KEY, JSON.stringify(context));
+    } catch {
+      this.storageUnavailable.set(true);
+    }
   }
 
   private getStorage(): Storage | null {
-    return typeof localStorage === 'undefined' ? null : localStorage;
+    if (this.storageUnavailable()) return null;
+    if (typeof localStorage === 'undefined') {
+      this.storageUnavailable.set(true);
+      return null;
+    }
+    return localStorage;
   }
 }

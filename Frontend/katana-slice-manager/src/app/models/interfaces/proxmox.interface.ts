@@ -216,46 +216,6 @@ export interface ProxmoxOverviewResponse {
   };
 }
 
-export interface ProxmoxTasksRequest {
-  cluster_id: string;
-  node?: string;
-  vmid?: number;
-  limit?: number;
-  statusfilter?: string;
-  typefilter?: string;
-}
-
-export interface ProxmoxTask {
-  node: string;
-  upid: string;
-  id?: string;
-  type?: string;
-  user?: string;
-  status?: string;
-  exitstatus?: string;
-  starttime?: number;
-  endtime?: number;
-}
-
-export interface ProxmoxTasksResponse {
-  cluster: string;
-  tasks: ProxmoxTask[];
-  errors: Array<{ node: string; error: string }>;
-}
-
-export interface ProxmoxTaskLogRequest {
-  cluster_id: string;
-  node: string;
-  upid: string;
-}
-
-export interface ProxmoxTaskLogResponse {
-  cluster: string;
-  node: string;
-  upid: string;
-  log: Array<Record<string, unknown> | string>;
-}
-
 export interface ProxmoxProvisionResult {
   name: string;
   vmid: number;

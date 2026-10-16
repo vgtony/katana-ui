@@ -10,10 +10,6 @@ import {
   ProxmoxNodesResponse,
   ProxmoxOverviewResponse,
   ProxmoxOverviewRequest,
-  ProxmoxTaskLogRequest,
-  ProxmoxTaskLogResponse,
-  ProxmoxTasksRequest,
-  ProxmoxTasksResponse,
   ProxmoxVmIpRequest,
   ProxmoxVmIpResponse,
   ProxmoxProvisionResponse,
@@ -66,14 +62,6 @@ export class ProxmoxApiService extends KatanaApiBaseService {
 
   getOverview(payload: ProxmoxOverviewRequest): Observable<ProxmoxOverviewResponse> {
     return this.http.post<ProxmoxOverviewResponse>(this.buildApiUrl('proxmox', 'overview'), payload);
-  }
-
-  getTasks(payload: ProxmoxTasksRequest): Observable<ProxmoxTasksResponse> {
-    return this.http.post<ProxmoxTasksResponse>(this.buildApiUrl('proxmox', 'tasks'), payload);
-  }
-
-  getTaskLog(payload: ProxmoxTaskLogRequest): Observable<ProxmoxTaskLogResponse> {
-    return this.http.post<ProxmoxTaskLogResponse>(this.buildApiUrl('proxmox', 'task-log'), payload);
   }
 
   provisionVms(payload: ProxmoxVmDeploymentRequest): Observable<ProxmoxProvisionResponse> {

@@ -1,8 +1,33 @@
 import { TestBed } from '@angular/core/testing';
+import { vi } from 'vitest';
 import { DeploymentDraftService } from './deployment-draft.service';
 import { DeploymentPack } from '../../models/interfaces/deployment-pack.interface';
 
 describe('DeploymentDraftService', () => {
+  it('recovers malformed JSON without disabling working storage', () => {
+    localStorage.setItem('katana-slice-manager.deployment-drafts', '{');
+    const service = TestBed.inject(DeploymentDraftService);
+    service.saveFormValue('k8s', 'k8s-deploy', { nsName: 'recovered' });
+    expect(service.storageUnavailable()).toBe(false);
+    expect(localStorage.getItem('katana-slice-manager.deployment-drafts')).toContain('recovered');
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('keeps redacted drafts usable when browser storage throws', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('quota'); });
+    service.saveFormValue('proxmox', 'proxmox-cluster', { name: 'lab', password: 'secret' });
+    expect(service.getSavedFormSnapshot('proxmox', 'proxmox-cluster')).toEqual({ name: 'lab' });
+    service.clearForm('proxmox', 'proxmox-cluster');
+    expect(service.getFormState('proxmox', 'proxmox-cluster')).toBe('missing');
+  });
+
+  it('rejects arrays masquerading as a draft map', () => {
+    localStorage.setItem('katana-slice-manager.deployment-drafts', '[]');
+    service.saveFormValue('proxmox', 'proxmox-cluster', { name: 'lab' });
+    expect(service.getSavedFormSnapshot('proxmox', 'proxmox-cluster')).toEqual({ name: 'lab' });
+  });
+
   let service: DeploymentDraftService;
 
   beforeEach(() => {

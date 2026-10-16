@@ -25,13 +25,6 @@ export const routes: Routes = [
           import('./pages/history-page/history-page.component').then((m) => m.HistoryPageComponent),
       },
       {
-        path: 'proxmox-monitoring',
-        loadComponent: () =>
-          import('./pages/proxmox-monitoring-page/proxmox-monitoring-page.component').then(
-            (m) => m.ProxmoxMonitoringPageComponent,
-          ),
-      },
-      {
         path: 'monitoring',
         loadComponent: () =>
           import('./pages/monitoring-page/monitoring-page.component').then(

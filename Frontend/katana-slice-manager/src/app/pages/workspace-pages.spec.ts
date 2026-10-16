@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpErrorResponse } from '@angular/common/http';
 import { convertToParamMap, ActivatedRoute, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { vi } from 'vitest';
 import { DashboardPageComponent } from './dashboard-page/dashboard-page.component';
 import { HistoryPageComponent } from './history-page/history-page.component';
 import { MonitoringPageComponent } from './monitoring-page/monitoring-page.component';
@@ -90,6 +91,7 @@ describe('Workspace pages', () => {
                   ],
                 },
               ]),
+              storageUnavailable: () => false,
               clearPacks: () => undefined,
             },
           },
@@ -272,7 +274,10 @@ describe('Workspace pages', () => {
       expect(fixture.nativeElement.textContent).toContain('Edge Slice');
       expect(fixture.nativeElement.textContent).toContain('Active');
       expect(fixture.nativeElement.textContent).toContain('Network Services');
-      expect(fixture.nativeElement.querySelector('polyline')).not.toBeNull();
+      await vi.waitFor(() => {
+        fixture.detectChanges();
+        expect(fixture.nativeElement.querySelector('polyline')).not.toBeNull();
+      });
     });
   });
 });

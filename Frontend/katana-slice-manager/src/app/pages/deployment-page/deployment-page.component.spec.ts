@@ -13,6 +13,7 @@ import {
   SliceApiService
 } from '../../shared/services/api';
 import { DeploymentDraftService } from '../../shared/services/deployment-draft.service';
+import { DeploymentHistoryService } from '../../shared/services/deployment-history.service';
 import { DeploymentPageComponent } from './deployment-page.component';
 
 describe('DeploymentPageComponent', () => {
@@ -142,7 +143,7 @@ describe('DeploymentPageComponent', () => {
 
       expect(getTextContent()).toContain('Create New Network Slice');
       expect(getTextContent()).not.toContain('Slice / OpenStack');
-      expect(getTextContent()).toContain('K8s Deploy');
+      expect(getTextContent()).toContain('Kubernetes deployment');
       expect(getTextContent()).toContain('Proxmox');
       expect(getTextContent()).toContain('Amari');
     });
@@ -177,22 +178,8 @@ describe('DeploymentPageComponent', () => {
       createComponentForOption('k8s');
     });
 
-    it('uses a sequential two-registration flow before deploy', async () => {
+    it('uses existing clusters to open deployment without repeating registration', async () => {
       expect(getWizardButtons()).toHaveLength(3);
-      expect(getTextContent()).toContain('Upload Credentials');
-      expect(getTextContent()).toContain('Credentials file');
-
-      component['markRequirementDone']('k8s-credentials');
-      await fixture.whenStable();
-      fixture.detectChanges();
-
-      expect(component['currentStep']).toBe(2);
-      expect(getTextContent()).toContain('Register K8s Cluster');
-
-      component['markRequirementDone']('k8s-cluster');
-      await fixture.whenStable();
-      fixture.detectChanges();
-
       expect(component['currentStep']).toBe(3);
       expect(fixture.debugElement.query(By.directive(K8sDeployServiceFormComponent))).not.toBeNull();
     });
@@ -205,11 +192,12 @@ describe('DeploymentPageComponent', () => {
       fixture.detectChanges();
 
       const k8sForm = fixture.debugElement.query(By.directive(K8sDeployServiceFormComponent));
-      (k8sForm.componentInstance as K8sDeployServiceFormComponent).deployed.emit({ status: 'done' });
+      (k8sForm.componentInstance as K8sDeployServiceFormComponent).deployed.emit({ status: 'accepted', osmResponse: { id: 'osm-instance' } });
       fixture.detectChanges();
 
       expect(component['deploymentStarted']).toBe(true);
-      expect(getTextContent()).toContain('pack saved to History as a completed deployment');
+      expect(getTextContent()).toContain('Deployment request accepted and saved to History');
+      expect(TestBed.inject(DeploymentHistoryService).getPacks()[0].osmResponse).toEqual({ id: 'osm-instance' });
     });
   });
 

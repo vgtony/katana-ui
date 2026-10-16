@@ -3,7 +3,7 @@ import { ChangeDetectorRef, Component, DestroyRef, inject } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { Subject, catchError, exhaustMap, finalize, map, of, takeUntil, timer } from 'rxjs';
+import { Subject, catchError, exhaustMap, finalize, map, of, takeUntil, timer, timeout } from 'rxjs';
 import { isNestRecord } from '../../shared/nest-file.utils';
 import { NsdSummary, VimSummary } from '../../models/interfaces/infrastructure.interface';
 import {
@@ -171,14 +171,25 @@ export class SliceStatusPageComponent {
       .pipe(
         exhaustMap(() =>
           this.sliceApi.pollSlice(this.sliceId).pipe(
+            timeout(30000),
             map((value): PollResult => ({ kind: 'success', value })),
             catchError((error) => of({ kind: 'failure', error } as PollResult)),
           ),
         ),
         takeUntil(this.pollingStopped),
+        takeUntil(timer(20 * 60 * 1000)),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe((result) => this.handlePollResult(result));
+      .subscribe({
+        next: (result) => this.handlePollResult(result),
+        complete: () => {
+          if (this.polling && !this.destroyRef.destroyed) {
+            this.polling = false;
+            this.pollMessage = 'Status polling paused after 20 minutes. The operation may still be running; refresh to check again.';
+            this.changeDetectorRef.markForCheck();
+          }
+        },
+      });
 
     this.catalogApi
       .getNsList()

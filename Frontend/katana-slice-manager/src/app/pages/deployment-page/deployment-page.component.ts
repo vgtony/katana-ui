@@ -72,8 +72,8 @@ export class DeploymentPageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
-  private readonly deploymentHistoryService = inject(DeploymentHistoryService);
-  private readonly deploymentDraftService = inject(DeploymentDraftService);
+  protected readonly deploymentHistoryService = inject(DeploymentHistoryService);
+  protected readonly deploymentDraftService = inject(DeploymentDraftService);
   private readonly sliceApiService = inject(SliceApiService);
   private readonly amarisoftSliceApiService = inject(AmarisoftSliceApiService);
   private readonly kubernetesApiService = inject(KubernetesApiService);
@@ -777,6 +777,7 @@ export class DeploymentPageComponent implements OnInit {
       shortLabel: this.selectedOption.shortLabel,
       status: attempt.status,
       errorType: attempt.errorType,
+      osmResponse: attempt.osmResponse,
       completedAt: new Date().toISOString(),
       finalConfigurationLabel: this.selectedOption.finalConfigurationLabel,
       formSnapshots: this.deploymentDraftService.getSnapshotsForOption(this.selectedOption.id),
@@ -797,6 +798,9 @@ export class DeploymentPageComponent implements OnInit {
   }
 
   protected getDeploymentFeedbackMessage(): string {
+    if (this.lastDeploymentStatus === 'accepted') {
+      return 'Deployment request accepted and saved to History. Check OSM and workload status before treating the service as ready.';
+    }
     return this.lastDeploymentStatus === 'failed'
       ? `${this.selectedOption.label} pack saved to History with a failed deployment.`
       : `${this.selectedOption.label} pack saved to History as a completed deployment.`;
@@ -831,7 +835,7 @@ export class DeploymentPageComponent implements OnInit {
       return;
     }
 
-    this.completedRequirementIds = new Set(pack.requirements.map((requirement) => requirement.id));
+    this.completedRequirementIds = new Set();
     this.expandedRequirementIds = new Set<string>();
     this.currentStep = this.canAccessStepTwo() ? this.getDeployStepNumber() : this.getFirstIncompleteRequirementStep();
     this.deploymentStarted = false;
