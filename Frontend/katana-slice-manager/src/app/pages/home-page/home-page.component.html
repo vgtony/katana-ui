@@ -1,27 +1,60 @@
 <section class="home-page">
-  <div class="home-page__hero">
-    <!-- <p class="home-page__eyebrow">Overview</p> -->
-    <h2>Katana Slice Manager</h2>
-  </div>
+  <header class="home-page__hero">
+    <div>
+      <h1>Network operations</h1>
+      <p>
+        Deploy network slices, inspect your infrastructure, and follow each service from request to
+        operation.
+      </p>
+    </div>
+    <a class="ui-button ui-button--primary" routerLink="/deployment">New deployment</a>
+  </header>
 
-  <section class="home-page__grid">
-    <article class="home-page__card">
-      <p class="home-page__card-label">Dashboard</p>
-      <h3>Live database tables</h3>
-      <p>Browse all registered slices, infrastructure, catalog items, and operations data.</p>
-    </article>
+  <section class="home-page__workflow" aria-labelledby="workflow-title">
+    <div class="home-page__intro">
+      <h2 id="workflow-title">From infrastructure to insight</h2>
+      <p>Your deployment workflow, in one workspace.</p>
+    </div>
+    <ol class="home-page__steps">
+      <li>
+        <span class="home-page__number" aria-hidden="true">1</span>
+        <div>
+          <h3><a routerLink="/infrastructure">Prepare infrastructure</a></h3>
+          <p>Review registered clusters, compute resources, and placement targets.</p>
+        </div>
+      </li>
+      <li>
+        <span class="home-page__number" aria-hidden="true">2</span>
+        <div>
+          <h3><a routerLink="/deployment">Deploy a service</a></h3>
+          <p>Choose a target, complete configuration, and review your deployment.</p>
+        </div>
+      </li>
+      <li>
+        <span class="home-page__number" aria-hidden="true">3</span>
+        <div>
+          <h3><a routerLink="/monitoring">Observe your slices</a></h3>
+          <p>Inspect service health, compare metrics over time, and investigate logs.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
 
-    <article class="home-page__card">
-      <p class="home-page__card-label">History</p>
-      <h3>Deployment history</h3>
-      <p>Review accepted requests, completed operations, and failed deployment attempts.</p>
-    </article>
-
-    <article class="home-page__card">
-      <p class="home-page__card-label">Deployment</p>
-      <h3>Guided deployment flow</h3>
-      <p>Step through registrations and final configuration, then review the result in History.</p>
-      <a class="home-page__card-link" routerLink="/deployment">Open deployment page</a>
-    </article>
+  <section class="home-page__tools" aria-label="Workspace tools">
+    <a routerLink="/dashboard"
+      ><h2>Resource inventory</h2>
+      <p>Search registered slices, catalog items, and infrastructure records.</p>
+      <span>Browse inventory</span></a
+    >
+    <a routerLink="/history"
+      ><h2>Deployment history</h2>
+      <p>Trace accepted requests, completed operations, and failed attempts.</p>
+      <span>Review activity</span></a
+    >
+    <a routerLink="/helm-charts"
+      ><h2>Chart repository</h2>
+      <p>Upload packaged Helm charts and inspect published versions.</p>
+      <span>Manage charts</span></a
+    >
   </section>
 </section>

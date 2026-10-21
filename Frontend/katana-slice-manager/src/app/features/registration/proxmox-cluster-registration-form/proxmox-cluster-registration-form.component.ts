@@ -1,3 +1,4 @@
+import { FORM_FEEDBACK_IMPORTS } from '../../../shared/forms/form-feedback';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectorRef, Component, NgZone, inject, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -10,7 +11,7 @@ import { DeploymentDraftService } from '../../../shared/services/deployment-draf
 
 @Component({
   selector: 'app-proxmox-cluster-registration-form',
-  imports: [ReactiveFormsModule],
+  imports: [...FORM_FEEDBACK_IMPORTS, ReactiveFormsModule],
   templateUrl: './proxmox-cluster-registration-form.component.html',
   styleUrl: './proxmox-cluster-registration-form.component.scss'
 })

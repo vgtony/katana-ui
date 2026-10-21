@@ -1,6 +1,6 @@
 <section class="registration-form registration-form--standalone">
   @if (!compactOnly()) {
-    <form class="registration-form__grid" [formGroup]="form" (ngSubmit)="submit()">
+    <form class="registration-form__grid" appFormFeedback [formGroup]="form" [serverError]="submitError" (ngSubmit)="submit()">
       @if (restoreMessage) {
         <p class="registration-form__status" role="status">{{ restoreMessage }}</p>
       }
@@ -39,12 +39,6 @@
       @if (submitMessage) {
         <p class="registration-form__status registration-form__status--success" role="status">
           {{ submitMessage }}
-        </p>
-      }
-
-      @if (submitError) {
-        <p class="registration-form__status registration-form__status--error" role="alert">
-          {{ submitError }}
         </p>
       }
     </form>

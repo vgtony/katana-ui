@@ -138,7 +138,7 @@ describe('DeploymentPageComponent', () => {
       expect(getTextContent()).toContain('slice-1');
       expect(getTextContent()).toContain('k8s-lab');
 
-      getButtonByText('+ New Deployment').click();
+      getButtonByText('New deployment').click();
       fixture.detectChanges();
 
       expect(getTextContent()).toContain('Create New Network Slice');

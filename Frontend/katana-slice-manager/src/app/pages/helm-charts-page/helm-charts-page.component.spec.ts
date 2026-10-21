@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { HttpEventType, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HelmChartsPageComponent } from './helm-charts-page.component';
@@ -156,6 +156,44 @@ describe('Helm chart upload', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Uploaded free5gc 1.3.2');
     expect(fixture.nativeElement.textContent).toContain('Catalogue unavailable');
+  });
+
+  it('reports transfer progress, waits for validation, cancels and reconciles before retry', () => {
+    signIn();
+    const input = selectFile();
+    component.upload(input);
+    const request = http.expectOne(endpoint);
+    expect(request.request.reportProgress).toBe(true);
+    request.event({ type: HttpEventType.UploadProgress, loaded: 1, total: 2 });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('progress').value).toBe(50);
+    request.event({ type: HttpEventType.UploadProgress, loaded: 2, total: 2 });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Validating and publishing');
+    expect(component.uploaded()).toBeNull();
+    component.cancelUpload();
+    expect(request.cancelled).toBe(true);
+    expect(component.uploading()).toBe(false);
+    expect(component.selectedFile()).not.toBeNull();
+    component.upload(input);
+    http.expectNone(endpoint);
+    component.refresh();
+    http.expectOne(endpoint).flush(catalogue);
+    component.upload(input);
+    http.expectOne(endpoint).flush(uploaded);
+    http.expectOne(endpoint).flush(catalogue);
+    expect(component.uploaded()).toEqual(uploaded);
+  });
+
+  it('keeps progress indeterminate without a total and cancels on navigation', () => {
+    signIn();
+    component.upload(selectFile());
+    const request = http.expectOne(endpoint);
+    request.event({ type: HttpEventType.UploadProgress, loaded: 1 });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('progress').hasAttribute('value')).toBe(false);
+    fixture.destroy();
+    expect(request.cancelled).toBe(true);
   });
 
   it('returns to sign-in after credentials are revoked and clears memory on sign-out', () => {

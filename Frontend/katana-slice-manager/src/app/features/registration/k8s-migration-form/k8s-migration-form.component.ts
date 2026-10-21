@@ -1,3 +1,4 @@
+import { FORM_FEEDBACK_IMPORTS } from '../../../shared/forms/form-feedback';
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { initialK8sMigrationFormModel } from '../../../models/k8s-migration-form.model';
@@ -5,7 +6,7 @@ import { K8sMigrationFormModel } from '../../../models/interfaces/k8s-migration-
 
 @Component({
   selector: 'app-k8s-migration-form',
-  imports: [ReactiveFormsModule],
+  imports: [...FORM_FEEDBACK_IMPORTS, ReactiveFormsModule],
   templateUrl: './k8s-migration-form.component.html',
   styleUrl: './k8s-migration-form.component.scss'
 })

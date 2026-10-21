@@ -9,6 +9,7 @@ import { NavigationItem } from '../../models/interfaces/navigation.interface';
   styleUrl: './sidebar.component.scss',
 })
 export class SidebarComponent {
+  protected menuOpen = false;
   protected readonly navigationItems: NavigationItem[] = [
     { icon: 'overview', label: 'Overview', route: '/' },
     { icon: 'dashboard', label: 'Dashboard', route: '/dashboard' },

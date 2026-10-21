@@ -4,7 +4,7 @@
     <p>Example usage: cloud-native network functions and slice control services.</p> -->
   </div>
 
-  <form class="registration-form__grid" [formGroup]="form">
+  <form class="registration-form__grid" appFormFeedback [formGroup]="form">
     <label>
       <span>Cluster name</span>
       <input type="text" formControlName="clusterName" placeholder="privateer-k8s-west" />

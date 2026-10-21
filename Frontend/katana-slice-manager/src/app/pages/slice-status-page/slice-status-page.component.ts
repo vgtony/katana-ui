@@ -1,3 +1,4 @@
+import { FORM_FEEDBACK_IMPORTS } from '../../shared/forms/form-feedback';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectorRef, Component, DestroyRef, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -33,7 +34,7 @@ interface NetworkServiceInstance {
 
 @Component({
   selector: 'app-slice-status-page',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [...FORM_FEEDBACK_IMPORTS, ReactiveFormsModule, RouterLink],
   templateUrl: './slice-status-page.component.html',
   styleUrl: './slice-status-page.component.scss',
 })

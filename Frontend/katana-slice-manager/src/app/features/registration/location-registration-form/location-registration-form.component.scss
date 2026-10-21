@@ -9,8 +9,8 @@
 .registration-form__eyebrow {
   margin-bottom: 10px;
   color: var(--app-accent);
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
+  text-transform: none;
+  letter-spacing: normal;
   font-size: 0.72rem;
 }
 
@@ -39,7 +39,7 @@
 .registration-form__grid input {
   width: 100%;
   padding: 0.9rem 1rem;
-  border-radius: 14px;
+  border-radius: var(--app-radius);
   border: 1px solid var(--app-border-strong);
   background: var(--app-input-bg-strong);
   color: var(--app-text);
@@ -49,7 +49,7 @@
   grid-column: 1 / -1;
   padding: 0.95rem 1.2rem;
   border: 0;
-  border-radius: 14px;
+  border-radius: var(--app-radius);
   background: var(--app-primary-gradient);
   color: var(--app-accent-contrast);
   font-weight: 700;

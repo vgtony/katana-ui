@@ -1,3 +1,4 @@
+import { FORM_FEEDBACK_IMPORTS } from '../../../shared/forms/form-feedback';
 import { Component, inject } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { initialKubernetesRegistrationFormModel } from '../../../models/kubernetes-registration-form.model';
@@ -5,7 +6,7 @@ import { KubernetesRegistrationFormModel } from '../../../models/interfaces/kube
 
 @Component({
   selector: 'app-kubernetes-registration-form',
-  imports: [ReactiveFormsModule],
+  imports: [...FORM_FEEDBACK_IMPORTS, ReactiveFormsModule],
   templateUrl: './kubernetes-registration-form.component.html',
   styleUrl: './kubernetes-registration-form.component.scss'
 })

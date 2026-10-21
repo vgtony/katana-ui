@@ -2,7 +2,7 @@
   <header class="slice-status-page__hero">
     <div>
       <p class="slice-status-page__eyebrow">Slice deployment</p>
-      <h2>{{ sliceId }}</h2>
+      <h1>{{ sliceId }}</h1>
     </div>
     <span class="slice-status-page__status" [class.slice-status-page__status--failed]="failed">{{
       status
@@ -81,7 +81,7 @@
     }
     <div class="slice-status-day2">
       <form
-        [formGroup]="addNsForm"
+        appFormFeedback [formGroup]="addNsForm"
         (ngSubmit)="addNetworkService()"
         class="slice-status-day2__form"
       >
@@ -129,7 +129,7 @@
       </form>
 
       <form
-        [formGroup]="restartNsForm"
+        appFormFeedback [formGroup]="restartNsForm"
         (ngSubmit)="restartNetworkService()"
         class="slice-status-day2__form"
       >

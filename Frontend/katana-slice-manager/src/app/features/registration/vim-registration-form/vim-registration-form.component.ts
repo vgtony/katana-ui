@@ -1,3 +1,4 @@
+import { FORM_FEEDBACK_IMPORTS } from '../../../shared/forms/form-feedback';
 import { Component, NgZone, inject, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
@@ -9,7 +10,7 @@ import { DeploymentDraftService } from '../../../shared/services/deployment-draf
 
 @Component({
   selector: 'app-vim-registration-form',
-  imports: [ReactiveFormsModule],
+  imports: [...FORM_FEEDBACK_IMPORTS, ReactiveFormsModule],
   templateUrl: './vim-registration-form.component.html',
   styleUrl: './vim-registration-form.component.scss'
 })

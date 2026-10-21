@@ -33,7 +33,7 @@ export class MainLayoutComponent implements OnInit {
   }
 
   protected getThemeLabel(): string {
-    return this.theme === 'light' ? 'Light Mode' : 'Dark Mode';
+    return this.theme === 'light' ? 'Light theme' : 'Dark theme';
   }
 
   protected getThemeActionLabel(): string {

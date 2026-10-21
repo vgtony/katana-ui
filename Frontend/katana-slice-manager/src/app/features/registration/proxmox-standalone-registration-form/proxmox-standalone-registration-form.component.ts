@@ -1,3 +1,4 @@
+import { FORM_FEEDBACK_IMPORTS } from '../../../shared/forms/form-feedback';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectorRef, Component, DestroyRef, NgZone, OnInit, input, inject, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -100,7 +101,7 @@ const initialSnapshot: ProxmoxStandaloneSnapshot = {
 
 @Component({
   selector: 'app-proxmox-standalone-registration-form',
-  imports: [ReactiveFormsModule, ProxmoxVmCreationFormComponent],
+  imports: [...FORM_FEEDBACK_IMPORTS, ReactiveFormsModule, ProxmoxVmCreationFormComponent],
   templateUrl: './proxmox-standalone-registration-form.component.html',
   styleUrl: './proxmox-standalone-registration-form.component.scss'
 })

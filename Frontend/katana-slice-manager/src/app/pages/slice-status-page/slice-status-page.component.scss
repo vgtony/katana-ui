@@ -10,7 +10,7 @@
 .slice-status-card {
   padding: 22px;
   border: 1px solid var(--app-border);
-  border-radius: 12px;
+  border-radius: var(--app-radius);
   background: var(--app-surface);
 }
 .slice-status-page__hero,
@@ -24,13 +24,13 @@
   gap: 14px;
   flex-wrap: wrap;
 }
-.slice-status-page__hero h2,
+.slice-status-page__hero h1,
 .slice-status-page__hero p,
 .slice-status-card h3,
 .slice-status-card p {
   margin: 0;
 }
-.slice-status-page__hero h2 {
+.slice-status-page__hero h1 {
   overflow-wrap: anywhere;
   font-size: 1.55rem;
 }
@@ -39,8 +39,8 @@
   color: var(--app-accent);
   font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
 }
 .slice-status-page__status,
 .slice-status-page__polling {
@@ -82,7 +82,7 @@
   min-width: 100px;
   padding: 14px 8px;
   border: 1px solid var(--app-border);
-  border-radius: 10px;
+  border-radius: var(--app-radius);
   color: var(--app-text-subtle);
   text-align: center;
 }
@@ -197,8 +197,8 @@ button:disabled {
   color: var(--app-accent);
   font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
 }
 .slice-status-day2__form input,
 .slice-status-day2__form select {
@@ -261,3 +261,6 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+.slice-status-page__hero { padding: 8px 0 16px; border: 0; background: transparent; }
+.slice-status-page__hero h1 { font-size: 2rem; font-weight: 600; overflow-wrap: anywhere; }

@@ -4,8 +4,8 @@
 .helm-page {
   display: grid;
   gap: 18px;
-  max-width: 960px;
-  margin: 0 auto;
+  max-width: 1100px;
+  margin: 0;
   color: var(--app-text);
 }
 .helm-card {
@@ -13,7 +13,7 @@
   gap: 14px;
   padding: 24px;
   border: 1px solid var(--app-border);
-  border-radius: 12px;
+  border-radius: var(--app-radius);
   background: var(--app-surface);
 }
 .helm-heading {
@@ -126,4 +126,35 @@ progress {
   dl {
     grid-template-columns: 1fr;
   }
+}
+
+header.helm-card {
+  background: transparent;
+  border: 0;
+  padding: 8px 0 16px;
+}
+header h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+input[type='file'] {
+  padding: 24px;
+  border: 1px dashed var(--app-border-strong);
+  background: var(--app-surface-2);
+}
+input::file-selector-button {
+  min-height: 40px;
+  margin-right: 16px;
+  padding: 8px 14px;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border-strong);
+  border-radius: 4px;
+  color: var(--app-text);
+  cursor: pointer;
+}
+.helm-reconcile {
+  padding: 16px;
+  border-left: 4px solid var(--app-warning);
+  background: var(--app-warning-soft);
 }

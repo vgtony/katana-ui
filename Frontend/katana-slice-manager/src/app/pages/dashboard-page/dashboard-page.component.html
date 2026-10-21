@@ -1,9 +1,11 @@
 <section class="dashboard-page">
   <header class="dashboard-page__hero">
-    <p class="dashboard-page__eyebrow">Dashboard</p>
+    <h1>Resource inventory</h1>
+    <p>Search registered resources and inspect their current records.</p>
   </header>
 
   @if (loading) {
+    <p role="status">Loading resource inventory…</p>
     <section class="dashboard-page__toolbar dashboard-page__toolbar--skeleton" aria-hidden="true">
       @for (item of [1, 2, 3]; track item) {
         <div class="dashboard-page__control">
@@ -73,6 +75,11 @@
       </label>
     </section>
 
+    @if (!visibleSections.length) {
+      <p role="status">
+        No resources match your search. Clear the search or choose another category.
+      </p>
+    }
     <div class="dashboard-page__sections">
       @for (section of visibleSections; track trackBySection($index, section)) {
         <article class="dashboard-page__section">
@@ -97,17 +104,23 @@
           <div
             class="dashboard-page__section-body"
             [class.dashboard-page__section-body--expanded]="isSectionExpanded(section.key)"
+            [attr.inert]="isSectionExpanded(section.key) ? null : ''"
           >
             <div class="dashboard-page__section-body-inner">
               @if (section.error) {
                 <div class="dashboard-page__error" role="alert">{{ section.error }}</div>
               } @else if (section.paginatedRows.length) {
-                <div class="dashboard-page__table-shell">
+                <div
+                  class="dashboard-page__table-shell"
+                  tabindex="0"
+                  role="region"
+                  [attr.aria-label]="section.label"
+                >
                   <table class="dashboard-page__table">
                     <thead>
                       <tr>
                         @for (column of section.columns; track column) {
-                          <th>{{ formatColumnLabel(column) }}</th>
+                          <th scope="col">{{ formatColumnLabel(column) }}</th>
                         }
                       </tr>
                     </thead>
@@ -141,7 +154,9 @@
                   </button>
                 </div>
               } @else {
-                <div class="dashboard-page__empty-row">No rows match the current search or filter.</div>
+                <div class="dashboard-page__empty-row">
+                  No rows match the current search or filter.
+                </div>
               }
             </div>
           </div>

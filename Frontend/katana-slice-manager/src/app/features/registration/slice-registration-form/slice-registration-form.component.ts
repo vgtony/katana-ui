@@ -1,3 +1,4 @@
+import { FORM_FEEDBACK_IMPORTS } from '../../../shared/forms/form-feedback';
 import { Component, inject, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -9,7 +10,7 @@ import { DeploymentDraftService } from '../../../shared/services/deployment-draf
 
 @Component({
   selector: 'app-slice-registration-form',
-  imports: [ReactiveFormsModule],
+  imports: [...FORM_FEEDBACK_IMPORTS, ReactiveFormsModule],
   templateUrl: './slice-registration-form.component.html',
   styleUrl: './slice-registration-form.component.scss'
 })

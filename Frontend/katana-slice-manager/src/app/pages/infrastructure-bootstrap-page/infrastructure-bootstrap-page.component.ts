@@ -1,3 +1,4 @@
+import { FORM_FEEDBACK_IMPORTS } from '../../shared/forms/form-feedback';
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectorRef, Component, inject } from '@angular/core';
@@ -63,7 +64,7 @@ function jsonObjectValidator(control: AbstractControl): ValidationErrors | null 
 
 @Component({
   selector: 'app-infrastructure-bootstrap-page',
-  imports: [DatePipe, ReactiveFormsModule, RouterLink],
+  imports: [...FORM_FEEDBACK_IMPORTS, DatePipe, ReactiveFormsModule, RouterLink],
   templateUrl: './infrastructure-bootstrap-page.component.html',
   styleUrl: './infrastructure-bootstrap-page.component.scss',
 })

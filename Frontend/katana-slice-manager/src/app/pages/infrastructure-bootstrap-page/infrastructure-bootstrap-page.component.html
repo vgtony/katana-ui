@@ -2,7 +2,7 @@
   <header class="bootstrap-page__hero">
     <div>
       <p class="bootstrap-page__eyebrow">Administration · Time-0</p>
-      <h2>Infrastructure bootstrap</h2>
+      <h1>Infrastructure setup</h1>
       <p>Reconcile OSM NFVOs, OpenStack VIMs, and their persistent links before creating slices.</p>
     </div>
     <a routerLink="/infrastructure">View inventory</a>
@@ -67,7 +67,7 @@
     }
   </section>
 
-  <form [formGroup]="form" (ngSubmit)="submit()" class="bootstrap-form" novalidate>
+  <form appFormFeedback [formGroup]="form" (ngSubmit)="submit()" class="bootstrap-form" novalidate>
     <section class="bootstrap-card" formArrayName="nfvos">
       <div class="bootstrap-card__heading">
         <div>

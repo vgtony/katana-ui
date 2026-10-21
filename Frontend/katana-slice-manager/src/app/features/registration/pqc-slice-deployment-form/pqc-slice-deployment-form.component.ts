@@ -1,3 +1,4 @@
+import { FORM_FEEDBACK_IMPORTS } from '../../../shared/forms/form-feedback';
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { initialPqcSliceDeploymentFormModel } from '../../../models/pqc-slice-deployment-form.model';
@@ -5,7 +6,7 @@ import { PqcSliceDeploymentFormModel } from '../../../models/interfaces/pqc-slic
 
 @Component({
   selector: 'app-pqc-slice-deployment-form',
-  imports: [ReactiveFormsModule],
+  imports: [...FORM_FEEDBACK_IMPORTS, ReactiveFormsModule],
   templateUrl: './pqc-slice-deployment-form.component.html',
   styleUrl: './pqc-slice-deployment-form.component.scss'
 })

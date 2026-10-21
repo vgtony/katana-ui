@@ -20,7 +20,7 @@
 .monitoring-card,
 .monitoring-panel,
 .monitoring-page__notice {
-  border-radius: 10px;
+  border-radius: var(--app-radius);
 }
 
 .monitoring-page__hero,
@@ -61,8 +61,8 @@
 .monitoring-card__meta dt,
 .monitoring-page__metric span {
   color: var(--app-accent);
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .monitoring-page__eyebrow {
@@ -118,7 +118,7 @@
 .monitoring-panel__controls select {
   min-height: 46px;
   padding: 0 14px;
-  border-radius: 10px;
+  border-radius: var(--app-radius);
   border: 1px solid var(--app-border-strong);
   background: var(--app-input-bg);
   color: var(--app-text);
@@ -276,8 +276,8 @@
 .monitoring-page__table th {
   color: var(--app-accent-heading);
   font-size: 0.78rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .monitoring-page__table td {
@@ -292,7 +292,7 @@
 .monitoring-chart svg {
   width: 100%;
   min-height: 220px;
-  border-radius: 10px;
+  border-radius: var(--app-radius);
   background: var(--app-input-bg);
 }
 
@@ -339,7 +339,7 @@
   gap: 8px;
   min-width: 0;
   padding: 14px;
-  border-radius: 10px;
+  border-radius: var(--app-radius);
   border: 1px solid var(--app-border);
   background: var(--app-input-bg);
 }
@@ -355,7 +355,7 @@
   margin: 0;
   padding: 16px;
   overflow: auto;
-  border-radius: 10px;
+  border-radius: var(--app-radius);
   border: 1px solid var(--app-border);
   background: var(--app-input-bg);
   color: var(--app-text-muted);
@@ -410,5 +410,197 @@
   .monitoring-page__back-link,
   .monitoring-card__action {
     width: 100%;
+  }
+}
+
+.monitoring-page__hero {
+  border: 0;
+  padding: 8px 0 16px;
+  background: transparent;
+  border-radius: 0;
+}
+.monitoring-page__hero h1 {
+  font-size: 2rem;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+.monitoring-page__hero p {
+  color: var(--app-text-muted);
+}
+.monitoring-page__totals {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-block: 1px solid var(--app-border);
+  padding: 24px 0;
+}
+.monitoring-page__totals > div {
+  display: grid;
+  gap: 6px;
+  padding: 0 24px;
+  border-left: 1px solid var(--app-border);
+}
+.monitoring-page__totals > div:first-child {
+  border: 0;
+  padding-left: 0;
+}
+.monitoring-page__totals strong {
+  font-size: 1.8rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+.monitoring-page__totals span {
+  font-size: 0.85rem;
+  color: var(--app-text-muted);
+}
+.monitoring-page__toolbar {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 20px;
+}
+.monitoring-page__control select {
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 4px;
+  background: var(--app-input-bg);
+  color: var(--app-text);
+}
+.monitoring-page__detail {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+.monitoring-page__summary {
+  padding: 12px 0;
+}
+.monitoring-page__control span,
+.monitoring-panel__controls span {
+  color: var(--app-text);
+  font-size: 0.9rem;
+}
+.monitoring-panel__controls select {
+  max-width: 100%;
+}
+.monitoring-panel__controls label {
+  min-width: 0;
+}
+.monitoring-page__table th {
+  background: var(--app-sidebar-bg);
+  color: var(--app-text);
+}
+.monitoring-page__table tr:hover td {
+  background: var(--app-row-hover);
+}
+.monitoring-page__table-shell {
+  max-height: 420px;
+}
+.monitoring-page__table caption {
+  text-align: left;
+  padding: 12px 0;
+  color: var(--app-text-muted);
+}
+.monitoring-chart circle {
+  fill: var(--app-accent);
+}
+.monitoring-chart summary {
+  color: var(--app-accent);
+  cursor: pointer;
+  padding: 10px 0;
+}
+.monitoring-panel--warning {
+  border-left: 4px solid var(--app-warning);
+}
+.monitoring-page__notice--error {
+  background: var(--app-danger-soft);
+  border-left: 4px solid var(--app-danger);
+}
+[data-severity='critical'] {
+  color: var(--app-danger);
+}
+[data-severity='warning'] {
+  color: var(--app-warning);
+}
+[data-severity='success'] {
+  color: var(--app-success);
+}
+.monitoring-card__meta dd[data-severity='critical'] {
+  color: var(--app-danger);
+}
+.monitoring-card__meta dd[data-severity='warning'] {
+  color: var(--app-warning);
+}
+.monitoring-card__meta dd[data-severity='success'] {
+  color: var(--app-success);
+}
+@media (max-width: 600px) {
+  .monitoring-page__toolbar {
+    grid-template-columns: 1fr;
+  }
+  .monitoring-page__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .monitoring-page__totals > div {
+    padding: 0 12px;
+  }
+  .monitoring-panel__controls {
+    width: 100%;
+  }
+  .monitoring-panel__controls label {
+    width: 100%;
+  }
+  .monitoring-panel,
+  .monitoring-card {
+    padding: 16px;
+    min-width: 0;
+  }
+}
+
+.monitoring-page__back-link {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 4px;
+}
+.monitoring-chart svg {
+  height: 260px;
+  min-height: 0;
+}
+.monitoring-chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  padding: 0;
+  margin: 4px 0;
+  list-style: none;
+  color: var(--app-text-muted);
+  font-size: 0.85rem;
+}
+.monitoring-chart__legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.monitoring-chart__legend span {
+  width: 24px;
+  border-top: 3px solid var(--app-accent-secondary);
+}
+.monitoring-chart__legend li:nth-child(2n) span {
+  border-top-color: var(--app-success);
+}
+.monitoring-chart__legend li:nth-child(3n) span {
+  border-top-color: var(--app-warning);
+}
+@media (max-width: 600px) {
+  .monitoring-chart svg {
+    height: 180px;
+  }
+  .monitoring-chart__meta {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+  }
+  .monitoring-page__hero .ui-actions {
+    width: 100%;
+  }
+  .monitoring-page__back-link {
+    width: auto;
   }
 }

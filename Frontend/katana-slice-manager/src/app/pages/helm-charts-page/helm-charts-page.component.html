@@ -12,11 +12,19 @@
   </header>
 
   @if (!signedIn()) {
-    <form class="helm-card" (ngSubmit)="signIn()">
+    <form class="helm-card" (ngSubmit)="signIn()" novalidate>
       <h2>Chart administrator sign in</h2>
       <p>Use the chart administrator account configured for Katana.</p>
+      @if (signInAttempted && (!username.trim() || !password) && !loading()) {
+        <div class="ui-error-summary" role="alert">
+          <h2>Enter your sign-in details</h2>
+          <p>Enter a username and password to access the chart repository.</p>
+        </div>
+      }
       <label for="helm-username">Username</label>
       <input
+        [attr.aria-invalid]="signInAttempted && !username.trim() ? true : null"
+        [attr.aria-describedby]="signInAttempted && !username.trim() ? 'helm-username-error' : null"
         id="helm-username"
         name="username"
         [(ngModel)]="username"
@@ -25,8 +33,15 @@
         required
         [disabled]="loading()"
       />
+      @if (signInAttempted && !username.trim()) {
+        <p id="helm-username-error" class="ui-field-error">Enter your username.</p>
+      }
       <label for="helm-password">Password</label>
       <input
+        [attr.aria-invalid]="signInAttempted && !password && !loading() ? true : null"
+        [attr.aria-describedby]="
+          signInAttempted && !password && !loading() ? 'helm-password-error' : null
+        "
         id="helm-password"
         name="password"
         type="password"
@@ -36,7 +51,10 @@
         required
         [disabled]="loading()"
       />
-      <button type="submit" [disabled]="loading() || !username.trim() || !password">
+      @if (signInAttempted && !password && !loading()) {
+        <p id="helm-password-error" class="ui-field-error">Enter your password.</p>
+      }
+      <button type="submit" [disabled]="loading()">
         {{ loading() ? 'Signing in…' : 'Sign in' }}
       </button>
     </form>
@@ -52,7 +70,7 @@
   @if (signedIn()) {
     <form class="helm-card" (ngSubmit)="upload(chartInput)" [attr.aria-busy]="uploading()">
       <h2>Upload a chart</h2>
-      <p>
+      <p id="helm-file-requirements">
         Choose a .tgz package, up to {{ catalogue().max_bytes / 1048576 | number: '1.0-2' }} MiB.
         Each chart version can be published once.
       </p>
@@ -64,7 +82,10 @@
         accept=".tgz,application/gzip"
         [disabled]="uploading()"
         (change)="selectFile($event)"
-        aria-describedby="helm-file-details"
+        [attr.aria-invalid]="fileError() ? true : null"
+        [attr.aria-describedby]="
+          'helm-file-requirements helm-file-details' + (fileError() ? ' helm-file-error' : '')
+        "
       />
       <p id="helm-file-details">
         @if (selectedFile(); as file) {
@@ -74,18 +95,50 @@
         }
       </p>
       @if (fileError()) {
-        <p class="helm-error" role="alert">{{ fileError() }}</p>
+        <p id="helm-file-error" class="helm-error" role="alert">{{ fileError() }}</p>
       }
       <button
         type="submit"
-        [disabled]="!selectedFile() || !!fileError() || uploading() || loading()"
+        [disabled]="
+          !selectedFile() || !!fileError() || uploading() || loading() || needsReconciliation()
+        "
       >
-        {{ uploading() ? 'Uploading…' : 'Upload chart' }}
+        {{
+          uploading()
+            ? 'Uploading…'
+            : uploadError() || uploadCancelled()
+              ? 'Retry upload'
+              : 'Upload chart'
+        }}
       </button>
       @if (uploading()) {
         <div role="status" aria-live="polite">
-          <progress aria-label="Uploading chart"></progress>
-          <p>Uploading and validating your chart…</p>
+          <progress
+            max="100"
+            [attr.value]="uploadProgress()"
+            aria-label="Chart transfer progress"
+          ></progress>
+          <p>
+            {{
+              uploadProgress() === 100
+                ? 'Transfer complete. Validating and publishing your chart…'
+                : uploadProgress() === null
+                  ? 'Starting chart upload…'
+                  : 'Uploading chart: ' + uploadProgress() + '%'
+            }}
+          </p>
+          <button type="button" (click)="cancelUpload()">Cancel upload</button>
+        </div>
+      }
+      @if (uploadCancelled()) {
+        <p role="status">
+          Upload cancelled in this browser. The server may already have accepted the chart.
+        </p>
+      }
+      @if (needsReconciliation()) {
+        <div class="helm-reconcile" role="status">
+          <p>Refresh the catalogue and check the version before retrying.</p>
+          <button type="button" (click)="refresh()" [disabled]="loading()">Check catalogue</button>
         </div>
       }
       @if (uploaded(); as result) {
@@ -110,7 +163,10 @@
         <p role="status">Loading chart versions…</p>
       }
       @if (!catalogue().charts.length && !loading()) {
-        <p>No charts have been published yet.</p>
+        <p>
+          No charts have been published yet. Upload your first .tgz package to make it available for
+          deployment.
+        </p>
       } @else if (catalogue().charts.length) {
         <label for="helm-chart">Chart</label>
         <select id="helm-chart" [ngModel]="chartName()" (ngModelChange)="selectChart($event)">

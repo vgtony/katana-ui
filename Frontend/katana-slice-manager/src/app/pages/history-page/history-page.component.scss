@@ -6,21 +6,21 @@
 
 .history-page__card,
 .history-page__empty {
-  border-radius: 24px;
+  border-radius: var(--app-radius);
   border: 1px solid var(--app-border);
   background: var(--app-surface-strong);
 }
 
 .history-page__hero {
-  padding: 28px 32px;
+  padding: 8px 0 16px;
 }
 
 .history-page__eyebrow,
 .history-page__label {
   margin: 0;
   color: var(--app-accent);
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
+  text-transform: none;
+  letter-spacing: normal;
   font-size: 0.72rem;
 }
 
@@ -31,14 +31,14 @@
   align-items: flex-start;
 }
 
-.history-page__hero h2,
+.history-page__hero h1,
 .history-page__hero p {
   margin: 0;
 }
 
-.history-page__hero h2 {
-  margin-top: 10px;
-  font-size: 2.2rem;
+.history-page__hero h1 {
+  font-size: 2rem;
+  font-weight: 600;
 }
 
 .history-page__hero p:last-child {
@@ -55,7 +55,7 @@
   justify-content: center;
   min-height: 46px;
   padding: 0 16px;
-  border-radius: 14px;
+  border-radius: var(--app-radius);
   border: 1px solid var(--app-border-strong);
   background: var(--app-surface-2);
   color: var(--app-text);
@@ -93,9 +93,9 @@
 
 .history-page__status {
   padding: 0.45rem 0.8rem;
-  text-transform: uppercase;
+  text-transform: none;
   font-size: 0.76rem;
-  letter-spacing: 0.12em;
+  letter-spacing: normal;
   font-weight: 700;
   line-height: 1;
 }

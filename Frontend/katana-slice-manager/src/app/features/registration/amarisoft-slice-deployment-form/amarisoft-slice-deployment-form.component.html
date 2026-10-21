@@ -1,5 +1,5 @@
 <section class="amari-form">
-  <form class="amari-form__shell" [formGroup]="form">
+  <form class="amari-form__shell" appFormFeedback [formGroup]="form" [serverError]="submitError">
     @if (restoreMessage) {
       <p class="amari-form__status" role="status">{{ restoreMessage }}</p>
     }
@@ -146,7 +146,7 @@
         <button
           class="amari-form__secondary"
           type="button"
-          [disabled]="form.invalid || submittingPlan"
+          [disabled]="submittingPlan"
           (click)="savePlan()"
         >
           {{ submittingPlan ? 'Saving...' : 'Save Plan' }}
@@ -165,11 +165,6 @@
     @if (submitMessage) {
       <p class="amari-form__status amari-form__status--success" role="status">
         {{ submitMessage }}
-      </p>
-    }
-    @if (submitError) {
-      <p class="amari-form__status amari-form__status--error" role="alert">
-        {{ submitError }}
       </p>
     }
   </form>

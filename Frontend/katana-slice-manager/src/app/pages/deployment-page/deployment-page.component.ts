@@ -1,3 +1,4 @@
+import { NativeModalDirective } from '../../shared/forms/native-modal.directive';
 import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -58,6 +59,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 @Component({
   selector: 'app-deployment-page',
   imports: [
+    NativeModalDirective,
     K8sCredentialsUploadFormComponent,
     K8sClusterRegistrationFormComponent,
     K8sDeployServiceFormComponent,

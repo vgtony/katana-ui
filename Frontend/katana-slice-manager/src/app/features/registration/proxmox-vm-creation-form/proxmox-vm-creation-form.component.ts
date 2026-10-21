@@ -1,3 +1,4 @@
+import { FORM_FEEDBACK_IMPORTS } from '../../../shared/forms/form-feedback';
 import { ChangeDetectorRef, Component, DestroyRef, NgZone, effect, inject, input, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -36,7 +37,7 @@ export interface DeploymentAttemptEvent {
 
 @Component({
   selector: 'app-proxmox-vm-creation-form',
-  imports: [ReactiveFormsModule],
+  imports: [...FORM_FEEDBACK_IMPORTS, ReactiveFormsModule],
   templateUrl: './proxmox-vm-creation-form.component.html',
   styleUrl: './proxmox-vm-creation-form.component.scss'
 })

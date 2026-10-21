@@ -1,3 +1,4 @@
+import { FORM_FEEDBACK_IMPORTS } from '../../../shared/forms/form-feedback';
 import { Component, NgZone, inject, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -46,7 +47,7 @@ function targetValidator(): ValidatorFn {
 
 @Component({
   selector: 'app-amarisoft-slice-deployment-form',
-  imports: [ReactiveFormsModule],
+  imports: [...FORM_FEEDBACK_IMPORTS, ReactiveFormsModule],
   templateUrl: './amarisoft-slice-deployment-form.component.html',
   styleUrl: './amarisoft-slice-deployment-form.component.scss'
 })

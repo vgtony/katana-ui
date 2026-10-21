@@ -3,10 +3,24 @@
     <div class="sidebar__brand-mark" aria-hidden="true">
       <img src="/katana-logo.svg" alt="Katana logo" />
     </div>
-    <span>Core NCSRD</span>
+    <span>Network operations</span>
+    <button
+      class="sidebar__menu"
+      type="button"
+      (click)="menuOpen = !menuOpen"
+      [attr.aria-expanded]="menuOpen"
+      aria-controls="workspace-navigation"
+    >
+      {{ menuOpen ? 'Close navigation' : 'Menu' }}
+    </button>
   </div>
 
-  <nav class="sidebar__nav" aria-label="Primary navigation">
+  <nav
+    id="workspace-navigation"
+    class="sidebar__nav"
+    [class.sidebar__nav--open]="menuOpen"
+    aria-label="Primary navigation"
+  >
     @for (item of navigationItems; track item.route) {
       @if (item.administrative) {
         <p class="sidebar__section-label">Administration</p>
@@ -15,6 +29,8 @@
         class="sidebar__link"
         [routerLink]="item.route"
         routerLinkActive="sidebar__link--active"
+        ariaCurrentWhenActive="page"
+        (click)="menuOpen = false"
         [routerLinkActiveOptions]="{ exact: item.route === '/' }"
       >
         <span class="sidebar__link-icon" aria-hidden="true">
@@ -69,4 +85,5 @@
       </a>
     }
   </nav>
+  <div class="sidebar__footer">Core NCSRD<br /><span>Slice management</span></div>
 </aside>

@@ -6,7 +6,7 @@
 
 .dashboard-page__section,
 .dashboard-page__empty {
-  border-radius: 10px;
+  border-radius: var(--app-radius);
   border: 1px solid var(--app-border);
   background: var(--app-surface);
 }
@@ -23,8 +23,8 @@
 .dashboard-page__control span {
   margin: 0;
   color: var(--app-accent);
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .dashboard-page__eyebrow {
@@ -46,8 +46,8 @@
 }
 
 .dashboard-page__hero {
-  text-align: center;
-  font-size: 2rem;
+  text-align: left;
+  padding: 8px 0 16px;
 }
 
 .dashboard-page__hero h2 {
@@ -80,7 +80,7 @@
 .dashboard-page__control select,
 .dashboard-page__pagination button {
   padding: 0.9rem 1rem;
-  border-radius: 14px;
+  border-radius: var(--app-radius);
   border: 1px solid var(--app-border-strong);
   background: var(--app-input-bg);
   color: var(--app-text);
@@ -193,7 +193,7 @@
 .dashboard-page__skeleton--input {
   width: 100%;
   height: 3rem;
-  border-radius: 14px;
+  border-radius: var(--app-radius);
 }
 
 .dashboard-page__skeleton--title {
@@ -225,7 +225,7 @@
 .dashboard-page__skeleton--cell {
   width: 100%;
   height: 1.1rem;
-  border-radius: 10px;
+  border-radius: var(--app-radius);
 }
 
 .dashboard-page__table-shell {
@@ -248,8 +248,8 @@
 .dashboard-page__table th {
   color: var(--app-accent-heading);
   font-size: 0.84rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .dashboard-page__table td {
@@ -269,7 +269,7 @@
 .dashboard-page__error,
 .dashboard-page__empty-row {
   padding: 14px 16px;
-  border-radius: 16px;
+  border-radius: var(--app-radius);
   background: var(--app-surface-2);
 }
 
@@ -306,4 +306,27 @@
   .dashboard-page__skeleton-row {
     grid-template-columns: 1fr;
   }
+}
+
+.dashboard-page__hero h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+}
+.dashboard-page__hero p:last-child {
+  font-size: 1rem;
+  color: var(--app-text-muted);
+}
+.dashboard-page__toolbar {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 6px;
+}
+.dashboard-page__control span {
+  font-size: 0.9rem;
+  color: var(--app-text);
+}
+.dashboard-page__table th {
+  background: var(--app-sidebar-bg);
+  color: var(--app-text);
 }

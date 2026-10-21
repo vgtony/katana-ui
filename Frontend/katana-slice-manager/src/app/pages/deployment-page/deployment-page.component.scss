@@ -3,7 +3,7 @@
   display: grid;
   gap: 26px;
   color: var(--app-text);
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: inherit;
 }
 
 .deployment-page__inventory-shell,
@@ -35,8 +35,8 @@
 .deployment-page__requirement-type,
 .deployment-page__review-label {
   color: var(--app-accent);
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .deployment-page__eyebrow,
@@ -64,12 +64,12 @@
 
 .deployment-page__panel {
   padding: 28px;
-  border-radius: 24px;
+  border-radius: var(--app-radius);
   background: var(--app-surface);
 }
 
 .deployment-page__modal {
-  border-radius: 24px;
+  border-radius: var(--app-radius);
   background: var(--app-surface-elevated);
   box-shadow: var(--app-shadow);
 }
@@ -277,8 +277,8 @@
 .deployment-page__table th {
   color: var(--app-accent-heading);
   font-size: 0.76rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+  text-transform: none;
+  letter-spacing: normal;
   white-space: nowrap;
 }
 
@@ -310,7 +310,7 @@
 
 // .deployment-page__requirement-card,
 .deployment-page__option-card {
-  border-radius: 20px;
+  border-radius: var(--app-radius);
   border: 1px solid var(--app-border-muted);
   background: transparent;
 }
@@ -330,7 +330,10 @@
   color: var(--app-text);
   text-align: center;
   cursor: pointer;
-  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
 }
 
 .deployment-page__option-icon {
@@ -364,20 +367,6 @@
 .deployment-page__option-card:hover {
   border-color: var(--app-button-primary-border);
   background: var(--app-accent-soft-2);
-}
-
-.deployment-page__modal-backdrop {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: var(--layout-sidebar-width, 280px);
-  z-index: 30;
-  display: grid;
-  place-items: center;
-  padding: var(--layout-content-padding, 28px);
-  background: var(--app-overlay);
-  backdrop-filter: blur(8px);
 }
 
 .deployment-page__modal {
@@ -510,7 +499,10 @@
 
 .deployment-page__requirement-context-tag--interactive {
   cursor: pointer;
-  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
 }
 
 .deployment-page__requirement-context-tag--interactive:hover {
@@ -567,10 +559,13 @@
   justify-content: center;
   min-height: 48px;
   padding: 0 18px;
-  border-radius: 14px;
+  border-radius: var(--app-radius);
   text-decoration: none;
   font-weight: 600;
-  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
 }
 
 .deployment-page__link--subtle {
@@ -666,13 +661,16 @@
   width: 40px;
   height: 40px;
   border: 1px solid var(--app-interactive-border);
-  border-radius: 10px;
+  border-radius: var(--app-radius);
   background: transparent;
   color: var(--app-text);
   font-size: 1.6rem;
   line-height: 1;
   cursor: pointer;
-  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
 }
 
 .deployment-page__icon-button:hover {
@@ -737,11 +735,6 @@
     align-items: flex-start;
   }
 
-  .deployment-page__modal-backdrop {
-    padding: 12px;
-    left: 0;
-  }
-
   .deployment-page__modal {
     width: min(100%, calc(100vw - 24px));
     max-height: calc(100dvh - 24px);
@@ -751,4 +744,24 @@
   .deployment-page__secondary {
     width: 100%;
   }
+}
+
+.deployment-page__hero h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+}
+dialog.deployment-page__modal {
+  margin: auto;
+  width: min(900px, calc(100vw - 40px));
+  max-height: calc(100dvh - 40px);
+  color: var(--app-text);
+  border: 1px solid var(--app-border);
+  padding: 0;
+}
+dialog.deployment-page__modal--chooser {
+  width: min(560px, calc(100vw - 40px));
+}
+.deployment-page__modal::backdrop {
+  background: var(--app-overlay);
 }

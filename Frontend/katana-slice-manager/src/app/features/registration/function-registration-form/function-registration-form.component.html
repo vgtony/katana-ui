@@ -4,7 +4,7 @@
     <p>Models `katana function add -f function.json` with NSD placement fields.</p> -->
   </div>
 
-  <form class="registration-form__grid" [formGroup]="form" (ngSubmit)="submit()">
+  <form class="registration-form__grid" appFormFeedback [formGroup]="form" [serverError]="submitError" (ngSubmit)="submit()">
     @if (restoreMessage) {
       <p class="registration-form__status" role="status">{{ restoreMessage }}</p>
     }
@@ -32,7 +32,7 @@
     <label class="registration-form__checkbox"
       ><input type="checkbox" formControlName="optional" /><span>Optional NS entry *</span></label
     >
-    <button type="submit" [disabled]="form.invalid || submitting">
+    <button type="submit" [disabled]="submitting">
       {{ submitting ? 'Creating function...' : 'Create Function' }}
     </button>
     @if (submitting) {
@@ -44,11 +44,6 @@
     @if (submitMessage) {
       <p class="registration-form__status registration-form__status--success" role="status">
         {{ submitMessage }}
-      </p>
-    }
-    @if (submitError) {
-      <p class="registration-form__status registration-form__status--error" role="alert">
-        {{ submitError }}
       </p>
     }
   </form>

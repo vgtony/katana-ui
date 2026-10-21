@@ -12,7 +12,7 @@
 .infrastructure-card {
   padding: 24px;
   border: 1px solid var(--app-border);
-  border-radius: 12px;
+  border-radius: var(--app-radius);
   background: var(--app-surface);
 }
 .infrastructure-page__hero {
@@ -22,7 +22,7 @@
   gap: 20px;
   flex-wrap: wrap;
 }
-.infrastructure-page__hero h2,
+.infrastructure-page__hero h1,
 .infrastructure-page__hero p,
 .infrastructure-card h3,
 .infrastructure-card p {
@@ -40,8 +40,8 @@
   color: var(--app-accent);
   font-size: 0.74rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
 }
 .infrastructure-page__actions {
   display: flex;
@@ -98,8 +98,8 @@ td {
 th {
   color: var(--app-accent-heading);
   font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
 }
 .infrastructure-page__pill {
   display: inline-flex;
@@ -146,3 +146,6 @@ th {
     flex-direction: column;
   }
 }
+
+.infrastructure-page__hero { padding: 8px 0 16px; border: 0; background: transparent; }
+.infrastructure-page__hero h1 { font-size: 2rem; font-weight: 600; }

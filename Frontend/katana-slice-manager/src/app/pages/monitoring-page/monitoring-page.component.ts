@@ -1,7 +1,19 @@
 import { ChangeDetectorRef, Component, DestroyRef, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { Subscription, asyncScheduler, catchError, forkJoin, map, observeOn, of, switchMap } from 'rxjs';
+import {
+  Subject,
+  Subscription,
+  asyncScheduler,
+  combineLatest,
+  startWith,
+  catchError,
+  forkJoin,
+  map,
+  observeOn,
+  of,
+  switchMap,
+} from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   SliceApiService,
@@ -43,6 +55,7 @@ export class MonitoringPageComponent {
   private readonly sliceApi = inject(SliceApiService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
+  private readonly detailRefresh = new Subject<void>();
   private chartRequest?: Subscription;
   private logsRequest?: Subscription;
   private readonly chartWidth = 720;
@@ -58,6 +71,9 @@ export class MonitoringPageComponent {
   protected chartError = '';
   protected logsError = '';
   protected searchTerm = '';
+  protected monitoringFilter = 'all';
+  protected chartStart = 0;
+  protected chartEnd = 0;
   protected cards: SliceObservabilityCard[] = [];
   protected selectedSliceId = '';
   protected selectedCard: SliceObservabilityCard | null = null;
@@ -72,9 +88,9 @@ export class MonitoringPageComponent {
   protected logsText = '';
 
   protected readonly rangeOptions = [
-    { label: '1h', value: 1 },
-    { label: '6h', value: 6 },
-    { label: '24h', value: 24 },
+    { label: 'Last hour', value: 1 },
+    { label: 'Last 6 hours', value: 6 },
+    { label: 'Last 24 hours', value: 24 },
   ];
 
   constructor() {
@@ -82,13 +98,15 @@ export class MonitoringPageComponent {
     this.loadingDetail = !!this.selectedSliceId;
     this.loadOverview();
 
-    this.route.paramMap
+    combineLatest([this.route.paramMap, this.detailRefresh.pipe(startWith(undefined))])
       .pipe(
         observeOn(asyncScheduler),
-        switchMap((paramMap) => {
+        switchMap(([paramMap]) => {
           const sliceId = paramMap.get('sliceId') ?? '';
+          const previousMetric = this.selectedSliceId === sliceId ? this.selectedMetric : '';
           this.selectedSliceId = sliceId;
           this.resetDetail();
+          this.selectedMetric = previousMetric;
 
           if (!sliceId) {
             return of(null);
@@ -148,17 +166,44 @@ export class MonitoringPageComponent {
   protected get filteredCards(): SliceObservabilityCard[] {
     const query = this.searchTerm.trim().toLowerCase();
 
-    if (!query) {
-      return this.cards;
-    }
-
-    return this.cards.filter((card) =>
-      [this.getSliceId(card), card.name, card.status, card.created_at].some((value) =>
-        String(value ?? '')
-          .toLowerCase()
-          .includes(query),
-      ),
+    return this.cards.filter(
+      (card) =>
+        (this.monitoringFilter === 'all' ||
+          (this.monitoringFilter === 'configured'
+            ? !!card.monitoring?.configured
+            : !card.monitoring?.configured)) &&
+        [this.getSliceId(card), card.name, card.status, card.created_at].some((value) =>
+          String(value ?? '')
+            .toLowerCase()
+            .includes(query),
+        ),
     );
+  }
+
+  protected get configuredCount(): number {
+    return this.cards.filter((card) => card.monitoring?.configured).length;
+  }
+
+  protected statusTone(status: string | undefined): string {
+    const value = (status ?? '').toLowerCase();
+    if (['failed', 'error', 'critical', 'down'].includes(value)) return 'critical';
+    if (['degraded', 'pending', 'deploying', 'warning'].includes(value)) return 'warning';
+    if (['active', 'running', 'ready', 'healthy'].includes(value)) return 'success';
+    return 'unknown';
+  }
+
+  protected refresh(): void {
+    if (this.selectedSliceId) this.detailRefresh.next();
+    else if (!this.loadingOverview) this.loadOverview();
+  }
+
+  protected formatTime(timestamp: number): string {
+    return new Date(timestamp * 1000).toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   }
 
   protected get statusLabel(): string {
@@ -311,6 +356,8 @@ export class MonitoringPageComponent {
   }
 
   private loadOverview(): void {
+    this.loadingOverview = true;
+    this.overviewError = '';
     this.sliceApi
       .getSliceObservabilityCards()
       .pipe(
@@ -348,6 +395,8 @@ export class MonitoringPageComponent {
 
     const end = Math.floor(Date.now() / 1000);
     const start = end - this.selectedRangeHours * 60 * 60;
+    this.chartStart = start;
+    this.chartEnd = end;
 
     this.loadingChart = true;
     this.chartError = '';
@@ -562,18 +611,20 @@ export class MonitoringPageComponent {
       return [];
     }
 
-    return result.map((series, index) => {
-      const record = series as Record<string, unknown>;
-      const metric = record['metric'];
-      const values = Array.isArray(record['values']) ? record['values'] : [];
+    return result
+      .filter((series) => !!series && typeof series === 'object')
+      .map((series, index) => {
+        const record = series as Record<string, unknown>;
+        const metric = record['metric'];
+        const values = Array.isArray(record['values']) ? record['values'] : [];
 
-      return {
-        label: this.getSeriesLabel(metric, index),
-        points: values
-          .map((point) => this.toChartPoint(point))
-          .filter((point): point is ChartPoint => point !== null),
-      };
-    });
+        return {
+          label: this.getSeriesLabel(metric, index),
+          points: values
+            .map((point) => this.toChartPoint(point))
+            .filter((point): point is ChartPoint => point !== null),
+        };
+      });
   }
 
   private getPrometheusResult(response: unknown): unknown {
@@ -611,10 +662,10 @@ export class MonitoringPageComponent {
       return '';
     }
 
-    const minTime = Math.min(...points.map((point) => point.timestamp));
-    const maxTime = Math.max(...points.map((point) => point.timestamp));
+    const minTime = this.chartStart;
+    const maxTime = this.chartEnd;
     const timeRange = Math.max(1, maxTime - minTime);
-    const valueRange = Math.max(1, this.chartMax - this.chartMin);
+    const valueRange = this.chartMax - this.chartMin || 1;
     const innerWidth = this.chartWidth - this.chartPadding * 2;
     const innerHeight = this.chartHeight - this.chartPadding * 2;
 

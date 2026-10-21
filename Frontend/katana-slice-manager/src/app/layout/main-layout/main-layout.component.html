@@ -1,24 +1,24 @@
+<a class="skip-link" href="#main-content">Skip to main content</a>
 <div class="layout-shell">
-  @if (httpActivityService.isLoading()) {
-    <div class="layout-loading-overlay" role="status" aria-live="polite">
-      <span class="layout-loading-logo" aria-hidden="true"></span>
-      <span class="layout-loading-overlay__text">Loading…</span>
-    </div>
-  }
-
   <app-sidebar></app-sidebar>
 
-  <main class="layout-content">
+  <main class="layout-content" id="main-content" tabindex="-1">
     <div class="layout-toolbar">
-      <button
-        class="layout-theme-toggle"
-        type="button"
-        [attr.aria-label]="getThemeActionLabel()"
-        (click)="toggleTheme()"
-      >
-        <span class="layout-theme-toggle__icon" aria-hidden="true">{{ getThemeIcon() }}</span>
-        <span>{{ getThemeLabel() }}</span>
-      </button>
+      <span class="layout-workspace">Katana / Operations workspace</span>
+      <div class="layout-toolbar-actions">
+        <span class="layout-activity" role="status">{{
+          httpActivityService.isLoading() ? 'Updating data…' : ''
+        }}</span>
+        <button
+          class="layout-theme-toggle"
+          type="button"
+          [attr.aria-label]="getThemeActionLabel()"
+          (click)="toggleTheme()"
+        >
+          <span class="layout-theme-toggle__icon" aria-hidden="true">{{ getThemeIcon() }}</span>
+          <span>{{ getThemeLabel() }}</span>
+        </button>
+      </div>
     </div>
 
     @if (infrastructureStatus.status(); as bootstrap) {

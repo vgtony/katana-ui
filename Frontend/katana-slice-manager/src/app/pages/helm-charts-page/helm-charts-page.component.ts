@@ -1,9 +1,9 @@
 import { DecimalPipe } from '@angular/common';
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { finalize } from 'rxjs';
+import { Subscription, finalize } from 'rxjs';
 import {
   CatalogApiService,
   HelmCatalogue,
@@ -22,6 +22,11 @@ export class HelmChartsPageComponent {
   private readonly destroyRef = inject(DestroyRef);
   // Dedicated operator credentials live only in this page's memory, never browser storage.
   private authorization = '';
+  private uploadRequest?: Subscription;
+  protected readonly uploadProgress = signal<number | null>(null);
+  protected readonly uploadCancelled = signal(false);
+  protected readonly needsReconciliation = signal(false);
+  protected signInAttempted = false;
   protected username = '';
   protected password = '';
   protected readonly signedIn = signal(false);
@@ -58,6 +63,7 @@ export class HelmChartsPageComponent {
   }
 
   protected signIn(): void {
+    this.signInAttempted = true;
     if (this.loading() || !this.username.trim() || !this.password) return;
     const bytes = new TextEncoder().encode(`${this.username.trim()}:${this.password}`);
     this.authorization = `Basic ${btoa(String.fromCharCode(...bytes))}`;
@@ -70,6 +76,9 @@ export class HelmChartsPageComponent {
     this.authorization = '';
     this.password = '';
     this.signedIn.set(false);
+    this.uploadCancelled.set(false);
+    this.needsReconciliation.set(false);
+    this.uploadProgress.set(null);
     this.catalogue.set({ charts: [], max_bytes: 104857600 });
     this.selectedFile.set(null);
     this.uploaded.set(null);
@@ -91,6 +100,7 @@ export class HelmChartsPageComponent {
         next: (catalogue) => {
           this.signedIn.set(true);
           this.catalogue.set(catalogue);
+          this.needsReconciliation.set(false);
           const name = catalogue.charts.some((chart) => chart.name === this.chartName())
             ? this.chartName()
             : (catalogue.charts[0]?.name ?? '');
@@ -114,6 +124,8 @@ export class HelmChartsPageComponent {
   }
 
   protected selectFile(event: Event): void {
+    this.uploadCancelled.set(false);
+    this.uploadProgress.set(null);
     this.selectedFile.set((event.target as HTMLInputElement).files?.[0] ?? null);
     this.uploadError.set('');
     this.uploaded.set(null);
@@ -121,18 +133,35 @@ export class HelmChartsPageComponent {
 
   protected upload(input: HTMLInputElement): void {
     const file = this.selectedFile();
-    if (!this.signedIn() || !file || this.fileError() || this.uploading()) return;
+    if (
+      !this.signedIn() ||
+      !file ||
+      this.fileError() ||
+      this.uploading() ||
+      this.needsReconciliation()
+    )
+      return;
     this.uploadError.set('');
     this.uploaded.set(null);
     this.uploading.set(true);
-    this.api
+    this.uploadProgress.set(null);
+    this.uploadCancelled.set(false);
+    this.uploadRequest = this.api
       .uploadHelmChart(file, this.authorization)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.uploading.set(false)),
       )
       .subscribe({
-        next: (result) => {
+        next: (event) => {
+          if (event.type === HttpEventType.UploadProgress) {
+            this.uploadProgress.set(
+              event.total ? Math.min(100, Math.round((event.loaded / event.total) * 100)) : null,
+            );
+            return;
+          }
+          if (event.type !== HttpEventType.Response || !event.body) return;
+          const result = event.body;
           this.uploaded.set(result);
           this.selectedFile.set(null);
           input.value = '';
@@ -146,15 +175,24 @@ export class HelmChartsPageComponent {
             if (error.status === 413)
               message =
                 'The chart exceeds the upload limit configured on Katana or the repository.';
-            if (error.status === 0)
+            if (error.status === 0) {
+              this.needsReconciliation.set(true);
               message =
                 'Connection lost. Refresh the catalogue before retrying; the chart may already have uploaded.';
+            }
             if (error.error?.request_id) message += ` Request ID: ${error.error.request_id}`;
           }
           this.uploadError.set(message);
           this.handleUnauthorized(error);
         },
       });
+  }
+
+  protected cancelUpload(): void {
+    if (!this.uploading()) return;
+    this.uploadRequest?.unsubscribe();
+    this.uploadCancelled.set(true);
+    this.needsReconciliation.set(true);
   }
 
   private handleUnauthorized(error: unknown): void {

@@ -17,7 +17,7 @@
 .registration-form__compact-section,
 .registration-form__empty--panel {
   padding: 16px;
-  // border-radius: 18px;
+  // border-radius: var(--app-radius);
   // border: 1px solid var(--app-border);
   // background: var(--app-surface);
 }
@@ -41,8 +41,8 @@
 .registration-form__cluster-pill span {
   color: var(--app-text-muted);
   font-size: 0.76rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .registration-form__eyebrow {
@@ -54,7 +54,7 @@
 .registration-form__grid select {
   width: 100%;
   padding: 0.9rem 1rem;
-  border-radius: 14px;
+  border-radius: var(--app-radius);
   border: 1px solid var(--app-border-strong);
   background: var(--app-input-bg-strong);
   color: var(--app-text);
@@ -79,7 +79,7 @@
 .registration-form__submit {
   padding: 0.95rem 1.2rem;
   border: 0;
-  border-radius: 14px;
+  border-radius: var(--app-radius);
   background: var(--app-proxmox-primary-bg);
   color: #fff6ef;
   font-weight: 700;
@@ -186,7 +186,7 @@
   border: 1px solid var(--app-proxmox-border);
   background: var(--app-proxmox-soft);
   color: var(--app-proxmox-chip-text);
-  letter-spacing: 0.08em;
+  letter-spacing: normal;
 }
 
 .registration-form__board {
@@ -208,7 +208,7 @@
 
 .registration-form__hero-stats div {
   padding: 12px 14px;
-  border-radius: 14px;
+  border-radius: var(--app-radius);
   background: var(--app-proxmox-stat-bg);
   border: 1px solid var(--app-proxmox-stat-border);
 }
@@ -231,7 +231,7 @@
   gap: 10px;
   min-height: 120px;
   padding: 18px;
-  border-radius: 18px;
+  border-radius: var(--app-radius);
   border: 1px solid var(--app-proxmox-stat-border);
   background: var(--app-proxmox-panel-bg);
 }
@@ -267,7 +267,7 @@
   display: grid;
   gap: 10px;
   padding: 14px 16px;
-  border-radius: 16px;
+  border-radius: var(--app-radius);
   border: 1px solid var(--app-border);
   background: var(--app-surface);
 }
@@ -345,7 +345,7 @@
 
 .registration-form__server-table--interactive {
   cursor: pointer;
-  border-radius: 16px;
+  border-radius: var(--app-radius);
   padding: 14px 16px;
 }
 
@@ -398,8 +398,8 @@
 .registration-form__server-storage-cell span {
   color: var(--app-text-muted);
   font-size: 0.76rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .registration-form__server-cell strong,
@@ -467,7 +467,7 @@
   gap: 16px;
   align-items: center;
   padding: 14px 16px;
-  border-radius: 16px;
+  border-radius: var(--app-radius);
   background: rgba(255, 255, 255, 0.03);
 }
 
@@ -489,7 +489,7 @@
   gap: 10px;
   padding: 0.72rem 1rem;
   border: 1px solid var(--app-border);
-  border-radius: 12px;
+  border-radius: var(--app-radius);
   background: transparent;
   color: var(--app-text);
   cursor: pointer;
@@ -536,7 +536,7 @@
   border-radius: 999px;
   background: rgba(255, 191, 105, 0.12);
   color: #ffd08d;
-  letter-spacing: 0.08em;
+  letter-spacing: normal;
 }
 
 .registration-form__storage-stats {
@@ -547,7 +547,7 @@
 
 .registration-form__storage-stats div {
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: var(--app-radius);
   background: rgba(8, 14, 24, 0.26);
 }
 

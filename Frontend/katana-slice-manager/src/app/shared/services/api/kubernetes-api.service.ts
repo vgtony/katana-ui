@@ -1,3 +1,4 @@
+import { HttpEvent } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -138,11 +139,14 @@ export class KubernetesApiService extends KatanaApiBaseService {
     return this.http.post<KubernetesApiResponse>(this.buildApiUrl('k8s'), toApiPayload(payload));
   }
 
-  uploadK8sCredentials(file: File): Observable<KubernetesApiResponse> {
+  uploadK8sCredentials(file: File): Observable<HttpEvent<KubernetesApiResponse>> {
     const payload = new FormData();
     payload.append('file', file);
 
-    return this.http.post<KubernetesApiResponse>(this.buildApiUrl('k8s'), payload);
+    return this.http.post<KubernetesApiResponse>(this.buildApiUrl('k8s'), payload, {
+      observe: 'events',
+      reportProgress: true,
+    });
   }
 
   getK8sCluster(uuid: string): Observable<K8sClusterRegistrationFormModel> {

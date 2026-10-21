@@ -45,7 +45,7 @@ describe('Workspace pages', () => {
     });
 
     it('renders dashboard sections from the loader service', () => {
-      expect(fixture.nativeElement.textContent).toContain('Dashboard');
+      expect(fixture.nativeElement.textContent).toContain('Resource inventory');
       expect(fixture.nativeElement.textContent).toContain('Locations');
       expect(fixture.nativeElement.textContent).toContain('Group 0 Edge');
     });
@@ -103,7 +103,7 @@ describe('Workspace pages', () => {
     });
 
     it('renders completed and failed deployment packs', () => {
-      expect(fixture.nativeElement.textContent).toContain('Deployment Packs');
+      expect(fixture.nativeElement.textContent).toContain('Deployment history');
       expect(fixture.nativeElement.textContent).toContain('Slice / OpenStack');
       expect(fixture.nativeElement.textContent).toContain('Proxmox VM');
       expect(fixture.nativeElement.textContent).toContain('Internal Server Error');
@@ -153,7 +153,7 @@ describe('Workspace pages', () => {
       await new Promise((resolve) => setTimeout(resolve));
       fixture.detectChanges();
 
-      expect(fixture.nativeElement.textContent).toContain('Slice Observability');
+      expect(fixture.nativeElement.textContent).toContain('Slice monitoring');
       expect(fixture.nativeElement.textContent).toContain('Edge Slice');
       expect(fixture.nativeElement.textContent).toContain('Configured');
       expect(fixture.nativeElement.textContent).toContain('2026');
@@ -273,7 +273,7 @@ describe('Workspace pages', () => {
 
       expect(fixture.nativeElement.textContent).toContain('Edge Slice');
       expect(fixture.nativeElement.textContent).toContain('Active');
-      expect(fixture.nativeElement.textContent).toContain('Network Services');
+      expect(fixture.nativeElement.textContent).toContain('Network services');
       await vi.waitFor(() => {
         fixture.detectChanges();
         expect(fixture.nativeElement.querySelector('polyline')).not.toBeNull();

@@ -1,3 +1,4 @@
+import { FORM_FEEDBACK_IMPORTS } from '../../../shared/forms/form-feedback';
 import { ChangeDetectorRef, Component, NgZone, OnInit, inject, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -22,7 +23,7 @@ interface K8sCredentialsSnapshot {
 
 @Component({
   selector: 'app-k8s-cluster-registration-form',
-  imports: [ReactiveFormsModule],
+  imports: [...FORM_FEEDBACK_IMPORTS, ReactiveFormsModule],
   templateUrl: './k8s-cluster-registration-form.component.html',
   styleUrl: './k8s-cluster-registration-form.component.scss',
 })

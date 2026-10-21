@@ -1,16 +1,42 @@
 <section class="monitoring-page">
   <header class="monitoring-page__hero">
     <div>
-      <p class="monitoring-page__eyebrow">Monitoring</p>
-      <h2>Slice Observability</h2>
+      <h1>Slice monitoring</h1>
+      <p>Follow service health, inspect metrics, and investigate changes.</p>
     </div>
 
-    @if (selectedSliceId) {
-      <a class="monitoring-page__back-link" routerLink="/monitoring">All slices</a>
-    }
+    <div class="ui-actions">
+      <button
+        class="ui-button"
+        type="button"
+        (click)="refresh()"
+        [disabled]="loadingOverview || loadingDetail"
+      >
+        Refresh
+      </button>
+      @if (selectedSliceId) {
+        <a class="monitoring-page__back-link" routerLink="/monitoring">All slices</a>
+      }
+    </div>
   </header>
 
   @if (!selectedSliceId) {
+    @if (!loadingOverview && !overviewError) {
+      <div class="monitoring-page__totals" aria-label="Monitoring coverage">
+        <div>
+          <strong>{{ cards.length }}</strong
+          ><span>Registered slices</span>
+        </div>
+        <div>
+          <strong>{{ configuredCount }}</strong
+          ><span>Monitoring configured</span>
+        </div>
+        <div>
+          <strong>{{ cards.length - configuredCount }}</strong
+          ><span>Not configured</span>
+        </div>
+      </div>
+    }
     <section class="monitoring-page__toolbar">
       <label class="monitoring-page__control">
         <span>Search</span>
@@ -20,9 +46,18 @@
           placeholder="Search slices by name, id, or status"
         />
       </label>
+      <label class="monitoring-page__control"
+        ><span>Monitoring coverage</span>
+        <select [(ngModel)]="monitoringFilter">
+          <option value="all">All slices</option>
+          <option value="configured">Configured</option>
+          <option value="unconfigured">Not configured</option>
+        </select>
+      </label>
     </section>
 
     @if (loadingOverview) {
+      <p role="status">Loading slice monitoring…</p>
       <div class="monitoring-page__grid" aria-hidden="true">
         @for (item of [1, 2, 3, 4]; track item) {
           <article class="monitoring-card monitoring-card--skeleton">
@@ -41,7 +76,10 @@
         @for (card of filteredCards; track trackBySlice($index, card)) {
           <article class="monitoring-card">
             <div class="monitoring-card__top">
-              <span class="monitoring-page__badge" [class.monitoring-page__badge--muted]="!card.monitoring?.configured">
+              <span
+                class="monitoring-page__badge"
+                [class.monitoring-page__badge--muted]="!card.monitoring?.configured"
+              >
                 {{ getMonitoringLabel(card) }}
               </span>
             </div>
@@ -53,11 +91,15 @@
               </div>
               <div>
                 <dt class="monitoring-card__meta-label--hidden">Name</dt>
-                <dd class="monitoring-card__name">{{ card.name || getSliceId(card) || 'Unnamed slice' }}</dd>
+                <dd class="monitoring-card__name">
+                  {{ card.name || getSliceId(card) || 'Unnamed slice' }}
+                </dd>
               </div>
               <div>
                 <dt>Status</dt>
-                <dd>{{ card.status || 'Unknown' }}</dd>
+                <dd [attr.data-severity]="statusTone(card.status)">
+                  {{ card.status || 'Unknown' }}
+                </dd>
               </div>
               <div>
                 <dt>Created</dt>
@@ -77,13 +119,17 @@
       </div>
     } @else {
       <div class="monitoring-page__notice">
-        No slice observability cards match the current search.
+        {{
+          cards.length
+            ? 'No slices match these filters. Clear the search or choose all slices.'
+            : 'No slices are registered yet. Deploy a slice to start monitoring.'
+        }}
       </div>
     }
   } @else {
     @if (loadingDetail) {
       <div class="monitoring-page__detail monitoring-page__detail--loading" aria-live="polite">
-        <span class="monitoring-page__skeleton monitoring-page__skeleton--title"></span>
+        <span role="status">Loading slice details…</span>
         <span class="monitoring-page__skeleton monitoring-page__skeleton--line"></span>
       </div>
     } @else if (detailError) {
@@ -97,18 +143,18 @@
             <p class="monitoring-page__section-label">{{ selectedSliceId }}</p>
             <h3>{{ selectedCard.name || selectedSliceId }}</h3>
           </div>
-          <span class="monitoring-page__status">{{ statusLabel }}</span>
+          <span class="monitoring-page__status" [attr.data-severity]="statusTone(statusLabel)">{{
+            statusLabel
+          }}</span>
         </div>
 
         @if (!summary.monitoring?.configured && !selectedCard.monitoring?.configured) {
-          <div class="monitoring-page__notice">
-            Monitoring is not configured for this slice.
-          </div>
+          <div class="monitoring-page__notice">Monitoring is not configured for this slice.</div>
         } @else {
           @if (unavailableQueries.length) {
-            <section class="monitoring-panel monitoring-panel--warning">
+            <section class="monitoring-panel monitoring-panel--warning" role="status">
               <div class="monitoring-panel__top">
-                <h3>Unavailable Prometheus Queries</h3>
+                <h3>Warning: some metrics are unavailable</h3>
               </div>
               <ul class="monitoring-page__list">
                 @for (query of unavailableQueries; track trackByKey($index, query)) {
@@ -120,7 +166,7 @@
 
           <section class="monitoring-panel">
             <div class="monitoring-panel__top">
-              <h3>Time Series</h3>
+              <h3>Metrics over time</h3>
               @if (metricKeys.length) {
                 <div class="monitoring-panel__controls">
                   <label>
@@ -132,7 +178,7 @@
                     </select>
                   </label>
                   <label>
-                    <span>Range</span>
+                    <span>Time range</span>
                     <select [(ngModel)]="selectedRangeHours" (ngModelChange)="updateRange()">
                       @for (range of rangeOptions; track range.value) {
                         <option [ngValue]="range.value">{{ range.label }}</option>
@@ -144,45 +190,131 @@
             </div>
 
             @if (!metricKeys.length) {
-              <div class="monitoring-page__empty">No Prometheus query keys were returned for this slice.</div>
+              <div class="monitoring-page__empty">
+                No Prometheus query keys were returned for this slice.
+              </div>
             } @else if (loadingChart) {
-              <div class="monitoring-page__empty">Loading chart data…</div>
+              <div class="monitoring-page__empty">
+                <span role="status">Loading chart data…</span>
+              </div>
             } @else if (chartError) {
               <div class="monitoring-page__notice monitoring-page__notice--error" role="alert">
                 {{ chartError }}
               </div>
             } @else if (hasChartData) {
               <div class="monitoring-chart">
-                <svg viewBox="0 0 720 220" role="img" [attr.aria-label]="selectedMetric + ' chart'">
+                <svg
+                  viewBox="0 0 720 220"
+                  preserveAspectRatio="none"
+                  role="img"
+                  [attr.aria-label]="selectedMetric + ' chart'"
+                >
                   <line x1="18" y1="202" x2="702" y2="202"></line>
                   <line x1="18" y1="18" x2="18" y2="202"></line>
-                  @for (series of chartSeries; track series.label) {
-                    <polyline [attr.points]="series.svgPoints"></polyline>
+                  @for (series of chartSeries; track $index) {
+                    <polyline
+                      vector-effect="non-scaling-stroke"
+                      [attr.stroke-dasharray]="
+                        $index % 3 === 0 ? null : $index % 3 === 1 ? '8 4' : '2 4'
+                      "
+                      [attr.points]="series.svgPoints"
+                    >
+                      <title>{{ series.label }}</title>
+                    </polyline>
+                    @if (series.points.length === 1) {
+                      <circle
+                        [attr.cx]="series.svgPoints.split(',')[0]"
+                        [attr.cy]="series.svgPoints.split(',')[1]"
+                        r="4"
+                      >
+                        <title>{{ series.label }}</title>
+                      </circle>
+                    }
                   }
                 </svg>
+                <div class="monitoring-chart__meta">
+                  <span>{{ formatTime(chartStart) }}</span
+                  ><span>{{ formatTime(chartEnd) }}</span>
+                </div>
                 <div class="monitoring-chart__meta">
                   <span>Min {{ formatValue(chartMin) }}</span>
                   <span>Max {{ formatValue(chartMax) }}</span>
                   <span>{{ chartSeries.length }} series</span>
                 </div>
+                <ul class="monitoring-chart__legend" aria-label="Chart series">
+                  @for (series of chartSeries; track $index) {
+                    <li>
+                      <span
+                        aria-hidden="true"
+                        [style.border-top-style]="
+                          $index % 3 === 0 ? 'solid' : $index % 3 === 1 ? 'dashed' : 'dotted'
+                        "
+                      ></span
+                      >{{ series.label }}
+                    </li>
+                  }
+                </ul>
+                <details>
+                  <summary>View chart data</summary>
+                  <div
+                    class="monitoring-page__table-shell"
+                    tabindex="0"
+                    role="region"
+                    aria-label="Chart samples"
+                  >
+                    <table class="monitoring-page__table">
+                      <caption>
+                        {{
+                          selectedMetric
+                        }}
+                        samples (local time)
+                      </caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Series</th>
+                          <th scope="col">Time</th>
+                          <th scope="col">Value</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (series of chartSeries; track $index) {
+                          @for (point of series.points; track $index) {
+                            <tr>
+                              <td>{{ series.label }}</td>
+                              <td>{{ formatTime(point.timestamp) }}</td>
+                              <td>{{ formatValue(point.value) }}</td>
+                            </tr>
+                          }
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
               </div>
             } @else {
-              <div class="monitoring-page__empty">No range samples were returned for this metric.</div>
+              <div class="monitoring-page__empty">
+                No range samples were returned for this metric.
+              </div>
             }
           </section>
 
           <section class="monitoring-panel">
             <div class="monitoring-panel__top">
-              <h3>Network Services</h3>
+              <h3>Network services</h3>
             </div>
 
             @if (networkServiceRows.length) {
-              <div class="monitoring-page__table-shell">
+              <div
+                class="monitoring-page__table-shell"
+                tabindex="0"
+                role="region"
+                aria-label="Network service metrics"
+              >
                 <table class="monitoring-page__table">
                   <thead>
                     <tr>
                       @for (column of networkServiceColumns; track column) {
-                        <th>{{ formatColumnLabel(column) }}</th>
+                        <th scope="col">{{ formatColumnLabel(column) }}</th>
                       }
                     </tr>
                   </thead>
@@ -205,7 +337,7 @@
           <section class="monitoring-page__metric-grid">
             <article class="monitoring-panel">
               <div class="monitoring-panel__top">
-                <h3>WIM Flows Per Second</h3>
+                <h3>WIM flows per second</h3>
               </div>
               @if (wimFlowCards.length) {
                 <div class="monitoring-page__mini-grid">
@@ -254,9 +386,11 @@
               {{ logsError }}
             </div>
           } @else if (logsText) {
-            <pre class="monitoring-page__code">{{ logsText }}</pre>
+            <pre class="monitoring-page__code" tabindex="0">{{ logsText }}</pre>
           } @else {
-            <div class="monitoring-page__empty">Logs will appear here after loading them from Katana NBI.</div>
+            <div class="monitoring-page__empty">
+              Logs will appear here after loading them from Katana NBI.
+            </div>
           }
         </section>
 
@@ -265,7 +399,7 @@
             <h3>Diagnostics</h3>
           </div>
           @if (diagnosticsText) {
-            <pre class="monitoring-page__code">{{ diagnosticsText }}</pre>
+            <pre class="monitoring-page__code" tabindex="0">{{ diagnosticsText }}</pre>
           } @else {
             <div class="monitoring-page__empty">No monitoring diagnostics were returned.</div>
           }

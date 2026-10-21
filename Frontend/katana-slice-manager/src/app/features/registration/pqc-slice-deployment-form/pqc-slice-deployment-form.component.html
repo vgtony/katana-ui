@@ -4,7 +4,7 @@
     <p>Models standard, PQC-enabled, and combined Proxmox plus Besu slice deployment inputs.</p> -->
   </div>
 
-  <form class="registration-form__grid" [formGroup]="form">
+  <form class="registration-form__grid" appFormFeedback [formGroup]="form">
     <label><span>Slice file</span><input type="text" formControlName="sliceFile" /></label>
     <label><span>Proxmox VM file</span><input type="text" formControlName="proxmoxFile" /></label>
     <label

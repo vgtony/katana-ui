@@ -1,4 +1,4 @@
-import { HttpContext, HttpParams } from '@angular/common/http';
+import { HttpContext, HttpEvent, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { NsdSummary } from '../../../models/interfaces/infrastructure.interface';
@@ -43,10 +43,12 @@ export class CatalogApiService extends KatanaApiBaseService {
     });
   }
 
-  uploadHelmChart(file: File, authorization: string): Observable<HelmUploadResult> {
+  uploadHelmChart(file: File, authorization: string): Observable<HttpEvent<HelmUploadResult>> {
     const payload = new FormData();
     payload.append('chart', file);
     return this.http.post<HelmUploadResult>(this.buildApiUrl('helm', 'charts'), payload, {
+      observe: 'events',
+      reportProgress: true,
       headers: { Authorization: authorization },
       context: new HttpContext().set(SKIP_HTTP_ACTIVITY, true),
     });

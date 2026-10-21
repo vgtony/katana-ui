@@ -4,20 +4,18 @@
   }
 
   <header class="deployment-page__hero">
-    <p class="deployment-page__eyebrow">Deployment</p>
-    <h2>Deploy with the targets you already have.</h2>
+    <h1>Deployments</h1>
     <p>Review registered slices and clusters, then start a new deployment.</p>
   </header>
 
   <section class="deployment-page__inventory-shell">
     <div class="deployment-page__inventory-header">
       <div>
-        <p class="deployment-page__kicker">Currently created</p>
         <h3>Live targets</h3>
       </div>
 
       <button class="deployment-page__primary" type="button" (click)="openNewDeploymentModal()">
-        + New Deployment
+        New deployment
       </button>
     </div>
 
@@ -46,6 +44,7 @@
 
           <div
             class="deployment-page__inventory-body"
+            [attr.inert]="isInventorySectionExpanded(section.key) ? null : ''"
             [class.deployment-page__inventory-body--expanded]="
               isInventorySectionExpanded(section.key)
             "
@@ -79,7 +78,7 @@
                     <thead>
                       <tr>
                         @for (column of section.columns; track column.key) {
-                          <th>{{ column.label }}</th>
+                          <th scope="col">{{ column.label }}</th>
                         }
                         @if (isAmariInventorySection(section)) {
                           <th class="deployment-page__table-action-heading" aria-label="Actions"></th>
@@ -204,16 +203,10 @@
   </section>
 
   @if (isNewDeploymentModalOpen) {
-    <div
-      class="deployment-page__modal-backdrop"
-      role="presentation"
-      (click)="closeNewDeploymentModal()"
-    >
-      <section
+      <dialog appNativeModal
         class="deployment-page__modal"
+        (cancel)="$event.preventDefault(); closeNewDeploymentModal()"
         [class.deployment-page__modal--chooser]="!hasSelectedDeploymentOption()"
-        role="dialog"
-        aria-modal="true"
         aria-labelledby="new-deployment-title"
         (click)="$event.stopPropagation()"
       >
@@ -675,7 +668,6 @@
             }
           </section>
         }
-      </section>
-    </div>
+      </dialog>
   }
 </section>

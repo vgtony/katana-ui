@@ -1,3 +1,4 @@
+import { FORM_FEEDBACK_IMPORTS } from '../../../shared/forms/form-feedback';
 import { Component, NgZone, inject, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -11,7 +12,7 @@ import { DeploymentDraftService } from '../../../shared/services/deployment-draf
 
 @Component({
   selector: 'app-function-registration-form',
-  imports: [ReactiveFormsModule],
+  imports: [...FORM_FEEDBACK_IMPORTS, ReactiveFormsModule],
   templateUrl: './function-registration-form.component.html',
   styleUrl: './function-registration-form.component.scss'
 })
