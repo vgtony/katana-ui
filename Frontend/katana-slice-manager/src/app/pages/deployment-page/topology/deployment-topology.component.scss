@@ -1,0 +1,220 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.topology {
+  display: grid;
+  gap: 24px;
+  color: var(--app-text);
+}
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+h2 {
+  font-size: 1.35rem;
+}
+header p {
+  max-width: 76ch;
+  margin-top: 8px;
+  line-height: 1.6;
+  color: var(--app-text-muted);
+}
+.topology-toolbar,
+.topology-summary,
+.topology-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.topology-picker {
+  display: grid;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  max-width: 680px;
+}
+select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px;
+  color: var(--app-text);
+  background: var(--app-input-bg);
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius);
+}
+button {
+  min-height: 44px;
+  padding: 10px 16px;
+  color: var(--app-text);
+  background: var(--app-surface);
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius);
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+nav {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.topology-summary,
+.topology-scope {
+  font-size: 0.875rem;
+  color: var(--app-text-muted);
+}
+.topology-error {
+  border-left: 3px solid var(--app-danger);
+  padding: 16px;
+  background: var(--app-danger-soft);
+}
+.topology-map {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(0, 2.5fr);
+  align-items: start;
+  padding: 28px;
+  background: var(--app-surface-2);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+}
+.topology-node {
+  min-width: 0;
+  padding: 18px;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius);
+  overflow-wrap: anywhere;
+}
+.topology-root {
+  border-top: 3px solid var(--app-brand);
+}
+.topology-node > span {
+  color: var(--app-text-muted);
+  font-size: 0.8rem;
+}
+h3,
+h4 {
+  font-size: 1rem;
+  margin-top: 8px;
+}
+dl {
+  margin: 16px 0 0;
+  font-size: 0.85rem;
+}
+dt {
+  color: var(--app-text-muted);
+  margin-top: 10px;
+}
+dd {
+  margin: 3px 0 0;
+}
+.topology-branches {
+  margin: 0;
+  padding: 0 0 0 28px;
+  list-style: none;
+  display: grid;
+  gap: 20px;
+}
+.topology-branch {
+  position: relative;
+  display: flex;
+  align-items: start;
+  min-width: 0;
+}
+.topology-branch > .topology-node,
+.topology-target {
+  flex: 1;
+}
+.topology-branch::before {
+  content: '';
+  position: absolute;
+  width: 28px;
+  height: 1px;
+  left: -28px;
+  top: 30px;
+  background: var(--app-border-strong);
+}
+.topology-branch::after {
+  content: '';
+  position: absolute;
+  width: 1px;
+  left: -28px;
+  top: 30px;
+  bottom: -51px;
+  background: var(--app-border-strong);
+}
+.topology-branch:last-child::after {
+  display: none;
+}
+.topology-target {
+  position: relative;
+  padding-left: 28px;
+  min-width: 0;
+}
+.topology-target::before {
+  content: '';
+  position: absolute;
+  width: 28px;
+  height: 1px;
+  left: 0;
+  top: 30px;
+  background: var(--app-border-strong);
+}
+.topology-empty {
+  padding: 24px;
+  line-height: 1.6;
+  color: var(--app-text-muted);
+}
+.topology-scope {
+  line-height: 1.6;
+}
+@media (max-width: 1100px) {
+  .topology-map {
+    grid-template-columns: 1fr;
+    padding: 16px;
+    gap: 0;
+  }
+  .topology-branches {
+    padding-top: 24px;
+    border-left: 1px solid var(--app-border-strong);
+    margin-left: 20px;
+    padding-left: 20px;
+  }
+  .topology-branch::before {
+    left: -20px;
+    width: 20px;
+  }
+  .topology-branch::after {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .topology-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .topology-map {
+    padding: 12px;
+  }
+  .topology-branch {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .topology-target {
+    padding: 20px 0 0 16px;
+  }
+  .topology-target::before {
+    width: 1px;
+    height: 20px;
+    left: 32px;
+    top: 0;
+  }
+}

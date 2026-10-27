@@ -1,8 +1,9 @@
-import { HttpEvent } from '@angular/common/http';
+import { HttpEvent, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { K8sClusterRegistrationFormModel } from '../../../models/interfaces/k8s-cluster-registration-form.interface';
+import { KubernetesTopology } from '../../../models/interfaces/kubernetes-topology.interface';
 import { KatanaApiBaseService } from './katana-api-base.service';
 
 export interface KubernetesApiResponse {
@@ -123,6 +124,12 @@ function fromApiPayload(
 export class KubernetesApiService extends KatanaApiBaseService {
   getOsmVimAccounts(nfvoId: string): Observable<OsmVimAccountSummary[]> {
     return this.http.get<OsmVimAccountSummary[]>(this.buildApiUrl('k8s', 'vim-accounts', nfvoId));
+  }
+
+  getClusterTopology(id: string, namespace = '*'): Observable<KubernetesTopology> {
+    return this.http.get<KubernetesTopology>(this.buildApiUrl('k8s', id, 'topology'), {
+      params: new HttpParams().set('namespace', namespace),
+    });
   }
 
   getK8sClusters(): Observable<K8sClusterSummary[]> {

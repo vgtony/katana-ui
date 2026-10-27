@@ -1,0 +1,141 @@
+<section class="topology" aria-labelledby="topology-title">
+  <header>
+    <h2 id="topology-title">Deployment topology</h2>
+    <p>
+      Explore reported service placement and registration targets. Lines show deployment
+      relationships, not network traffic.
+    </p>
+  </header>
+  @for (source of sources; track source.key) {
+    @if (source.error) {
+      <div class="topology-error" role="alert">
+        <span>{{ source.title }} unavailable. {{ source.error }}</span>
+        <button type="button" (click)="retryInventory.emit()" [disabled]="inventoryLoading">
+          Retry inventory
+        </button>
+      </div>
+    }
+  }
+  @if (inventoryLoading) {
+    <p role="status">Loading deployment inventory…</p>
+  }
+  @if (options.length) {
+    <div class="topology-toolbar">
+      <div class="topology-picker">
+        <label for="topology-deployment">Deployment or cluster</label>
+        <select
+          id="topology-deployment"
+          [value]="selected?.key"
+          (change)="select($any($event.target).value)"
+        >
+          @for (option of options; track option.key) {
+            <option [value]="option.key">
+              {{ option.name }} — {{ option.group }} ({{ option.id }})
+            </option>
+          }
+        </select>
+      </div>
+      <button
+        type="button"
+        [hidden]="selected?.kind === 'k8s'"
+        (click)="refresh()"
+        [disabled]="loading || inventoryLoading"
+      >
+        Refresh details
+      </button>
+    </div>
+  } @else if (!inventoryLoading) {
+    <div class="topology-empty">
+      <h3>No topology available</h3>
+      <p>
+        Registered clusters and created slices appear here when their inventory is available. Start
+        with New deployment above.
+      </p>
+    </div>
+  }
+  @if (selected; as deployment) {
+    @if (loading) {
+      <p role="status">Loading topology for {{ deployment.name }}…</p>
+    } @else if (error) {
+      <div class="topology-error" role="alert">
+        <span>{{ error }}</span>
+        <button type="button" (click)="refresh()">Retry details</button>
+      </div>
+    } @else {
+      <div class="topology-summary">
+        <span role="status"
+          >{{ branches.length }} reported
+          {{ branches.length === 1 ? 'relationship' : 'relationships' }} · Updated
+          {{ updatedAt }}</span
+        >
+        @if (deployment.kind === 'slice') {
+          <nav aria-label="Selected slice">
+            <a [routerLink]="['/slices', deployment.id]">View status</a>
+            <a [routerLink]="['/monitoring', deployment.id]">Open monitoring</a>
+          </nav>
+        }
+      </div>
+      <div
+        class="topology-map"
+        [class.topology-map--empty]="!branches.length"
+        aria-label="Deployment relationships"
+      >
+        <article class="topology-node topology-root">
+          <span>{{ deployment.group }}</span>
+          <h3>{{ deployment.name }}</h3>
+          <dl>
+            <dt>ID</dt>
+            <dd>{{ deployment.id }}</dd>
+            <dt>Status</dt>
+            <dd>{{ status }}</dd>
+          </dl>
+        </article>
+        @if (branches.length) {
+          <ul class="topology-branches" aria-label="Reported relationships">
+            @for (branch of branches; track branch.key) {
+              <li class="topology-branch">
+                <article class="topology-node">
+                  <span>{{ branch.kind }}</span>
+                  <h4>{{ branch.name }}</h4>
+                  @if (branch.details.length) {
+                    <dl>
+                      @for (detail of branch.details; track detail.label) {
+                        <dt>{{ detail.label }}</dt>
+                        <dd>{{ detail.value }}</dd>
+                      }
+                    </dl>
+                  }
+                </article>
+                @if (branch.target; as target) {
+                  <div class="topology-target">
+                    <article class="topology-node">
+                      <span>{{ target.kind }}</span>
+                      <h4>{{ target.name }}</h4>
+                      @if (deployment.kind === 'slice' && clusterKey(target.name); as key) {
+                        <button type="button" (click)="select(key)">Inspect cluster</button>
+                      }
+                    </article>
+                  </div>
+                }
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="topology-empty">
+            No relationships have been reported for this deployment yet. Refresh after placement or
+            registration completes.
+          </p>
+        }
+      </div>
+    }
+  }
+  @if (selected; as deployment) {
+    @if (deployment.kind === 'k8s') {
+      <app-cluster-workloads [clusterId]="deployment.id" />
+    }
+  }
+  <p class="topology-scope">
+    Includes Katana slices, Kubernetes registrations, and Amari targets. Proxmox VM relationships
+    are not available in this inventory.
+  </p>
+</section>

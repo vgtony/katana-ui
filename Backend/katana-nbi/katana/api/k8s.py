@@ -7,6 +7,7 @@ import os
 import pickle
 import time
 import uuid
+from urllib.parse import quote
 import werkzeug
 import yaml
 from flask import jsonify, request
@@ -14,6 +15,7 @@ from flask_classful import FlaskView, route
 import pymongo
 import requests  # type: ignore
 
+from katana.shared_utils.kubernetesTopology import TopologyError, stored_kubeconfig, cluster_snapshot, validate_namespace
 from katana.shared_utils.mongoUtils import mongoUtils
 from katana.shared_utils.nfvoUtils import osmUtils
 from katana.shared_utils.infrastructureUtils import InfrastructureError, ensure_infrastructure, kubernetes_location, set_kubernetes_location
@@ -163,6 +165,35 @@ class K8SClusterView(FlaskView):
         except Exception as e:
             logger.exception("Error fetching Kubernetes clusters")
             return f"Error: {str(e)}", 500
+
+    @route('/<uuid>/topology', methods=['GET'])
+    def topology(self, uuid):
+        cluster = mongoUtils.get("k8sclusters", uuid) or mongoUtils.find("k8sclusters", {"id": uuid})
+        if not cluster:
+            return jsonify({"error": "Kubernetes cluster not found"}), 404
+        try:
+            namespace = validate_namespace(request.args.get('namespace', '*'))
+            credentials = stored_kubeconfig(cluster)
+            if credentials is None:
+                if not cluster.get('osm_id') or not cluster.get('nfvo_id'):
+                    raise TopologyError('This registration has no kubeconfig reference. Register cluster credentials before inspecting workloads.', 409)
+                osm = _osm_client(nfvo_id=cluster['nfvo_id'])
+                osm.getToken()
+                response = requests.get(
+                    f"https://{osm.ip}/osm/admin/v1/k8sclusters/{quote(str(cluster['osm_id']), safe='')}",
+                    headers={"Authorization": f"Bearer {osm.token}"},
+                    verify=osm.verify, timeout=(3, 10),
+                )
+                response.raise_for_status()
+                remote = yaml.safe_load(response.text)
+                credentials = remote.get('credentials') if isinstance(remote, dict) else None
+            return jsonify(cluster_snapshot(cluster, credentials, namespace)), 200
+        except TopologyError as error:
+            return jsonify({"error": str(error)}), error.status
+        except Exception:
+            # Upstream errors can contain kubeconfig or bearer tokens; never return their bodies.
+            logger.warning("Unable to read Kubernetes topology for registered cluster %s", uuid)
+            return jsonify({"error": "Unable to retrieve cluster access details. Check the registered kubeconfig and owning OSM connection."}), 502
 
     @route('/<uuid>/location', methods=['PATCH'])
     def assign_location(self, uuid):

@@ -19,6 +19,20 @@
       </button>
     </div>
 
+    <div class="deployment-page__tabs" role="tablist" aria-label="Deployment views" (keydown)="onDeploymentTabKeydown($event)">
+      <button type="button" role="tab" id="deployment-inventory-tab" aria-controls="deployment-inventory-panel"
+        [attr.aria-selected]="deploymentTab === 'inventory'" [attr.tabindex]="deploymentTab === 'inventory' ? 0 : -1"
+        (click)="deploymentTab = 'inventory'">Inventory</button>
+      <button type="button" role="tab" id="deployment-topology-tab" aria-controls="deployment-topology-panel"
+        [attr.aria-selected]="deploymentTab === 'topology'" [attr.tabindex]="deploymentTab === 'topology' ? 0 : -1"
+        (click)="deploymentTab = 'topology'">Topology</button>
+    </div>
+    <div id="deployment-topology-panel" role="tabpanel" aria-labelledby="deployment-topology-tab" [hidden]="deploymentTab !== 'topology'" tabindex="0">
+      @if (deploymentTab === 'topology') {
+        <app-deployment-topology [sources]="inventorySections" (retryInventory)="loadCurrentDeployments()" />
+      }
+    </div>
+    <div id="deployment-inventory-panel" role="tabpanel" aria-labelledby="deployment-inventory-tab" [hidden]="deploymentTab !== 'inventory'" tabindex="0">
     <div class="deployment-page__inventory-grid">
       @for (section of inventorySections; track section.key) {
         <article class="deployment-page__inventory-card">
@@ -199,6 +213,7 @@
           </div>
         </article>
       }
+    </div>
     </div>
   </section>
 

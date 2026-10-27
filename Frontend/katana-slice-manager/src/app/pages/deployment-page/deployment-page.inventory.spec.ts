@@ -49,7 +49,8 @@ describe('DeploymentPageComponent inventory refresh', () => {
         {
           provide: SliceApiService,
           useValue: {
-            getSlices: () => sliceInventory$.asObservable()
+            getSlices: () => sliceInventory$.asObservable(),
+            getSlice: () => of({ status: "running", ns_inst_info: {} })
           }
         },
         {
@@ -74,6 +75,29 @@ describe('DeploymentPageComponent inventory refresh', () => {
 
   function getTextContent(): string {
     return fixture.nativeElement.textContent.replace(/\s+/g, ' ').trim();
+  }
+
+  it('switches inventory and topology with keyboard navigation while keeping the modal flow', () => {
+    const inventory: HTMLButtonElement = fixture.nativeElement.querySelector('#deployment-inventory-tab');
+    inventory.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    fixture.detectChanges();
+    const topology: HTMLButtonElement = fixture.nativeElement.querySelector('#deployment-topology-tab');
+    expect(topology.getAttribute('aria-selected')).toBe('true');
+    expect(document.activeElement).toBe(topology);
+    expect(fixture.nativeElement.querySelector('#deployment-inventory-panel').hidden).toBe(true);
+    expect(fixture.nativeElement.querySelector('app-deployment-topology')).not.toBeNull();
+    componentButton('New deployment').click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('dialog')).not.toBeNull();
+    topology.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+    fixture.detectChanges();
+    expect(inventory.getAttribute('aria-selected')).toBe('true');
+    expect(fixture.nativeElement.querySelector('app-deployment-topology')).toBeNull();
+  });
+
+  function componentButton(label: string): HTMLButtonElement {
+    return (Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[])
+      .find((button) => button.textContent?.trim() === label)!;
   }
 
   it('updates the page after the slice GET response emits new data', () => {

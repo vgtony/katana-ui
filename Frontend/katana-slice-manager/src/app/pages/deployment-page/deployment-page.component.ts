@@ -1,3 +1,4 @@
+import { DeploymentTopologyComponent } from './topology/deployment-topology.component';
 import { NativeModalDirective } from '../../shared/forms/native-modal.directive';
 import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -50,6 +51,7 @@ interface DeploymentInventorySection {
   error: string | null;
   columns: DeploymentInventoryColumn[];
   rows: DeploymentInventoryRow[];
+  items: unknown[];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -60,6 +62,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   selector: 'app-deployment-page',
   imports: [
     NativeModalDirective,
+    DeploymentTopologyComponent,
     K8sCredentialsUploadFormComponent,
     K8sClusterRegistrationFormComponent,
     K8sDeployServiceFormComponent,
@@ -81,6 +84,17 @@ export class DeploymentPageComponent implements OnInit {
   private readonly kubernetesApiService = inject(KubernetesApiService);
   private restoredPackId: string | null = null;
   private keepModalOpenAfterRouteClear = false;
+
+  protected deploymentTab: 'inventory' | 'topology' = 'inventory';
+
+  protected onDeploymentTabKeydown(event: KeyboardEvent): void {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    this.deploymentTab = event.key === 'Home' ? 'inventory' : event.key === 'End' ? 'topology'
+      : this.deploymentTab === 'inventory' ? 'topology' : 'inventory';
+    const tabs = (event.currentTarget as HTMLElement).querySelectorAll<HTMLButtonElement>('[role="tab"]');
+    tabs[this.deploymentTab === 'inventory' ? 0 : 1]?.focus();
+  }
 
   protected currentStep = 1;
   protected deploymentStarted = false;
@@ -179,6 +193,7 @@ export class DeploymentPageComponent implements OnInit {
         { key: 'coverage', label: 'Coverage', valueKeys: ['coverage'] },
         { key: 'location', label: 'Location', valueKeys: ['location'] }
       ],
+      items: [],
       rows: []
     },
     {
@@ -194,6 +209,7 @@ export class DeploymentPageComponent implements OnInit {
         { key: 'vimAccount', label: 'VIM Account', valueKeys: ['vim_account', 'vimAccount'] },
         { key: 'endpoint', label: 'Endpoint', valueKeys: ['nfvo_ip', 'endpoint', 'url'] }
       ],
+      items: [],
       rows: []
     },
     {
@@ -210,6 +226,7 @@ export class DeploymentPageComponent implements OnInit {
         { key: 'status', label: 'Status', valueKeys: ['status', 'state'] },
         { key: 'updatedAt', label: 'Updated', valueKeys: ['updated_at', 'updatedAt', 'modified_at'] }
       ],
+      items: [],
       rows: []
     }
   ];
@@ -1122,7 +1139,7 @@ export class DeploymentPageComponent implements OnInit {
     return secondValue || null;
   }
 
-  private loadCurrentDeployments(): void {
+  protected loadCurrentDeployments(): void {
     this.loadInventorySection('slice', this.sliceApiService.getSlices(), {
       fallbackPrimaryValue: 'Created slice',
       columns: this.getInventorySection('slice').columns
@@ -1192,6 +1209,7 @@ export class DeploymentPageComponent implements OnInit {
       next: (items) => {
         this.patchInventorySection(key, {
           ...this.getInventorySection(key),
+          items,
           rows: this.mapInventoryRows(items, config),
           loading: false,
           error: null
@@ -1204,6 +1222,7 @@ export class DeploymentPageComponent implements OnInit {
       error: (error: unknown) => {
         this.patchInventorySection(key, {
           ...this.getInventorySection(key),
+          items: [],
           rows: [],
           loading: false,
           error: getApiErrorMessage(error, `Unable to load ${section.title.toLowerCase()}.`)

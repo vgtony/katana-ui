@@ -1,0 +1,295 @@
+<section class="workloads" aria-labelledby="workloads-title">
+  <header class="workloads-heading">
+    <h3 id="workloads-title">Nodes and pods</h3>
+    @if (snapshot; as data) {
+      <span class="workloads-snapshot" [class.snapshot-old]="loading || error">
+        {{ data.nodes.length }} nodes · {{ data.pods.length }} pods ·
+        {{ loading || error ? 'Previous snapshot' : 'Updated' }}
+        {{ data.collected_at | date: 'shortTime' }} ·
+        {{ data.namespace === '*' ? 'All namespaces' : data.namespace }}
+      </span>
+    }
+  </header>
+  <form
+    class="workloads-controls"
+    #namespaceForm="ngForm"
+    (ngSubmit)="namespaceForm.valid && refresh()"
+  >
+    <div>
+      <label for="workload-namespace">Namespace</label>
+      <input
+        id="workload-namespace"
+        name="namespace"
+        #namespaceInput="ngModel"
+        [(ngModel)]="namespace"
+        required
+        [disabled]="loading"
+        [attr.aria-invalid]="namespaceInput.invalid && namespaceInput.touched"
+        pattern="(\*|[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?)"
+        aria-describedby="namespace-hint"
+      />
+      <small id="namespace-hint" [class.invalid]="namespaceInput.invalid && namespaceInput.touched">
+        @if (namespaceInput.invalid && namespaceInput.touched) {
+          Use * or a lowercase namespace (up to 63 letters, numbers or hyphens).
+        } @else {
+          * = all namespaces
+        }
+      </small>
+    </div>
+    <div class="workloads-search">
+      <label for="workload-search">Find pods</label>
+      <input
+        id="workload-search"
+        name="search"
+        type="search"
+        [(ngModel)]="search"
+        placeholder="Name or namespace"
+      />
+    </div>
+    <div>
+      <label for="workload-phase">Phase</label>
+      <select id="workload-phase" name="phase" [(ngModel)]="phase">
+        <option value="">All phases</option>
+        <option>Running</option>
+        <option>Pending</option>
+        <option>Succeeded</option>
+        <option>Failed</option>
+        <option>Unknown</option>
+        <option>Terminating</option>
+      </select>
+    </div>
+    <button type="submit" [disabled]="loading || namespaceForm.invalid">
+      {{ loading ? 'Refreshing…' : 'Refresh' }}
+    </button>
+  </form>
+  @if (loading) {
+    <p role="status">Loading workloads…</p>
+  }
+  @if (error) {
+    <div class="workloads-error" role="alert">{{ error }} Refresh to retry.</div>
+  }
+  @if (snapshot; as data) {
+    @if (data.warnings.length) {
+      <details class="workloads-warning">
+        <summary>
+          <span role="status">Some cluster data is unavailable ({{ data.warnings.length }})</span>
+        </summary>
+        @for (warning of data.warnings; track warning) {
+          <p>{{ warning }}</p>
+        }
+      </details>
+    }
+    @let view = workloadView;
+    <p class="workloads-help">
+      Latest usage. Node bars: share of allocatable capacity. Pod bars: relative to the largest
+      visible value.
+    </p>
+    @for (group of view.groups; track group.name) {
+      <section class="workloads-node" [attr.aria-label]="group.name">
+        <header class="workloads-node-header">
+          <div class="node-title">
+            <h4>{{ group.name }}</h4>
+            <small>{{ group.pods.length }} pods</small>
+          </div>
+          @if (group.node; as node) {
+            <span class="node-state">{{
+              node.ready === null ? 'Readiness unknown' : node.ready ? 'Ready' : 'Not ready'
+            }}</span>
+            <div
+              class="usage-chart"
+              role="img"
+              [attr.aria-label]="
+                'Node CPU: ' +
+                cpu(node.usage.cpu_millicores) +
+                ', allocatable: ' +
+                cpu(node.allocatable.cpu_millicores)
+              "
+            >
+              <span
+                ><small>CPU</small><strong>{{ cpu(node.usage.cpu_millicores) }}</strong></span
+              >
+              <span
+                class="usage-track"
+                [class.usage-missing]="
+                  barWidth(node.usage.cpu_millicores, node.allocatable.cpu_millicores) === null
+                "
+              >
+                <span
+                  [style.width.%]="
+                    barWidth(node.usage.cpu_millicores, node.allocatable.cpu_millicores)
+                  "
+                ></span>
+              </span>
+              <small>of {{ cpu(node.allocatable.cpu_millicores) }} allocatable</small>
+            </div>
+            <div
+              class="usage-chart"
+              role="img"
+              [attr.aria-label]="
+                'Node memory: ' +
+                memory(node.usage.memory_bytes) +
+                ', allocatable: ' +
+                memory(node.allocatable.memory_bytes)
+              "
+            >
+              <span
+                ><small>Memory</small><strong>{{ memory(node.usage.memory_bytes) }}</strong></span
+              >
+              <span
+                class="usage-track"
+                [class.usage-missing]="
+                  barWidth(node.usage.memory_bytes, node.allocatable.memory_bytes) === null
+                "
+              >
+                <span
+                  [style.width.%]="barWidth(node.usage.memory_bytes, node.allocatable.memory_bytes)"
+                ></span>
+              </span>
+              <small>of {{ memory(node.allocatable.memory_bytes) }} allocatable</small>
+            </div>
+            @if (stale(node.usage.timestamp)) {
+              <small class="sample-old">Sample older than 2 minutes</small>
+            }
+          }
+        </header>
+        <div class="workloads-pods">
+          <div class="pod-columns" aria-hidden="true">
+            <span>Pod / namespace</span><span>Status</span><span>CPU</span><span>Memory</span>
+          </div>
+          @for (pod of group.pods; track pod.uid) {
+            <details class="workloads-pod">
+              <summary>
+                <span class="pod-name"
+                  ><strong>{{ pod.name }}</strong
+                  ><small>{{ pod.namespace }}</small></span
+                >
+                <span
+                  class="pod-status"
+                  [class.pod-attention]="
+                    pod.phase === 'Failed' ||
+                    (pod.phase === 'Running' && pod.ready < pod.container_count)
+                  "
+                >
+                  {{ pod.phase
+                  }}<small
+                    >{{ pod.ready }}/{{ pod.container_count }} ready
+                    @if (pod.restarts) {
+                      · {{ pod.restarts }} restarts
+                    }
+                  </small>
+                </span>
+                <span
+                  class="usage-chart"
+                  role="img"
+                  [attr.aria-label]="'CPU: ' + cpu(pod.usage.cpu_millicores)"
+                >
+                  <span class="pod-value"
+                    ><small class="mobile-label">CPU</small
+                    >{{ cpu(pod.usage.cpu_millicores) }}</span
+                  >
+                  <span
+                    class="usage-track"
+                    [class.usage-missing]="pod.usage.cpu_millicores === null"
+                    ><span [style.width.%]="barWidth(pod.usage.cpu_millicores, view.cpuMax)"></span
+                  ></span>
+                </span>
+                <span
+                  class="usage-chart"
+                  role="img"
+                  [attr.aria-label]="'Memory: ' + memory(pod.usage.memory_bytes)"
+                >
+                  <span class="pod-value"
+                    ><small class="mobile-label">Memory</small
+                    >{{ memory(pod.usage.memory_bytes) }}</span
+                  >
+                  <span class="usage-track" [class.usage-missing]="pod.usage.memory_bytes === null"
+                    ><span [style.width.%]="barWidth(pod.usage.memory_bytes, view.memoryMax)"></span
+                  ></span>
+                </span>
+                @if (stale(pod.usage.timestamp)) {
+                  <small class="sample-old">Sample older than 2 minutes</small>
+                }
+              </summary>
+              <div class="workloads-pod-detail">
+                <p>
+                  Usage sample:
+                  {{ pod.usage.timestamp ? (pod.usage.timestamp | date: 'medium') : 'Unavailable' }}
+                  @if (pod.usage.window) {
+                    · Window: {{ pod.usage.window }}
+                  }
+                  @if (stale(pod.usage.timestamp)) {
+                    <strong> · Sample older than 2 minutes</strong>
+                  }
+                </p>
+                <div
+                  class="workloads-table"
+                  role="region"
+                  tabindex="0"
+                  [attr.aria-label]="'Containers in ' + pod.name"
+                >
+                  <table>
+                    <caption>
+                      Containers in
+                      {{
+                        pod.name
+                      }}
+                    </caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Container</th>
+                        <th scope="col">State</th>
+                        <th scope="col">Ready</th>
+                        <th scope="col">Restarts</th>
+                        <th scope="col">CPU usage</th>
+                        <th scope="col">CPU request / limit</th>
+                        <th scope="col">Memory usage</th>
+                        <th scope="col">Memory request / limit</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (container of pod.containers; track container.name) {
+                        <tr>
+                          <th scope="row">
+                            {{ container.name }}<small>{{ container.kind }}</small>
+                          </th>
+                          <td>
+                            {{ container.state }}
+                            @if (container.reason) {
+                              ({{ container.reason }})
+                            }
+                          </td>
+                          <td>{{ container.ready ? 'Yes' : 'No' }}</td>
+                          <td>{{ container.restarts }}</td>
+                          <td>{{ cpu(container.usage.cpu_millicores) }}</td>
+                          <td>
+                            {{ cpu(container.requests.cpu_millicores, 'Not set') }} /
+                            {{ cpu(container.limits.cpu_millicores, 'Not set') }}
+                          </td>
+                          <td>{{ memory(container.usage.memory_bytes) }}</td>
+                          <td>
+                            {{ memory(container.requests.memory_bytes, 'Not set') }} /
+                            {{ memory(container.limits.memory_bytes, 'Not set') }}
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </details>
+          } @empty {
+            <p class="workloads-empty">No pods on this node in the selected namespace.</p>
+          }
+        </div>
+      </section>
+    } @empty {
+      <p role="status">
+        {{
+          search || phase
+            ? 'No pods match these filters.'
+            : 'No nodes or pods were returned for this scope.'
+        }}
+      </p>
+    }
+  }
+</section>

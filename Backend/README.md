@@ -634,3 +634,40 @@ sudo katana proxmox vm-add -f proxmox_vms.yaml
 For detailed deployment instructions, see [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).
 
 To upload packaged Helm charts through Katana's UI, see [Helm chart upload setup](docs/helm-chart-upload.md).
+
+
+### Kubernetes workload topology
+
+`GET /api/k8s/<cluster-id>/topology?namespace=*` reads a registered cluster's nodes,
+pods, container states, resource requests/limits, and current resource metrics.
+The deployment Topology tab opens this view for Kubernetes registrations and for
+slice placement targets that match a registered cluster ID. Expand a pod to view
+its containers. Refresh is manual; the UI retains and labels the previous snapshot
+if a refresh fails.
+
+- Credentials stay in the NBI. The reader uses the registered uploaded kubeconfig,
+  an inline stored kubeconfig, or the cluster's credentials from its owning OSM.
+  Use an HTTPS API server and an embedded token or client certificate/CA.
+  Kubeconfigs requiring external commands, auth providers, or local certificate/token
+  file references are rejected; no commands from an uploaded kubeconfig are executed.
+- The kubeconfig identity needs `list` access to core `pods` and optionally `nodes`.
+  For usage, it also needs discovery access to `/apis/metrics.k8s.io` and `list`
+  access to `pods` and `nodes` in `metrics.k8s.io`. A Metrics API provider such as
+  Metrics Server must be installed. Discovery supports `v1beta1` and `v1`.
+- `namespace=*` requests all namespaces. If that pod read is forbidden, the reader
+  tries the cluster's registered namespace and labels the reduced scope. An explicit
+  namespace read never silently changes namespace. Missing node permissions or metrics
+  preserve the pod view with warnings and null measurements.
+- CPU values are millicores and memory values are bytes (displayed as MiB). Metrics
+  include sample timestamps/window; missing measurements are never converted to zero.
+  Each resource list is capped at 2,500 records with a warning if truncated.
+- This endpoint only performs reads. It does not install Metrics Server or modify
+  workloads, credentials, or RBAC. It follows the NBI's existing access controls.
+
+The Docker Compose NBI image contains its application code. Rebuild and recreate
+that service to load the endpoint; restarting an unchanged image is insufficient:
+`docker compose -f Backend/docker-compose.yaml up -d --build --no-deps katana-nbi`
+(run from the repository root during your normal backend update window).
+
+Regression checks (using the NBI's declared dependencies):
+`cd Backend && PYTHONPATH=katana-nbi python -m unittest tests.test_kubernetes_topology`
