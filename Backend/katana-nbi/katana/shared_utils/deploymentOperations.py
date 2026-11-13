@@ -1,6 +1,7 @@
 """Durable Kubernetes submission identities; OSM remains the lifecycle authority."""
 import hashlib
 import json
+import math
 import re
 import time
 import uuid
@@ -70,10 +71,16 @@ def public(record):
         result.update(submission_state='unknown', phase='unknown')
     result['message'] = {
         'submitting': 'Submission is in progress. Check its status; do not submit again.',
-        'accepted': 'OSM accepted the request. Workload readiness is not verified.',
         'unknown': 'Submission outcome is unknown. Reconcile this operation before deploying again.',
         'rejected': 'OSM rejected this submission.',
-    }[result['submission_state']]
+    }.get(result['submission_state'])
+    if result['submission_state'] == 'accepted':
+        result['message'] = {
+            'pending': 'OSM accepted the request. Workload readiness is not verified.',
+            'failed': 'OSM accepted the request, but instantiation failed. Inspect the remaining resources before deploying again.',
+            'completed': 'OSM completed the operation. Workload readiness is not verified.',
+            'unknown': 'OSM accepted the request, but the operation status is unknown. Reconcile this operation before deploying again.',
+        }.get(result['phase'], 'OSM accepted the request. Workload readiness is not verified.')
     result['osm_response'] = ({'id': result['osm_instance_id']}
                               if result.get('osm_instance_id') else {})
     return result
@@ -93,8 +100,8 @@ def save_submission(collection, record, **changes):
     return public(record)
 
 
-def instance_id(response):
-    """Read supported IDs, including the documented Location header; never follow URLs."""
+def submission_identity(response):
+    """Read instance and optional operation IDs; never follow Location URLs."""
     candidates = []
     location = response.headers.get('Location', '')
     if isinstance(location, str):
@@ -109,11 +116,21 @@ def instance_id(response):
             body = yaml.safe_load(response.text)
         except yaml.YAMLError:
             body = None
+    nslcmop_id = None
     if isinstance(body, dict):
         candidates.extend(body.get(key) for key in ('nsInstanceId', 'id', '_id'))
+        operation_candidate = body.get('nslcmop_id')
+        if (isinstance(operation_candidate, str)
+                and re.fullmatch(r'[A-Za-z0-9_-]{1,128}', operation_candidate)):
+            nslcmop_id = operation_candidate
     valid = {value for value in candidates if isinstance(value, str)
              and re.fullmatch(r'[A-Za-z0-9_-]{1,128}', value)}
-    return next(iter(valid)) if len(valid) == 1 else None
+    return (next(iter(valid)) if len(valid) == 1 else None), nslcmop_id
+
+
+def instance_id(response):
+    """Read a supported instance ID, including the documented Location header."""
+    return submission_identity(response)[0]
 
 
 def owner(record, find_nfvo):
@@ -144,26 +161,52 @@ def observe(collection, record, operations, started_at):
                and str(item.get('lcmOperationType', '')).lower() == 'instantiate']
     if not matches:
         return public(record)
-    # A fresh instance normally has one instantiation. Re-instantiation is ordered by OSM time.
-    def start(item):
-        value = item.get('startTime', 0)
-        return float(value) if isinstance(value, (int, float)) else 0
-    matches.sort(key=start, reverse=True)
-    if len(matches) > 1 and start(matches[0]) == start(matches[1]):
-        raise OperationError('OSM instantiation identity is ambiguous', 502)
-    operation = matches[0]
+
+    def operation_id(item):
+        value = item.get('id') if 'id' in item else item.get('_id')
+        if not isinstance(value, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,128}', value):
+            raise OperationError('OSM instantiation identity is invalid', 502)
+        return value
+
+    is_bound = 'osm_operation_id' in record
+    bound_id = record.get('osm_operation_id')
+    if is_bound:
+        operation = next((item for item in matches
+                          if item.get('id', item.get('_id')) == bound_id), None)
+        if operation is None:
+            return public(record)
+        selected_id = operation_id(operation)
+    else:
+        if len(matches) > 1:
+            starts = []
+            for item in matches:
+                value = item.get('startTime')
+                if (isinstance(value, bool) or not isinstance(value, (int, float))
+                        or isinstance(value, float) and not math.isfinite(value)):
+                    raise OperationError('OSM instantiation identity is ambiguous', 502)
+                starts.append(value)
+            earliest = min(starts)
+            if starts.count(earliest) != 1:
+                raise OperationError('OSM instantiation identity is ambiguous', 502)
+            operation = matches[starts.index(earliest)]
+        else:
+            operation = matches[0]
+        selected_id = operation_id(operation)
     state = str(operation.get('operationState', 'UNKNOWN')).upper()
     phase = ('completed' if state == 'COMPLETED' else 'failed'
              if state in ('FAILED', 'FAILED_TEMP', 'ROLLED_BACK', 'PARTIALLY_COMPLETED')
              else 'pending' if state in ('STARTING', 'PROCESSING', 'ROLLING_BACK') else 'unknown')
     changes = dict(osm_operation_state=state, phase=phase,
                    observed_at=time.time(), observation_started_at=started_at)
-    operation_id = operation.get('id') or operation.get('_id')
-    if isinstance(operation_id, str) and re.fullmatch(r'[A-Za-z0-9_-]{1,128}', operation_id):
-        changes['osm_operation_id'] = operation_id
-    # A slow older poll cannot overwrite an observation from a newer request.
-    collection.update_one({'_id': record['_id'], '$or': [
+    changes['osm_operation_id'] = selected_id
+    # The saved binding and observation time both arbitrate concurrent polls.
+    query = {'_id': record['_id'], '$or': [
         {'observation_started_at': {'$exists': False}},
         {'observation_started_at': {'$lte': started_at}},
-    ]}, {'$set': changes})
+    ]}
+    if not is_bound:
+        query['osm_operation_id'] = {'$exists': False}
+    else:
+        query['osm_operation_id'] = bound_id
+    collection.update_one(query, {'$set': changes})
     return public(collection.find_one({'_id': record['_id']}))

@@ -110,6 +110,27 @@ describe('Workspace pages', () => {
       expect(fixture.nativeElement.textContent).toContain('Internal Server Error');
       expect(fixture.nativeElement.textContent).toContain('NFVO');
     });
+
+    it('labels local deployment rejection separately from an OSM operation failure', () => {
+      const component = fixture.componentInstance as any;
+      const localRejection = {
+        status: 'failed', errorType: 'Bad Request',
+        operation: { phase: 'failed', submission_state: 'rejected' },
+      };
+      const osmFailure = {
+        ...localRejection, errorType: undefined,
+        operation: { phase: 'failed', submission_state: 'accepted', osm_operation_state: 'FAILED' },
+      };
+      const pendingSubmission = {
+        status: 'unknown',
+        operation: { phase: 'pending', submission_state: 'submitting' },
+      };
+
+      expect(component.getPackStatusLabel(localRejection)).toBe('Bad Request');
+      expect(component.getPackStatusLabel(osmFailure)).toBe('OSM FAILED');
+      expect(component.getPackStatusLabel(pendingSubmission))
+        .toBe('Submission in progress — acceptance unconfirmed');
+    });
   });
 
   describe('MonitoringPageComponent', () => {

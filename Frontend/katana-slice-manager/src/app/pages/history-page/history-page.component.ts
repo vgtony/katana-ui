@@ -39,8 +39,7 @@ export class HistoryPageComponent {
     this.polls.set(id, this.kubernetesApi.pollOperation(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (operation) => {
         this.historyService.updateOperation(operation);
-        this.statusMessages[id] = operation.phase === 'pending'
-          ? 'Waiting for OSM. Workload readiness is not verified.' : operation.message;
+        this.statusMessages[id] = operation.message;
       },
       error: () => { this.statusMessages[id] = 'Status unavailable. Last observation retained; retry only this status check.'; this.changeDetectorRef.markForCheck(); },
       complete: () => { this.statusMessages[id] = 'Automatic checking stopped. Refresh status for a newer observation.'; this.changeDetectorRef.markForCheck(); },
@@ -65,9 +64,16 @@ export class HistoryPageComponent {
   }
 
   protected getPackStatusLabel(pack: DeploymentPack): string {
+    if (pack.operation?.submission_state === 'submitting') return 'Submission in progress — acceptance unconfirmed';
+    if (pack.operation?.submission_state === 'unknown' || pack.status === 'unknown') {
+      return 'Outcome unknown — reconcile before retrying';
+    }
+    if (pack.operation?.submission_state === 'rejected' || pack.operation?.phase === 'failed') {
+      if (pack.operation.osm_operation_state) return `OSM ${pack.operation.osm_operation_state}`;
+      return pack.errorType ?? 'OSM rejected';
+    }
     if (pack.operation?.phase === 'completed') return 'OSM instantiation completed — workload readiness unverified';
-    if (pack.operation?.phase === 'failed') return `OSM ${pack.operation.osm_operation_state ?? 'rejected'}`;
-    if (pack.status === 'unknown') return 'Outcome unknown — reconcile before retrying';
+    if (pack.status === 'failed' && pack.errorType) return pack.errorType;
     if (pack.optionId === 'k8s' && !pack.operationId) return 'Historical submission — outcome unverified';
     if (pack.status === 'accepted') return 'Accepted — readiness not verified';
     return pack.status === 'failed' ? pack.errorType ?? 'Failed' : 'Operation completed';

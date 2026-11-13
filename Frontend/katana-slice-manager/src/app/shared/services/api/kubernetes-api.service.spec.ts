@@ -68,4 +68,22 @@ describe('Kubernetes operation recovery', () => {
     expect(complete).toBe(true);
     http.expectNone((req) => true);
   });
+  it('cancels an outstanding read at the overall polling deadline', () => {
+    let complete = false;
+    api.pollOperation('request').subscribe({ complete: () => complete = true });
+    vi.advanceTimersByTime(0);
+    http.expectOne('/api/k8s/operations/request').flush(pending);
+    for (let index = 0; index < 238; index++) {
+      vi.advanceTimersByTime(5000);
+      http.expectOne('/api/k8s/operations/request').flush(pending);
+    }
+    vi.advanceTimersByTime(5000);
+    const lastRead = http.expectOne('/api/k8s/operations/request');
+    vi.advanceTimersByTime(5000);
+    expect(lastRead.cancelled).toBe(true);
+    expect(complete).toBe(true);
+    vi.advanceTimersByTime(60_000);
+    http.expectNone((req) => true);
+  });
+
 });

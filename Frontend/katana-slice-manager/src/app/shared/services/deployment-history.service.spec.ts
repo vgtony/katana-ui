@@ -111,4 +111,26 @@ describe('DeploymentHistoryService', () => {
     expect(reloaded.getPackById(initial.id)?.operation?.phase).toBe('completed');
   });
 
+  it('keeps submitting recovery entries unknown until acceptance is confirmed', () => {
+    const service = TestBed.inject(DeploymentHistoryService);
+    const pack = service.addPack({
+      name: 'K8s', optionId: 'k8s', optionLabel: 'Kubernetes', shortLabel: 'K8s',
+      status: 'unknown', operationId: 'submitting-request', completedAt: '2026-11-13T08:00:00Z',
+      finalConfigurationLabel: 'Deploy', requirements: [],
+    });
+
+    service.updateOperation({ operation_id: 'submitting-request', nfvo_id: 'nfvo',
+      submission_state: 'submitting', phase: 'pending', message: 'Submission in progress.' });
+    expect(service.getPackById(pack.id)?.status).toBe('unknown');
+    service.updateOperation({ operation_id: 'submitting-request', nfvo_id: 'nfvo',
+      submission_state: 'accepted', phase: 'pending', message: 'Accepted.' });
+    expect(service.getPackById(pack.id)?.status).toBe('accepted');
+    service.updateOperation({ operation_id: 'submitting-request', nfvo_id: 'nfvo',
+      submission_state: 'unknown', phase: 'completed', message: 'Contradictory response.' });
+    expect(service.getPackById(pack.id)?.status).toBe('unknown');
+    service.updateOperation({ operation_id: 'submitting-request', nfvo_id: 'nfvo',
+      submission_state: 'rejected', phase: 'completed', message: 'Contradictory rejection.' });
+    expect(service.getPackById(pack.id)?.status).toBe('failed');
+  });
+
 });

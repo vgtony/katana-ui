@@ -49,8 +49,9 @@ export class DeploymentHistoryService {
 
   updateOperation(operation: K8sOperation): void {
     const packs = this.getPacks().map((pack): DeploymentPack => pack.operationId === operation.operation_id
-      ? { ...pack, operation, status: operation.phase === 'completed' ? 'done'
-          : operation.phase === 'failed' ? 'failed' : operation.phase === 'unknown' ? 'unknown' : 'accepted' }
+      ? { ...pack, operation, status: operation.submission_state === 'rejected' || operation.phase === 'failed' ? 'failed'
+          : operation.submission_state === 'unknown' || operation.submission_state === 'submitting' || operation.phase === 'unknown' ? 'unknown'
+            : operation.phase === 'completed' ? 'done' : 'accepted' }
       : pack);
     this.writePacks(packs);
     this.packsSubject.next(packs);

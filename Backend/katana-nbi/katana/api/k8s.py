@@ -90,7 +90,7 @@ def _observe_operation(record):
     response = requests.get(
         f"https://{nfvo['nfvoip']}/osm/nslcm/v1/ns_lcm_op_occs",
         params={'nsInstanceId': record['osm_instance_id']},
-        headers={'Authorization': f'Bearer {osm.token}'}, verify=osm.verify,
+        headers={'Authorization': f'Bearer {osm.token}', 'Accept': 'application/json'}, verify=osm.verify,
         timeout=(5, 20), allow_redirects=False,
     )
     if response.status_code != 200:
@@ -98,7 +98,10 @@ def _observe_operation(record):
     try:
         payload = response.json()
     except ValueError:
-        raise operations.OperationError('OSM returned invalid status data', 502)
+        try:
+            payload = yaml.safe_load(response.text)
+        except yaml.YAMLError:
+            raise operations.OperationError('OSM returned invalid status data', 502)
     return operations.observe(mongoUtils.k8s_operations, record, payload, started_at)
 
 
@@ -596,6 +599,7 @@ class K8SClusterView(FlaskView):
             osm_url = f"https://{osm_ip}/osm/nslcm/v1/ns_instances_content"
             headers = {
                 "Content-Type": "application/json",
+                "Accept": "application/json",
                 "Authorization": f"Bearer {osm.token}"
             }
             osm_payload = {
@@ -636,10 +640,13 @@ class K8SClusterView(FlaskView):
                 return jsonify(operations.save_submission(
                     collection, record, submission_state='rejected' if rejected else 'unknown',
                     phase='failed' if rejected else 'unknown')), 202
-            instance = operations.instance_id(response)
+            instance, operation_id = operations.submission_identity(response)
+            identity = {'osm_instance_id': instance}
+            if operation_id is not None:
+                identity['osm_operation_id'] = operation_id
             return jsonify(operations.save_submission(
                 collection, record, submission_state='accepted',
-                phase='pending' if instance else 'unknown', osm_instance_id=instance)), 202
+                phase='pending' if instance else 'unknown', **identity)), 202
 
         except operations.OperationError as exc:
             return jsonify({'error': str(exc)}), exc.status

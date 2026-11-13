@@ -4,7 +4,7 @@ The Angular UI and NBI should be released together. The UI uses a public same-or
 
 ## Submission and recovery
 
-`POST /api/k8s/deploy` accepts an optional canonical UUID `request_id`. The UI persists it before sending the request. API clients should do the same and retain the exact request input. Older clients that omit the key receive a generated identity, but cannot deduplicate a lost response.
+`POST /api/k8s/deploy` accepts an optional canonical UUID `request_id`. The UI persists it in the draft and a submitting/unconfirmed History entry before sending the request, so navigating away or restoring an older draft does not erase the recovery reference. The final result updates the same History entry. API clients should retain the key and exact request input. Older clients that omit the key receive a generated identity, but cannot deduplicate a lost response.
 
 The NBI inserts a `k8s_operations` record before contacting OSM. MongoDB's unique `_id` arbitrates concurrent submissions, with majority/journal acknowledgement. The same key and input returns the stored operation; changed input returns 409. A database claim failure prevents the remote create. No automatic create retry occurs after a timeout, process crash, or uncertain result.
 
@@ -22,6 +22,10 @@ The response is HTTP 202 with `operation_id`, `nfvo_id`, `submission_state`, `ph
 A claim left in `submitting` for over two minutes is presented as unknown. If no instance ID was saved, automatic reconciliation cannot establish whether OSM created a service. There is intentionally no automatic retry or heuristic adoption by service name. An operator must verify the owning OSM project and its instances/operations. Keep the original record while investigating; deleting it would defeat duplicate prevention.
 
 History resumes status reads by operation ID, retains the last observation on read failure, and stops on terminal/unknown states, navigation, or the 20-minute polling bound. Each read has a 30-second timeout and at most two delayed retries. A manual status refresh performs reads only. Clearing browser history does not delete remote resources. Browser storage is a convenience cache; blocked/cleared storage cannot preserve a request ID across reloads. Save the displayed ID separately in that case.
+
+Creation saves the validated `nslcmop_id` when OSM supplies it, binding the exact instantiation occurrence immediately. For legacy or Location-only responses, the first status observation binds an occurrence: if the newly created instance has several occurrences, all must have valid OSM start times and a unique earliest occurrence; ambiguous ordering fails closed. Later instantiations cannot replace the saved binding, including when status requests race. A missing bound occurrence retains the last observation. The fallback requires the initial occurrence to remain available before first observation; truncated OSM history cannot prove the original identity. Bindings recorded incorrectly by an older version require verified operator reconciliation, not automatic rebinding.
+
+Status requests prefer JSON and retain safe YAML response compatibility. The form preserves the request ID while the attempt is locked, cancels obsolete status reads when starting a new attempt, and distinguishes failed/unknown feedback from success. The overall polling deadline cancels any outstanding read and its retries.
 
 ## Ownership and compatibility
 

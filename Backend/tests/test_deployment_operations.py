@@ -15,6 +15,7 @@ from pymongo.errors import DuplicateKeyError, PyMongoError
 from pymongo.write_concern import WriteConcern
 from pymongo.read_concern import ReadConcern
 import requests
+import yaml
 
 from katana.shared_utils import deploymentOperations as ops
 from tests.test_nest_helm import load_method
@@ -44,7 +45,7 @@ class DeploymentOperationsTests(unittest.TestCase):
         self.find_nfvo = Mock(return_value=NFVO)
         self.namespace = dict(operations=ops, mongoUtils=SimpleNamespace(k8s_operations=self.collection), request=request, jsonify=jsonify, logger=Mock(),
             _find_nfvo=self.find_nfvo, _osm_client=Mock(return_value=Mock(token='secret', verify=True)),
-            _vim_account_id=Mock(return_value='vim'), requests=self.remote, os=os, time=time, quote=quote)
+            _vim_account_id=Mock(return_value='vim'), requests=self.remote, os=os, time=time, quote=quote, yaml=yaml)
         self.namespace['_observe_operation'] = load_method(PATH, '_observe_operation', self.namespace)
         self.app = Flask(__name__)
         for path, name, methods in (
@@ -70,6 +71,7 @@ class DeploymentOperationsTests(unittest.TestCase):
         self.assertNotIn('fingerprint', result)
         self.assertEqual(self.remote.post.call_args.kwargs['timeout'], (5, 60))
         self.assertFalse(self.remote.post.call_args.kwargs['allow_redirects'])
+        self.assertEqual(self.remote.post.call_args.kwargs['headers']['Accept'], 'application/json')
         self.collection.find_one.return_value = stored
         # Retry/restart does not even re-authenticate against the external NFVO.
         duplicate = self.client.post('/deploy', json=DATA)
@@ -113,6 +115,9 @@ class DeploymentOperationsTests(unittest.TestCase):
         yaml_response = Mock(headers={}, text='id: abc\n')
         yaml_response.json.side_effect = ValueError()
         self.assertEqual(ops.instance_id(yaml_response), 'abc')
+        operation_yaml = Mock(headers={}, text='id: abc\nnslcmop_id: op-1\n')
+        operation_yaml.json.side_effect = ValueError()
+        self.assertEqual(ops.submission_identity(operation_yaml), ('abc', 'op-1'))
         for body in ({'id': 'abc'}, {'_id': 'abc'}, {'nsInstanceId': 'abc'}):
             self.assertEqual(ops.instance_id(Mock(headers={}, json=lambda: body)), 'abc')
         self.assertIsNone(ops.instance_id(Mock(headers={'Location': '/osm/nslcm/v1/ns_instances/abc'},
@@ -123,6 +128,45 @@ class DeploymentOperationsTests(unittest.TestCase):
                 self.assertTrue(ops.request_id({'request_id': None}))
             else:
                 with self.assertRaises(ops.OperationError): ops.request_id({'request_id': value})
+
+    def test_create_operation_id_is_bound_and_later_occurrence_cannot_replace_it(self):
+        self.remote.post.return_value = Mock(status_code=202,
+            headers={'Location': '/osm/nslcm/v1/ns_instances/instance-b'},
+            json=lambda: {'id': 'instance-b', 'nslcmop_id': 'authoritative-op'})
+        created = self.client.post('/deploy', json=DATA)
+        self.assertEqual(created.json['osm_operation_id'], 'authoritative-op')
+        stored = self.collection.insert_one.call_args.args[0]
+        self.assertEqual(stored['osm_operation_id'], 'authoritative-op')
+
+        self.collection.find_one.return_value = stored
+        self.collection.update_one.reset_mock()
+        self.remote.get.return_value = Mock(status_code=200, json=lambda: [
+            dict(id='later-op', nsInstanceId='instance-b', lcmOperationType='instantiate',
+                 operationState='COMPLETED', startTime=20),
+        ])
+        observed = self.client.get('/operations/' + KEY)
+        self.assertEqual(observed.json['osm_operation_id'], 'authoritative-op')
+        self.assertEqual(observed.json['phase'], 'pending')
+        self.collection.update_one.assert_not_called()
+
+    def test_invalid_optional_create_operation_id_is_not_stored(self):
+        self.remote.post.return_value = Mock(status_code=202,
+            headers={'Location': '/osm/nslcm/v1/ns_instances/instance-b'},
+            json=lambda: {'id': 'instance-b', 'nslcmop_id': '../invalid'})
+        response = self.client.post('/deploy', json=DATA)
+        stored = self.collection.insert_one.call_args.args[0]
+        self.assertEqual(response.status_code, 202)
+        self.assertNotIn('osm_operation_id', stored)
+
+    def test_accepted_messages_follow_operation_phase(self):
+        for phase, phrase in (
+                ('pending', 'OSM accepted the request'),
+                ('failed', 'Inspect the remaining resources'),
+                ('completed', 'OSM completed the operation'),
+                ('unknown', 'Reconcile this operation')):
+            with self.subTest(phase=phase):
+                self.assertIn(phrase, ops.public({'_id': KEY, 'submission_state': 'accepted',
+                    'phase': phase, 'created_at': time.time()})['message'])
 
     def test_atomic_claim_loser_recovers_winner_and_changed_payload_conflicts(self):
         saved = record()
@@ -157,6 +201,86 @@ class DeploymentOperationsTests(unittest.TestCase):
         self.assertTrue(self.remote.get.call_args.args[0].startswith('https://b.invalid/'))
         self.assertEqual(self.remote.get.call_args.kwargs['params'], {'nsInstanceId': 'instance-b'})
         self.remote.post.assert_not_called()
+
+    def test_unbound_status_selects_earliest_instantiation(self):
+        saved = {**record(), 'osm_instance_id': 'instance-b', 'submission_state': 'accepted'}
+        self.collection.find_one.return_value = saved
+        self.collection.update_one.side_effect = lambda query, update: saved.update(update['$set'])
+        result = ops.observe(self.collection, saved, [
+            dict(id='earliest', nsInstanceId='instance-b', lcmOperationType='instantiate',
+                 operationState='FAILED', startTime=10),
+            dict(id='later', nsInstanceId='instance-b', lcmOperationType='instantiate',
+                 operationState='COMPLETED', startTime=20),
+        ], 1)
+        self.assertEqual((result['osm_operation_id'], result['phase']), ('earliest', 'failed'))
+        query = self.collection.update_one.call_args.args[0]
+        self.assertEqual(query['osm_operation_id'], {'$exists': False})
+
+    def test_bound_status_never_switches_and_missing_bound_preserves_state(self):
+        bound = {**record(), 'osm_instance_id': 'instance-b', 'osm_operation_id': 'first',
+                 'osm_operation_state': 'FAILED', 'phase': 'failed'}
+        later = dict(id='later', nsInstanceId='instance-b', lcmOperationType='instantiate',
+                     operationState='COMPLETED', startTime=20)
+        self.collection.find_one.return_value = bound
+        result = ops.observe(self.collection, bound, [later], 2)
+        self.assertEqual((result['osm_operation_id'], result['osm_operation_state'], result['phase']),
+                         ('first', 'FAILED', 'failed'))
+        self.collection.update_one.assert_not_called()
+
+        first = dict(id='first', nsInstanceId='instance-b', lcmOperationType='instantiate',
+                     operationState='COMPLETED', startTime=10)
+        self.collection.update_one.side_effect = lambda query, update: bound.update(update['$set'])
+        result = ops.observe(self.collection, bound, [first, later], 3)
+        self.assertEqual(result['osm_operation_id'], 'first')
+        self.assertEqual(self.collection.update_one.call_args.args[0]['osm_operation_id'], 'first')
+
+    def test_ambiguous_or_malformed_unbound_instantiations_do_not_write(self):
+        saved = {**record(), 'osm_instance_id': 'instance-b'}
+        candidates = [
+            [dict(id='a', startTime=float('nan')), dict(id='b', startTime=2)],
+            [dict(id='a', startTime=float('inf')), dict(id='b', startTime=2)],
+            [dict(id='a', startTime=True), dict(id='b', startTime=2)],
+            [dict(id='a'), dict(id='b', startTime=2)],
+            [dict(id='a', startTime=1), dict(id='b', startTime=1)],
+            [dict(id='a', startTime='1'), dict(id='b', startTime=2)],
+        ]
+        for pair in candidates:
+            with self.subTest(pair=pair):
+                self.collection.update_one.reset_mock()
+                with self.assertRaises(ops.OperationError) as raised:
+                    ops.observe(self.collection, saved, [
+                        {**item, 'nsInstanceId': 'instance-b', 'lcmOperationType': 'instantiate',
+                         'operationState': 'COMPLETED'} for item in pair
+                    ], 1)
+                self.assertEqual(raised.exception.status, 502)
+                self.collection.update_one.assert_not_called()
+
+    def test_invalid_selected_operation_id_is_rejected_before_write(self):
+        saved = {**record(), 'osm_instance_id': 'instance-b'}
+        with self.assertRaises(ops.OperationError) as raised:
+            ops.observe(self.collection, saved, [dict(id='../bad', nsInstanceId='instance-b',
+                lcmOperationType='instantiate', operationState='COMPLETED')], 1)
+        self.assertEqual(raised.exception.status, 502)
+        self.collection.update_one.assert_not_called()
+
+    def test_status_preserves_yaml_response_support_and_rejects_malformed_data(self):
+        saved = {**record(), 'osm_instance_id': 'instance-b', 'submission_state': 'accepted'}
+        self.collection.find_one.return_value = saved
+        self.collection.update_one.side_effect = lambda query, update: saved.update(update['$set'])
+        response = Mock(status_code=200, text=yaml.safe_dump([
+            dict(id='instantiate', nsInstanceId='instance-b', lcmOperationType='instantiate', operationState='COMPLETED'),
+        ]))
+        response.json.side_effect = ValueError()
+        self.remote.get.return_value = response
+        result = self.client.get('/operations/' + KEY)
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(result.json['phase'], 'completed')
+        self.assertEqual(self.remote.get.call_args.kwargs['headers']['Accept'], 'application/json')
+        for text in ('[invalid', 'unstructured error', 'error: unavailable'):
+            response.text = text
+            self.collection.update_one.reset_mock()
+            self.assertEqual(self.client.get('/operations/' + KEY).status_code, 502)
+            self.collection.update_one.assert_not_called()
 
     def test_owner_drift_and_legacy_instances_fail_closed(self):
         saved = {**record(), 'osm_instance_id': 'instance-b'}
@@ -207,8 +331,17 @@ class MongoDeploymentConcurrencyTests(unittest.TestCase):
             collection.update_one({'_id': KEY}, {'$set': saved})
             base = dict(nsInstanceId='instance', lcmOperationType='instantiate', id='op')
             ops.observe(collection, saved, [{**base, 'operationState': 'COMPLETED'}], 2)
-            result = ops.observe(collection, saved, [{**base, 'operationState': 'PROCESSING'}], 1)
+            bound = collection.find_one({'_id': KEY})
+            result = ops.observe(collection, bound, [{**base, 'operationState': 'PROCESSING'}], 1)
             self.assertEqual(result['phase'], 'completed')
+            unbound = {**saved, 'osm_operation_id': None}
+            collection.update_one({'_id': KEY}, {'$unset': {'osm_operation_id': ''}})
+            unbound.pop('osm_operation_id', None)
+            collection.update_one({'_id': KEY}, {'$unset': {'observation_started_at': ''}})
+            ops.observe(collection, unbound, [{**base, 'id': 'winner', 'operationState': 'FAILED'}], 2)
+            stale = ops.observe(collection, unbound,
+                                [{**base, 'id': 'stale', 'operationState': 'COMPLETED'}], 3)
+            self.assertEqual((stale['osm_operation_id'], stale['phase']), ('winner', 'failed'))
         finally:
             client.drop_database(database)
             client.close()

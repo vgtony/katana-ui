@@ -2,7 +2,7 @@ import { FORM_FEEDBACK_IMPORTS } from '../../../shared/forms/form-feedback';
 import { ChangeDetectorRef, Component, DestroyRef, NgZone, OnInit, inject, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { finalize, forkJoin } from 'rxjs';
+import { finalize, forkJoin, Subscription } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { K8sOperation } from '../../../models/interfaces/k8s-operation.interface';
@@ -77,6 +77,7 @@ export class K8sDeployServiceFormComponent implements OnInit {
   protected requestId = this.savedModel.requestId ?? '';
   protected operationLocked = !!this.requestId;
   protected operation: K8sOperation | null = null;
+  private operationStatusSubscription?: Subscription;
   protected submitting = false;
   protected loadingInventory = true;
   protected inventoryError = '';
@@ -85,6 +86,7 @@ export class K8sDeployServiceFormComponent implements OnInit {
   protected vims: OsmVimAccountSummary[] = [];
   private vimRequestId = 0;
   protected submitSucceeded = false;
+  protected submitFailed = false;
   protected submitMessage = '';
   protected submitError = '';
 
@@ -143,6 +145,7 @@ export class K8sDeployServiceFormComponent implements OnInit {
   }
 
   protected async onNestSelected(event: Event): Promise<void> {
+    if (this.operationLocked || this.submitting) return;
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
@@ -198,6 +201,7 @@ export class K8sDeployServiceFormComponent implements OnInit {
   }
 
   protected clearNest(): void {
+    if (this.operationLocked || this.submitting) return;
     this.nest = null;
     this.nestService = null;
     this.nestFileName = '';
@@ -205,7 +209,7 @@ export class K8sDeployServiceFormComponent implements OnInit {
     this.deploymentDraftService.saveFormValue(
       'k8s',
       'k8s-deploy',
-      { ...this.form.getRawValue(), nestRequired: false },
+      { ...this.form.getRawValue(), nestRequired: false, requestId: this.requestId },
       'draft',
     );
   }
@@ -282,6 +286,7 @@ export class K8sDeployServiceFormComponent implements OnInit {
   }
 
   private syncSelection(): void {
+    if (this.operationLocked) return;
     const explicit = this.nestService?.['nsd-id'];
     if (typeof explicit === 'string' && explicit) this.form.controls.nsdId.setValue(explicit);
     const selected = this.selectedNsd();
@@ -299,6 +304,7 @@ export class K8sDeployServiceFormComponent implements OnInit {
   }
 
   private selectDefaultVim(): void {
+    if (this.operationLocked) return;
     const clusters = this.availableClusters();
     const vims = this.vims.filter((vim) => vim.k8s_cluster_count > 0);
     const nestTarget = this.nestService?.['target'];
@@ -352,6 +358,7 @@ export class K8sDeployServiceFormComponent implements OnInit {
 
   protected submit(): void {
     this.submitSucceeded = false;
+    this.submitFailed = false;
     this.submitMessage = '';
     this.submitError = '';
 
@@ -372,6 +379,8 @@ export class K8sDeployServiceFormComponent implements OnInit {
       return;
     }
 
+    this.operationStatusSubscription?.unsubscribe();
+    this.operationStatusSubscription = undefined;
     this.submitting = true;
     if (!this.requestId) {
       const bytes = crypto.getRandomValues(new Uint8Array(16));
@@ -386,6 +395,15 @@ export class K8sDeployServiceFormComponent implements OnInit {
     this.deploymentDraftService.saveFormValue('k8s', 'k8s-deploy', {
       ...this.form.getRawValue(), nestRequired: !!this.nest, requestId: this.requestId,
     }, 'draft');
+    const pendingOperation: K8sOperation = {
+      operation_id: this.requestId,
+      nfvo_id: this.form.getRawValue().nfvoId || '',
+      submission_state: 'submitting',
+      phase: 'pending',
+      message: 'Submission is in progress. Workload readiness is not verified.',
+    };
+    this.operation = pendingOperation;
+    this.deployed.emit({ status: 'unknown', operationId: this.requestId, operation: pendingOperation });
 
     this.kubernetesApi
       .deployK8sService({
@@ -404,33 +422,47 @@ export class K8sDeployServiceFormComponent implements OnInit {
       .subscribe({
         next: (response) => {
           this.ngZone.run(() => {
+            const operation = this.normalizeOperation(response);
+            this.operation = operation;
             this.deploymentDraftService.saveFormValue(
               'k8s',
               'k8s-deploy',
               { ...this.form.getRawValue(), nestRequired: !!this.nest, requestId: this.requestId },
               'active',
             );
-            this.submitSucceeded = true;
-            this.submitMessage = response.message || 'Deployment request sent successfully.';
+            this.setOperationFeedback(operation);
             this.deployed.emit({
-              status: response.phase === 'unknown' ? 'unknown' : response.phase === 'failed' ? 'failed' : 'accepted',
-              osmResponse: response.osm_response,
-              operationId: response.operation_id ?? this.requestId,
+              status: this.deploymentStatus(operation),
+              ...(this.operationMatchesRequest(response) && isNestRecord(response) && response['osm_response'] !== undefined
+                ? { osmResponse: response['osm_response'] }
+                : {}),
+              operationId: operation.operation_id,
+              operation,
             });
           });
         },
         error: (error: unknown) => {
           this.ngZone.run(() => {
             this.submitSucceeded = false;
+            this.submitFailed = false;
             const rejected = error instanceof HttpErrorResponse && [400, 404].includes(error.status);
             this.operationLocked = !rejected;
             if (rejected) this.form.enable({ emitEvent: false });
             this.submitError = rejected
               ? getApiErrorMessage(error, 'Unable to deploy to Kubernetes.')
               : 'Submission outcome is unconfirmed. Check this operation before deploying again.';
+            const operation: K8sOperation = {
+              operation_id: this.requestId,
+              nfvo_id: this.form.getRawValue().nfvoId || '',
+              submission_state: rejected ? 'rejected' : 'unknown',
+              phase: rejected ? 'failed' : 'unknown',
+              message: this.submitError,
+            };
+            this.operation = operation;
             this.deployed.emit({
-              status: rejected ? 'failed' : 'unknown',
-              operationId: rejected ? undefined : this.requestId,
+              status: this.deploymentStatus(operation),
+              operationId: this.requestId,
+              operation,
               errorType: getApiErrorType(error) ?? 'Failed',
             });
           });
@@ -439,15 +471,18 @@ export class K8sDeployServiceFormComponent implements OnInit {
   }
 
   protected checkOperation(): void {
-    if (!this.requestId) return;
-    this.kubernetesApi.getOperation(this.requestId).pipe(
+    if (!this.requestId || this.submitting) return;
+    this.operationStatusSubscription?.unsubscribe();
+    this.operationStatusSubscription = this.kubernetesApi.getOperation(this.requestId).pipe(
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
-      next: (operation) => {
+      next: (statusResponse) => {
+        const operation = this.normalizeOperation(statusResponse);
         this.operation = operation;
         this.operationLocked = true;
-        this.submitMessage = operation.message;
-        this.deployed.emit({ status: operation.phase === 'completed' ? 'done' : operation.phase === 'failed' ? 'failed' : operation.phase === 'unknown' ? 'unknown' : 'accepted',
+        this.form.disable({ emitEvent: false });
+        this.setOperationFeedback(operation);
+        this.deployed.emit({ status: this.deploymentStatus(operation),
           operationId: operation.operation_id, operation });
         this.submitError = '';
         this.changeDetectorRef.markForCheck();
@@ -456,6 +491,9 @@ export class K8sDeployServiceFormComponent implements OnInit {
         // A missing record allows retry with THE SAME key; concurrent creates still deduplicate.
         this.operationLocked = !(error instanceof HttpErrorResponse && error.status === 404);
         if (!this.operationLocked) this.form.enable({ emitEvent: false });
+        this.submitSucceeded = false;
+        this.submitFailed = false;
+        this.submitMessage = '';
         this.submitError = this.operationLocked
           ? 'Status is unavailable. Keep this request identity and check again.'
           : 'No submission record exists. You can correct the input and retry this request.';
@@ -465,13 +503,99 @@ export class K8sDeployServiceFormComponent implements OnInit {
   }
 
   protected startNewOperation(): void {
-    if (!this.operation || !['completed', 'failed'].includes(this.operation.phase)) return;
+    if (this.submitting || !this.operation || !['completed', 'failed'].includes(this.operation.phase)) return;
+    this.operationStatusSubscription?.unsubscribe();
     this.requestId = '';
     this.operation = null;
     this.operationLocked = false;
     this.form.enable({ emitEvent: false });
+    this.submitSucceeded = false;
+    this.submitFailed = false;
     this.submitMessage = '';
     this.form.updateValueAndValidity({ emitEvent: true });
+  }
+
+  private normalizeOperation(response: unknown): K8sOperation {
+    const payload = isNestRecord(response) ? response : {};
+    const emptyResponse = Object.keys(payload).length === 0;
+    const malformedResponse = emptyResponse;
+    const phases = ['pending', 'unknown', 'completed', 'failed'] as const;
+    const submissionStates = ['submitting', 'accepted', 'unknown', 'rejected'] as const;
+    const responsePhase = phases.find((phase) => phase === payload['phase']);
+    const responseSubmissionState = submissionStates.find(
+      (state) => state === payload['submission_state'],
+    );
+    const hasPhase = payload['phase'] !== undefined;
+    const hasSubmissionState = payload['submission_state'] !== undefined;
+    const legacyMessageResponse = !hasPhase && !hasSubmissionState && payload['operation_id'] === undefined &&
+      typeof payload['message'] === 'string' && !!payload['message'].trim();
+    const allowedStatePhasePair = responseSubmissionState === 'accepted' ||
+      (responseSubmissionState === 'submitting' && responsePhase === 'pending') ||
+      (responseSubmissionState === 'unknown' && responsePhase === 'unknown') ||
+      (responseSubmissionState === 'rejected' && responsePhase === 'failed');
+    const inconsistentStatePair = !legacyMessageResponse &&
+      (!hasPhase || !hasSubmissionState || !responsePhase || !responseSubmissionState || !allowedStatePhasePair);
+    const mismatchedOperation = !emptyResponse && !this.operationMatchesRequest(response);
+    let phase: K8sOperation['phase'] = responsePhase ??
+      (payload['phase'] === undefined ? 'pending' : 'unknown');
+    let submissionState: K8sOperation['submission_state'] = responseSubmissionState ??
+      (payload['submission_state'] === undefined ? 'accepted' : 'unknown');
+    if (malformedResponse || inconsistentStatePair || mismatchedOperation) {
+      phase = 'unknown';
+      submissionState = 'unknown';
+    }
+    const nfvoId = mismatchedOperation
+      ? this.form.getRawValue().nfvoId || ''
+      : (typeof payload['nfvo_id'] === 'string' ? payload['nfvo_id'] : '') || this.form.getRawValue().nfvoId || '';
+    const message = mismatchedOperation
+      ? 'The returned operation identity did not match this request. Check status before continuing.'
+      : malformedResponse || inconsistentStatePair
+        ? 'The submission response was empty or invalid. Check this request status before continuing.'
+        : (typeof payload['message'] === 'string' ? payload['message'] : '') || (phase === 'failed'
+          ? 'Deployment operation failed.'
+          : phase === 'unknown'
+            ? 'Deployment outcome is unknown. Check this operation before deploying again.'
+            : phase === 'completed'
+              ? 'Deployment operation completed.'
+              : 'Deployment request accepted; workload readiness is not verified.');
+    return {
+      operation_id: this.requestId,
+      nfvo_id: nfvoId,
+      submission_state: submissionState,
+      phase,
+      message,
+      ...(!mismatchedOperation && typeof payload['osm_instance_id'] === 'string'
+        ? { osm_instance_id: payload['osm_instance_id'] }
+        : {}),
+      ...(!mismatchedOperation && typeof payload['osm_operation_id'] === 'string'
+        ? { osm_operation_id: payload['osm_operation_id'] }
+        : {}),
+      ...(!mismatchedOperation && typeof payload['osm_operation_state'] === 'string'
+        ? { osm_operation_state: payload['osm_operation_state'] }
+        : {}),
+      ...(!mismatchedOperation && typeof payload['observed_at'] === 'number'
+        ? { observed_at: payload['observed_at'] }
+        : {}),
+    };
+  }
+
+  private setOperationFeedback(operation: K8sOperation): void {
+    this.submitSucceeded = operation.phase === 'completed';
+    this.submitFailed = operation.phase === 'failed' || operation.submission_state === 'rejected';
+    this.submitMessage = operation.message;
+  }
+
+  private deploymentStatus(operation: K8sOperation): DeploymentAttemptEvent['status'] {
+    if (operation.phase === 'completed') return 'done';
+    if (operation.phase === 'failed' || operation.submission_state === 'rejected') return 'failed';
+    if (operation.phase === 'unknown' || operation.submission_state === 'unknown' ||
+        operation.submission_state === 'submitting') return 'unknown';
+    return 'accepted';
+  }
+
+  private operationMatchesRequest(response: unknown): boolean {
+    return isNestRecord(response) &&
+      (!('operation_id' in response) || response['operation_id'] === this.requestId);
   }
 
 }

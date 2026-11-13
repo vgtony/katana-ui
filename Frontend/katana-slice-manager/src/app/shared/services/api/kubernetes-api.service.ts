@@ -1,6 +1,6 @@
 import { HttpEvent, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, exhaustMap, retry, takeWhile, timeout, timer } from 'rxjs';
+import { Observable, exhaustMap, retry, takeUntil, takeWhile, timeout, timer } from 'rxjs';
 import { K8sOperation } from '../../../models/interfaces/k8s-operation.interface';
 import { map } from 'rxjs/operators';
 import { K8sClusterRegistrationFormModel } from '../../../models/interfaces/k8s-cluster-registration-form.interface';
@@ -183,11 +183,10 @@ export class KubernetesApiService extends KatanaApiBaseService {
   }
 
   pollOperation(id: string): Observable<K8sOperation> {
-    const deadline = Date.now() + 20 * 60_000;
     return timer(0, 5000).pipe(
-      takeWhile(() => Date.now() < deadline),
-      exhaustMap(() => this.getOperation(id).pipe(timeout(30_000), retry({ count: 2, delay: 2000 }))),
+      exhaustMap(() => this.getOperation(id).pipe(retry({ count: 2, delay: 2000 }))),
       takeWhile((operation) => operation.phase === 'pending', true),
+      takeUntil(timer(20 * 60_000)),
     );
   }
 

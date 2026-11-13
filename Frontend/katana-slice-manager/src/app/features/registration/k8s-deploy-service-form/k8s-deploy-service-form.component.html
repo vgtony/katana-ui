@@ -11,12 +11,12 @@
         type="file"
         accept=".yaml,.yml,.json"
         (change)="onNestSelected($event)"
-        [disabled]="submitting"
+        [disabled]="submitting || operationLocked"
     /></label>
     @if (nestFileName || nestError) {
       <p>
         {{ nestFileName }}
-        <button type="button" (click)="clearNest()" [disabled]="submitting">Remove NEST</button>
+        <button type="button" (click)="clearNest()" [disabled]="submitting || operationLocked">Remove NEST</button>
       </p>
     }
     @if (nestError || nestSelectionError()) {
@@ -111,7 +111,12 @@
       </div>
     }
     @if (submitMessage) {
-      <p class="registration-form__status registration-form__status--success" role="status">
+      <p
+        class="registration-form__status"
+        [class.registration-form__status--success]="submitSucceeded"
+        [class.registration-form__status--error]="submitFailed"
+        role="status"
+      >
         {{ submitMessage }}
       </p>
     }
