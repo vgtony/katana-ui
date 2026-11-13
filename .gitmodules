@@ -1,0 +1,3 @@
+[submodule "Backend/osm-packages"]
+	path = Backend/osm-packages
+	url = https://osm.etsi.org/gitlab/vnf-onboarding/osm-packages.git
