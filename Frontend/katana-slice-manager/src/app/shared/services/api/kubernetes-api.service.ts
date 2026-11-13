@@ -1,6 +1,7 @@
 import { HttpEvent, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, exhaustMap, retry, takeWhile, timeout, timer } from 'rxjs';
+import { K8sOperation } from '../../../models/interfaces/k8s-operation.interface';
 import { map } from 'rxjs/operators';
 import { K8sClusterRegistrationFormModel } from '../../../models/interfaces/k8s-cluster-registration-form.interface';
 import { KubernetesTopology } from '../../../models/interfaces/kubernetes-topology.interface';
@@ -34,6 +35,7 @@ export interface OsmVimAccountSummary {
 }
 
 export interface K8sDeployServiceFormApiPayload {
+  request_id?: string;
   nest?: Record<string, unknown>;
   nfvo_id: string;
   nsdId: string;
@@ -42,7 +44,7 @@ export interface K8sDeployServiceFormApiPayload {
   vimAccountId: string;
 }
 
-export interface K8sDeploymentResponse {
+export interface K8sDeploymentResponse extends Partial<K8sOperation> {
   message: string;
   osm_response?: unknown;
 }
@@ -166,7 +168,31 @@ export class KubernetesApiService extends KatanaApiBaseService {
     return this.http.delete(this.buildApiUrl('k8s', uuid));
   }
 
+  getOperation(id: string): Observable<K8sOperation> {
+    return this.http.get<K8sOperation>(this.buildApiUrl('k8s', 'operations', id)).pipe(
+      timeout(30_000),
+      map((value) => {
+        if (!value || value.operation_id !== id ||
+            !['pending', 'unknown', 'completed', 'failed'].includes(value.phase) ||
+            !['submitting', 'accepted', 'unknown', 'rejected'].includes(value.submission_state)) {
+          throw new Error('Invalid deployment status response');
+        }
+        return value;
+      }),
+    );
+  }
+
+  pollOperation(id: string): Observable<K8sOperation> {
+    const deadline = Date.now() + 20 * 60_000;
+    return timer(0, 5000).pipe(
+      takeWhile(() => Date.now() < deadline),
+      exhaustMap(() => this.getOperation(id).pipe(timeout(30_000), retry({ count: 2, delay: 2000 }))),
+      takeWhile((operation) => operation.phase === 'pending', true),
+    );
+  }
+
   deployK8sService(payload: {
+    requestId?: string;
     nfvoId: string;
     nsdId: string;
     nsName: string;
@@ -175,6 +201,7 @@ export class KubernetesApiService extends KatanaApiBaseService {
     nest?: Record<string, unknown>;
   }): Observable<K8sDeploymentResponse> {
     const requestPayload: K8sDeployServiceFormApiPayload = {
+      ...(payload.requestId ? { request_id: payload.requestId } : {}),
       nfvo_id: payload.nfvoId,
       nsdId: payload.nsdId,
       nsName: payload.nsName,

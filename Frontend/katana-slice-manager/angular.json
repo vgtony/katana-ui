@@ -86,7 +86,8 @@
               "proxyConfig": "proxy.conf.json"
             },
             "local-network": {
-              "buildTarget": "katana-slice-manager:build:local-network"
+              "buildTarget": "katana-slice-manager:build:local-network",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"

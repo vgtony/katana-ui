@@ -16,6 +16,7 @@ import pymongo
 import requests  # type: ignore
 
 from katana.shared_utils.kubernetesTopology import TopologyError, stored_kubeconfig, cluster_snapshot, validate_namespace
+from katana.shared_utils import deploymentOperations as operations
 from katana.shared_utils.mongoUtils import mongoUtils
 from katana.shared_utils.nfvoUtils import osmUtils
 from katana.shared_utils.infrastructureUtils import InfrastructureError, ensure_infrastructure, kubernetes_location, set_kubernetes_location
@@ -79,6 +80,26 @@ def _vim_account_id(osm, reference):
         "nfvo_vim_links", {"nfvo_id": osm.nfvo_id, "vim_id": vim["id"]}
     )
     return link.get("osm_vim_account_id") if link else None
+
+
+def _observe_operation(record):
+    nfvo = operations.owner(record, _find_nfvo)
+    osm = _osm_client(nfvo_id=nfvo['id'])
+    osm.getToken()
+    started_at = time.time()
+    response = requests.get(
+        f"https://{nfvo['nfvoip']}/osm/nslcm/v1/ns_lcm_op_occs",
+        params={'nsInstanceId': record['osm_instance_id']},
+        headers={'Authorization': f'Bearer {osm.token}'}, verify=osm.verify,
+        timeout=(5, 20), allow_redirects=False,
+    )
+    if response.status_code != 200:
+        raise operations.OperationError('OSM status is unavailable; last observation remains unchanged', 502)
+    try:
+        payload = response.json()
+    except ValueError:
+        raise operations.OperationError('OSM returned invalid status data', 502)
+    return operations.observe(mongoUtils.k8s_operations, record, payload, started_at)
 
 
 def _new_cluster_identity():
@@ -527,6 +548,12 @@ class K8SClusterView(FlaskView):
             if not isinstance(data, dict):
                 return jsonify({"error": "Deployment request must be an object"}), 400
 
+            operation_key = operations.request_id(data)
+            collection = mongoUtils.k8s_operations
+            previous = operations.existing(collection, operation_key, data)
+            if previous:
+                return jsonify(operations.public(previous)), 202
+
             required_fields = ["nsName", "nsdId", "vimAccountId", "nfvo_id"]
             for field in required_fields:
                 if not isinstance(data.get(field), str) or not data[field].strip():
@@ -592,94 +619,66 @@ class K8SClusterView(FlaskView):
                     return jsonify({"error": str(exc)}), 400
             if data.get("nsDescription"):
                 osm_payload["nsDescription"] = data["nsDescription"]
-            logger.debug("Sending Kubernetes deployment request to OSM")
-            response = requests.post(
-                osm_url, headers=headers, json=osm_payload, verify=osm.verify
-            )
-            logger.debug(f"OSM API response: {response.status_code}, {response.text}")
-
-            if response.status_code not in [200, 201, 202]:
-                logger.error(f"Failed to deploy NS: {response.text}")
-                return jsonify({"error": f"Failed to deploy NS: {response.text}"}), response.status_code
-
+            record, created = operations.claim(collection, operation_key, data, nfvo, vim_account_id)
+            if not created:
+                return jsonify(operations.public(record)), 202
             try:
-                osm_response = response.json()
-            except ValueError:
-                logger.warning("Response from OSM is not valid JSON, attempting YAML parsing.")
-                try:
-                    osm_response = yaml.safe_load(response.text)
-                except yaml.YAMLError:
-                    logger.error("Failed to parse OSM response as JSON or YAML.")
-                    osm_response = {"raw_response": response.text}
+                response = requests.post(
+                    osm_url, headers=headers, json=osm_payload, verify=osm.verify,
+                    timeout=(5, 60), allow_redirects=False,
+                )
+            except requests.RequestException:
+                return jsonify(operations.save_submission(
+                    collection, record, submission_state='unknown', phase='unknown')), 202
+            if response.status_code not in (200, 201, 202):
+                # A server/proxy failure may occur after the operation was accepted.
+                rejected = 400 <= response.status_code < 500 and response.status_code not in (408, 409, 429)
+                return jsonify(operations.save_submission(
+                    collection, record, submission_state='rejected' if rejected else 'unknown',
+                    phase='failed' if rejected else 'unknown')), 202
+            instance = operations.instance_id(response)
+            return jsonify(operations.save_submission(
+                collection, record, submission_state='accepted',
+                phase='pending' if instance else 'unknown', osm_instance_id=instance)), 202
 
-            logger.info("Successfully sent deployment request to OSM.")
-            return jsonify({"message": "Deployment request sent successfully", "osm_response": osm_response}), 202
+        except operations.OperationError as exc:
+            return jsonify({'error': str(exc)}), exc.status
+        except Exception:
+            logger.exception("Error submitting Kubernetes deployment")
+            return jsonify({'error': 'Submission could not be confirmed. Check the same request_id before retrying.'}), 503
 
-        except Exception as e:
-            logger.exception("Error sending deployment request to OSM.")
-            return jsonify({"error": str(e)}), 500
+    @route('/operations/<operation_id>', methods=['GET'])
+    def get_operation(self, operation_id):
+        """Recover a submission by its client-generated durable identity."""
+        try:
+            collection = mongoUtils.k8s_operations
+            record = collection.find_one({'_id': operation_id})
+            if not record:
+                return jsonify({'error': 'Deployment operation not found'}), 404
+            if not record.get('osm_instance_id'):
+                return jsonify(operations.public(record)), 200
+            return jsonify(_observe_operation(record)), 200
+        except operations.OperationError as exc:
+            return jsonify({'error': str(exc)}), exc.status
+        except requests.RequestException:
+            return jsonify({'error': 'OSM status is temporarily unavailable; the deployment may still be running.'}), 502
+        except Exception:
+            logger.exception('Error reading Kubernetes deployment operation')
+            return jsonify({'error': 'Unable to read deployment status'}), 503
 
     @route('/deploy/<nsInstanceId>', methods=['GET'])
     def get_deployment_status_by_instance(self, nsInstanceId):
-        """
-        Fetches all lifecycle management operations for a given NS Instance ID from OSM.
-        """
-        logger.info(f"Received request to monitor deployment status for NS Instance ID: {nsInstanceId}")
         try:
-            nfvo = mongoUtils.find("nfvo", {"type": "OSM"})
-            if not nfvo:
-                logger.error("No NFVO configuration found.")
-                return jsonify({"error": "No NFVO configuration found."}), 404
-
-            osm_ip = nfvo.get("nfvoip")
-            osm_username = nfvo.get("nfvousername")
-            osm_password = nfvo.get("nfvopassword")
-            tenant_name = nfvo.get("tenantname")
-
-            if not osm_ip or not osm_username or not osm_password or not tenant_name:
-                logger.error("Incomplete NFVO configuration.")
-                return jsonify({"error": "Incomplete NFVO configuration"}), 400
-
-            osm = _osm_client(
-                nfvo_id=nfvo["id"],
-                ip=osm_ip,
-                username=osm_username,
-                password=osm_password,
-                project_id=tenant_name
-            )
-
-            try:
-                osm.getToken()
-            except Exception as e:
-                logger.exception(f"Error obtaining OSM token: {e}")
-                return jsonify({"error": "Failed to authenticate with OSM"}), 400
-
-            osm_url = f"https://{osm_ip}/osm/nslcm/v1/ns_lcm_op_occs?nsInstanceId={nsInstanceId}"
-            headers = {"Authorization": f"Bearer {osm.token}"}
-            response = requests.get(osm_url, headers=headers, verify=osm.verify)
-            logger.debug(f"OSM API response: {response.status_code}, {response.text}")
-
-            if response.status_code != 200:
-                logger.error(f"Failed to fetch deployment status: {response.text}")
-                return jsonify({"error": f"Failed to fetch deployment status: {response.text}"}), response.status_code
-
-            try:
-                deployment_operations = response.json()
-            except ValueError:
-                logger.warning("Response from OSM is not valid JSON, attempting YAML parsing.")
-                try:
-                    import yaml
-                    deployment_operations = yaml.safe_load(response.text)
-                except yaml.YAMLError:
-                    logger.error("Failed to parse deployment status as JSON or YAML.")
-                    return jsonify({"error": "Invalid response format from OSM"}), 500
-
-            logger.info(f"Deployment operations retrieved successfully for NS Instance ID: {nsInstanceId}")
-            return jsonify({"deployment_operations": deployment_operations}), 200
-
-        except Exception as e:
-            logger.exception("Error monitoring deployment status.")
-            return jsonify({"error": str(e)}), 500
+            record = operations.by_instance(mongoUtils.k8s_operations, nsInstanceId,
+                                            request.args.get('nfvo_id'))
+            return jsonify(_observe_operation(record)), 200
+        except operations.OperationError as exc:
+            return jsonify({'error': str(exc)}), exc.status
+        except requests.RequestException:
+            return jsonify({'error': 'OSM status is temporarily unavailable'}), 502
+        except Exception:
+            logger.exception('Error reading OSM deployment status')
+            return jsonify({'error': 'Unable to read deployment status'}), 503
 
     @route('/deploy/<nsInstanceId>', methods=['DELETE'])
     def delete_deployment(self, nsInstanceId):
@@ -688,7 +687,9 @@ class K8SClusterView(FlaskView):
         """
         logger.info(f"Received request to delete deployment with NS Instance ID: {nsInstanceId}")
         try:
-            nfvo = mongoUtils.find("nfvo", {"type": "OSM"})
+            record = operations.by_instance(mongoUtils.k8s_operations, nsInstanceId,
+                                            request.args.get('nfvo_id'))
+            nfvo = operations.owner(record, _find_nfvo)
             if not nfvo:
                 logger.error("No NFVO configuration found.")
                 return jsonify({"error": "No NFVO configuration found."}), 404
@@ -716,40 +717,21 @@ class K8SClusterView(FlaskView):
                 logger.exception(f"Error obtaining OSM token: {e}")
                 return jsonify({"error": "Failed to authenticate with OSM"}), 400
 
-            terminate_url = f"https://{osm_ip}/osm/nslcm/v1/ns_instances/{nsInstanceId}/terminate"
-            headers = {
-                "Authorization": f"Bearer {osm.token}",
-                "Content-Type": "application/json"
-            }
-
-            terminate_payload = {"terminationType": "FORCEFUL"}
-            logger.debug(f"Sending termination request for NS Instance ID: {nsInstanceId}")
-            terminate_response = requests.post(
-                terminate_url,
-                headers=headers,
-                json=terminate_payload,
-                verify=osm.verify,
+            response = requests.delete(
+                f"https://{osm_ip}/osm/nslcm/v1/ns_instances_content/{quote(nsInstanceId, safe='')}",
+                headers={"Authorization": f"Bearer {osm.token}"}, verify=osm.verify,
+                timeout=(5, 60), allow_redirects=False,
             )
-            logger.debug(f"OSM Termination API response: {terminate_response.status_code}, {terminate_response.text}")
+            if response.status_code not in (200, 202, 204):
+                return jsonify({'error': 'OSM did not confirm acceptance of deletion; inspect the existing instance before retrying.'}), 502
+            return jsonify({'message': 'OSM accepted termination/deletion; completion is not verified.',
+                            'operation_id': record['_id'], 'nfvo_id': nfvo['id']}), 202
 
-            if terminate_response.status_code != 202:
-                logger.error(f"Failed to terminate deployment: {terminate_response.text}")
-                return jsonify({"error": f"Failed to terminate deployment: {terminate_response.text}"}), terminate_response.status_code
+        except operations.OperationError as exc:
+            return jsonify({'error': str(exc)}), exc.status
+        except requests.RequestException:
+            return jsonify({'error': 'Deletion outcome is unknown; inspect the existing instance before retrying.'}), 502
 
-            termination_status_url = f"https://{osm_ip}/osm/nslcm/v1/ns_instances/{nsInstanceId}"
-            for attempt in range(10):
-                status_response = requests.get(
-                    termination_status_url, headers=headers, verify=osm.verify
-                )
-                if status_response.status_code == 404:
-                    logger.info(f"Deployment with NS Instance ID {nsInstanceId} successfully deleted.")
-                    return jsonify({"message": f"Deployment with NS Instance ID {nsInstanceId} successfully deleted."}), 200
-                logger.debug(f"Termination status attempt {attempt + 1}: {status_response.status_code}, {status_response.text}")
-                time.sleep(5)
-
-            logger.error(f"Timeout while waiting for termination of NS Instance ID: {nsInstanceId}")
-            return jsonify({"error": "Timeout while waiting for termination"}), 408
-
-        except Exception as e:
+        except Exception:
             logger.exception("Error deleting deployment.")
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": "Deletion could not be confirmed; inspect the existing instance before retrying."}), 503

@@ -93,4 +93,22 @@ describe('DeploymentHistoryService', () => {
       'legacy-password',
     );
   });
+  it('upserts recovered attempts and persists observed completion across reloads', () => {
+    const service = TestBed.inject(DeploymentHistoryService);
+    const initial = service.addPack({
+      name: 'test', optionId: 'k8s', optionLabel: 'Kubernetes', shortLabel: 'K8s',
+      operationId: 'request', status: 'unknown', completedAt: '2026-11-13T08:00:00Z',
+      finalConfigurationLabel: 'Deploy', requirements: [],
+    });
+    const recovered = service.addPack({ ...initial, status: 'accepted', completedAt: '2026-11-13T09:00:00Z' });
+    expect(recovered.id).toBe(initial.id);
+    expect(recovered.completedAt).toBe(initial.completedAt);
+    expect(service.getPacks()).toHaveLength(1);
+    service.updateOperation({ operation_id: 'request', nfvo_id: 'b', submission_state: 'accepted',
+      phase: 'completed', message: 'Workload readiness unverified' });
+    const reloaded = new DeploymentHistoryService();
+    expect(reloaded.getPackById(initial.id)?.status).toBe('done');
+    expect(reloaded.getPackById(initial.id)?.operation?.phase).toBe('completed');
+  });
+
 });

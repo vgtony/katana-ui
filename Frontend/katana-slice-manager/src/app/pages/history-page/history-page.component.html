@@ -31,6 +31,12 @@
 
             <div class="history-page__card-copy">
               <p class="history-page__deployment">{{ pack.optionLabel }}</p>
+              @if (pack.operationId) {
+                <p>Request {{ pack.operationId }}</p>
+                @if (pack.operation?.osm_instance_id) { <p>OSM instance {{ pack.operation?.osm_instance_id }}</p> }
+                <p role="status">{{ statusMessages[pack.operationId] }}</p>
+                <button type="button" (click)="refreshOperation(pack)">Refresh status</button>
+              }
               @if (pack.osmResponse) {
                 <details>
                   <summary>OSM acceptance response</summary>

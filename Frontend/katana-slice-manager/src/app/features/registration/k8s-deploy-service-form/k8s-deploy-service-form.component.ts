@@ -1,8 +1,11 @@
 import { FORM_FEEDBACK_IMPORTS } from '../../../shared/forms/form-feedback';
-import { ChangeDetectorRef, Component, NgZone, OnInit, inject, output } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, NgZone, OnInit, inject, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize, forkJoin } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { RouterLink } from '@angular/router';
+import { K8sOperation } from '../../../models/interfaces/k8s-operation.interface';
 import {
   NestRecord,
   firstString,
@@ -32,11 +35,12 @@ interface K8sClusterSnapshot {
 
 @Component({
   selector: 'app-k8s-deploy-service-form',
-  imports: [...FORM_FEEDBACK_IMPORTS, ReactiveFormsModule],
+  imports: [...FORM_FEEDBACK_IMPORTS, ReactiveFormsModule, RouterLink],
   templateUrl: './k8s-deploy-service-form.component.html',
   styleUrl: './k8s-deploy-service-form.component.scss',
 })
 export class K8sDeployServiceFormComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly formBuilder = inject(FormBuilder);
   private readonly ngZone = inject(NgZone);
   private readonly changeDetectorRef = inject(ChangeDetectorRef);
@@ -70,6 +74,9 @@ export class K8sDeployServiceFormComponent implements OnInit {
       : this.savedState === 'draft'
         ? 'Saved K8s deployment draft restored.'
         : '';
+  protected requestId = this.savedModel.requestId ?? '';
+  protected operationLocked = !!this.requestId;
+  protected operation: K8sOperation | null = null;
   protected submitting = false;
   protected loadingInventory = true;
   protected inventoryError = '';
@@ -94,13 +101,17 @@ export class K8sDeployServiceFormComponent implements OnInit {
       this.deploymentDraftService.saveFormValue(
         'k8s',
         'k8s-deploy',
-        { ...this.form.getRawValue(), nestRequired: !!this.nestFileName },
+        { ...this.form.getRawValue(), nestRequired: !!this.nestFileName, requestId: this.requestId },
         'draft',
       );
     });
   }
 
   ngOnInit(): void {
+    if (this.requestId) {
+      this.form.disable({ emitEvent: false });
+      this.checkOperation();
+    }
     if (this.savedModel.nestRequired)
       this.nestError =
         'Re-upload the NEST for this saved deployment, or remove NEST configuration to deploy chart defaults.';
@@ -351,6 +362,7 @@ export class K8sDeployServiceFormComponent implements OnInit {
       this.nestError ||
       this.nestSelectionError() ||
       this.submitting ||
+      this.operationLocked ||
       !this.selectedNsd() ||
       !this.vims.some(
         (vim) => vim.id === this.form.controls.vimAccountId.value && vim.k8s_cluster_count > 0,
@@ -361,13 +373,28 @@ export class K8sDeployServiceFormComponent implements OnInit {
     }
 
     this.submitting = true;
+    if (!this.requestId) {
+      const bytes = crypto.getRandomValues(new Uint8Array(16));
+      bytes[6] = (bytes[6] & 15) | 64;
+      bytes[8] = (bytes[8] & 63) | 128;
+      const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+      this.requestId = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+    }
+    this.operationLocked = true;
+    this.form.disable({ emitEvent: false });
+    // Persist identity before the request; reload must recover this attempt, not create another.
+    this.deploymentDraftService.saveFormValue('k8s', 'k8s-deploy', {
+      ...this.form.getRawValue(), nestRequired: !!this.nest, requestId: this.requestId,
+    }, 'draft');
 
     this.kubernetesApi
       .deployK8sService({
         ...(this.form.getRawValue() as K8sDeployServiceFormModel),
+        requestId: this.requestId,
         ...(this.nest ? { nest: this.nest } : {}),
       })
       .pipe(
+        takeUntilDestroyed(this.destroyRef),
         finalize(() =>
           this.ngZone.run(() => {
             this.submitting = false;
@@ -380,24 +407,71 @@ export class K8sDeployServiceFormComponent implements OnInit {
             this.deploymentDraftService.saveFormValue(
               'k8s',
               'k8s-deploy',
-              { ...this.form.getRawValue(), nestRequired: !!this.nest },
+              { ...this.form.getRawValue(), nestRequired: !!this.nest, requestId: this.requestId },
               'active',
             );
             this.submitSucceeded = true;
             this.submitMessage = response.message || 'Deployment request sent successfully.';
-            this.deployed.emit({ status: 'accepted', osmResponse: response.osm_response });
+            this.deployed.emit({
+              status: response.phase === 'unknown' ? 'unknown' : response.phase === 'failed' ? 'failed' : 'accepted',
+              osmResponse: response.osm_response,
+              operationId: response.operation_id ?? this.requestId,
+            });
           });
         },
         error: (error: unknown) => {
           this.ngZone.run(() => {
             this.submitSucceeded = false;
-            this.submitError = getApiErrorMessage(error, 'Unable to deploy to Kubernetes.');
+            const rejected = error instanceof HttpErrorResponse && [400, 404].includes(error.status);
+            this.operationLocked = !rejected;
+            if (rejected) this.form.enable({ emitEvent: false });
+            this.submitError = rejected
+              ? getApiErrorMessage(error, 'Unable to deploy to Kubernetes.')
+              : 'Submission outcome is unconfirmed. Check this operation before deploying again.';
             this.deployed.emit({
-              status: 'failed',
+              status: rejected ? 'failed' : 'unknown',
+              operationId: rejected ? undefined : this.requestId,
               errorType: getApiErrorType(error) ?? 'Failed',
             });
           });
         },
       });
   }
+
+  protected checkOperation(): void {
+    if (!this.requestId) return;
+    this.kubernetesApi.getOperation(this.requestId).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (operation) => {
+        this.operation = operation;
+        this.operationLocked = true;
+        this.submitMessage = operation.message;
+        this.deployed.emit({ status: operation.phase === 'completed' ? 'done' : operation.phase === 'failed' ? 'failed' : operation.phase === 'unknown' ? 'unknown' : 'accepted',
+          operationId: operation.operation_id, operation });
+        this.submitError = '';
+        this.changeDetectorRef.markForCheck();
+      },
+      error: (error: unknown) => {
+        // A missing record allows retry with THE SAME key; concurrent creates still deduplicate.
+        this.operationLocked = !(error instanceof HttpErrorResponse && error.status === 404);
+        if (!this.operationLocked) this.form.enable({ emitEvent: false });
+        this.submitError = this.operationLocked
+          ? 'Status is unavailable. Keep this request identity and check again.'
+          : 'No submission record exists. You can correct the input and retry this request.';
+        this.changeDetectorRef.markForCheck();
+      },
+    });
+  }
+
+  protected startNewOperation(): void {
+    if (!this.operation || !['completed', 'failed'].includes(this.operation.phase)) return;
+    this.requestId = '';
+    this.operation = null;
+    this.operationLocked = false;
+    this.form.enable({ emitEvent: false });
+    this.submitMessage = '';
+    this.form.updateValueAndValidity({ emitEvent: true });
+  }
+
 }

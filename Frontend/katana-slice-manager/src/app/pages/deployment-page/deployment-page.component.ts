@@ -797,6 +797,8 @@ export class DeploymentPageComponent implements OnInit {
       status: attempt.status,
       errorType: attempt.errorType,
       osmResponse: attempt.osmResponse,
+      operationId: attempt.operationId,
+      ...(attempt.operation ? { operation: attempt.operation } : {}),
       completedAt: new Date().toISOString(),
       finalConfigurationLabel: this.selectedOption.finalConfigurationLabel,
       formSnapshots: this.deploymentDraftService.getSnapshotsForOption(this.selectedOption.id),
@@ -817,6 +819,12 @@ export class DeploymentPageComponent implements OnInit {
   }
 
   protected getDeploymentFeedbackMessage(): string {
+    if (this.lastDeploymentStatus === 'unknown') {
+      return 'Deployment outcome is unknown and saved to History. Check the existing operation before deploying again.';
+    }
+    if (this.selectedOption.id === 'k8s' && this.lastDeploymentStatus === 'done') {
+      return 'OSM instantiation completed and saved to History. Workload readiness remains unverified.';
+    }
     if (this.lastDeploymentStatus === 'accepted') {
       return 'Deployment request accepted and saved to History. Check OSM and workload status before treating the service as ready.';
     }

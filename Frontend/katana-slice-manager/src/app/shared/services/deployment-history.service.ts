@@ -1,3 +1,4 @@
+import { K8sOperation } from '../../models/interfaces/k8s-operation.interface';
 import { Injectable, signal } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { DeploymentPack } from '../../models/interfaces/deployment-pack.interface';
@@ -29,16 +30,30 @@ export class DeploymentHistoryService {
   }
 
   addPack(pack: Omit<DeploymentPack, 'id'>): DeploymentPack {
+    const previous = pack.operationId
+      ? this.getPacks().find((item) => item.operationId === pack.operationId)
+      : undefined;
     const createdPack = redactStoredSecrets<DeploymentPack>({
+      ...previous,
       ...pack,
-      id: createPackId(),
+      completedAt: previous?.completedAt ?? pack.completedAt,
+      id: previous?.id ?? createPackId(),
     });
 
-    const nextPacks = [createdPack, ...this.packsSubject.value];
+    const nextPacks = [createdPack, ...this.packsSubject.value.filter((item) => item.id !== createdPack.id)];
     this.writePacks(nextPacks);
     this.packsSubject.next(nextPacks);
 
     return createdPack;
+  }
+
+  updateOperation(operation: K8sOperation): void {
+    const packs = this.getPacks().map((pack): DeploymentPack => pack.operationId === operation.operation_id
+      ? { ...pack, operation, status: operation.phase === 'completed' ? 'done'
+          : operation.phase === 'failed' ? 'failed' : operation.phase === 'unknown' ? 'unknown' : 'accepted' }
+      : pack);
+    this.writePacks(packs);
+    this.packsSubject.next(packs);
   }
 
   clearPacks(): void {

@@ -75,6 +75,7 @@
       type="submit"
       [disabled]="
         submitting ||
+        operationLocked ||
         loadingInventory ||
         !!inventoryError ||
         !!nestError ||
@@ -83,6 +84,16 @@
     >
       {{ submitting ? 'Deploying to K8s...' : 'Deploy To K8s' }}
     </button>
+    @if (requestId) {
+      <div class="registration-form__full" role="status">
+        <p>Deployment request: {{ requestId }}</p>
+        <button type="button" (click)="checkOperation()" [disabled]="submitting">Check submission</button>
+        <a routerLink="/history">View deployment history</a>
+        @if (operation?.phase === 'completed' || operation?.phase === 'failed') {
+          <button type="button" (click)="startNewOperation()">Start a new deployment request</button>
+        }
+      </div>
+    }
     @if (loadingInventory) {
       <p class="registration-form__status" role="status">
         Loading Kubernetes targets, enabled OSM VIMs, and NSDs…

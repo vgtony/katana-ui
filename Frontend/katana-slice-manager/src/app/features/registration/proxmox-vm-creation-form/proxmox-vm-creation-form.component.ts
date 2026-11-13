@@ -1,3 +1,4 @@
+import { K8sOperation } from '../../../models/interfaces/k8s-operation.interface';
 import { FORM_FEEDBACK_IMPORTS } from '../../../shared/forms/form-feedback';
 import { ChangeDetectorRef, Component, DestroyRef, NgZone, effect, inject, input, output } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -33,6 +34,8 @@ export interface DeploymentAttemptEvent {
   status: DeploymentPackStatus;
   errorType?: string;
   osmResponse?: unknown;
+  operationId?: string;
+  operation?: K8sOperation;
 }
 
 @Component({

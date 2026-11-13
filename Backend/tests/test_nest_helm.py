@@ -9,6 +9,7 @@ import sys
 from types import ModuleType, SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
+from katana.shared_utils import deploymentOperations as operations
 
 ROOT = Path(__file__).resolve().parents[1]
 NEST_PATH = ROOT / 'katana-nbi/katana/shared_utils/nestHelm.py'
@@ -87,6 +88,8 @@ class NestHelmTests(unittest.TestCase):
         })
         nfvo = dict(id='osm', nfvoip='osm', nfvousername='user', nfvopassword='password', tenantname='project')
         mongo = Mock()
+        mongo.k8s_operations.find_one.return_value = None
+        mongo.k8s_operations.update_one.return_value.matched_count = 1
         mongo.find.return_value = {'nfvo_id': 'osm', 'deployment_runtime': 'kubernetes'}
         mongo.find_all.return_value = []
         post = Mock(return_value=Mock(status_code=202, text='accepted', json=lambda: {'id': 'instance'}))
@@ -94,7 +97,7 @@ class NestHelmTests(unittest.TestCase):
             'request': request, 'jsonify': lambda value: value, 'logger': Mock(),
             '_find_nfvo': lambda value: nfvo, '_osm_client': lambda **kwargs: Mock(token='token', verify=True),
             '_vim_account_id': lambda *args: 'vim', 'mongoUtils': mongo,
-            'requests': SimpleNamespace(post=post), 'os': os,
+            'requests': SimpleNamespace(post=post), 'os': os, 'operations': operations,
         })
         module = ModuleType('katana.shared_utils.nestHelm')
         module.deployment_nest_parameters = translate

@@ -201,6 +201,15 @@ describe('DeploymentPageComponent', () => {
     });
   });
 
+  it('keeps uncertain and OSM-completed feedback distinct from workload readiness', () => {
+    createComponentForOption('k8s');
+    component['deploy']({ status: 'unknown', operationId: 'request' });
+    expect(component['getDeploymentFeedbackMessage']()).toContain('outcome is unknown');
+    expect(component['getDeploymentFeedbackMessage']()).not.toContain('completed deployment');
+    component['deploy']({ status: 'done', operationId: 'request' });
+    expect(component['getDeploymentFeedbackMessage']()).toContain('Workload readiness remains unverified');
+  });
+
   describe('Standalone Proxmox wizard', () => {
     beforeEach(() => {
       createComponentForOption('proxmox-standalone');

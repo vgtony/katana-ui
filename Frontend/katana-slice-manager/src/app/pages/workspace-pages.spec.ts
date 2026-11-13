@@ -92,6 +92,7 @@ describe('Workspace pages', () => {
                 },
               ]),
               storageUnavailable: () => false,
+              getPacks: () => [],
               clearPacks: () => undefined,
             },
           },

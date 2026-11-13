@@ -1,8 +1,16 @@
 from pymongo import MongoClient, ASCENDING
+from pymongo.write_concern import WriteConcern
+from pymongo.read_concern import ReadConcern
 
 
 client = MongoClient("mongodb://mongo")
 db = client.katana
+
+# Acknowledged operation claims must survive a replica failover before contacting OSM.
+k8s_operations = db.get_collection(
+    "k8s_operations", write_concern=WriteConcern(w="majority", j=True, wtimeout=10000),
+    read_concern=ReadConcern("majority"),
+)
 
 # Initialize all collections and create indexes
 db.vim.create_index([("id", ASCENDING)], unique=True)

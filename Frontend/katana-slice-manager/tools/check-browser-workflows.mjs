@@ -19,6 +19,7 @@ const server = createServer(async (request, response) => {
   if (path.startsWith('/api/')) {
     requests.push({ method: request.method, path });
     let body = [], status = 200;
+    if (path === '/api/k8s/operations/browser-request') body = { operation_id: 'browser-request', nfvo_id: 'b', submission_state: 'accepted', phase: 'completed', message: 'Workload readiness is not verified.', osm_instance_id: 'osm-service-id' };
     if (path === '/api/bootstrap/status') body = { status: 'never_run', nfvos: [], vims: [], links: [] };
     if (path === '/api/function') body = [{ id: 'healthy-function', name: 'Healthy function', password: 'secret-not-for-display' }];
     if (path === '/api/nfvo' && outage) { status = 503; body = { error: 'Simulated NFVO outage' }; }
@@ -95,7 +96,7 @@ try {
   };
   const click = (text) => evaluate(`[...document.querySelectorAll('button')].find(b => b.textContent.includes(${JSON.stringify(text)}))?.click()`);
   const setInput = (selector, value) => evaluate(`(() => { const e=document.querySelector(${JSON.stringify(selector)}); e.value=${JSON.stringify(value)}; e.dispatchEvent(new Event('input',{bubbles:true})); })()`);
-  const routes = [['/', 'Katana Slice Manager'], ['/dashboard', 'Healthy function'], ['/infrastructure', 'NFVO and deployment target inventory'], ['/admin/infrastructure/bootstrap', 'Infrastructure bootstrap'], ['/helm-charts', 'Chart administrator sign in'], ['/deployment', 'Live targets'], ['/history', 'Deployment Packs'], ['/monitoring', 'Monitoring'], ['/monitoring/local-slice', 'Local test'], ['/slices/local-slice', 'Running']];
+  const routes = [['/', 'From infrastructure to insight'], ['/dashboard', 'Healthy function'], ['/infrastructure', 'Deployment targets are registered and linked'], ['/admin/infrastructure/bootstrap', 'Infrastructure setup'], ['/helm-charts', 'Chart administrator sign in'], ['/deployment', 'Live targets'], ['/history', 'Deployment history'], ['/monitoring', 'Monitoring'], ['/monitoring/local-slice', 'Local test'], ['/slices/local-slice', 'Running']];
   for (const width of [1440, 390]) {
     await call('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false });
     for (const [path, text] of routes) {
@@ -107,9 +108,9 @@ try {
       results.push({ width, path, rendered: true, overflow });
     }
   }
-  for (const path of ['/proxmox', '/does-not-exist']) { await navigate(path, 'Katana Slice Manager'); assert.equal(await evaluate('location.pathname'), '/'); }
+  for (const path of ['/proxmox', '/does-not-exist']) { await navigate(path, 'From infrastructure to insight'); assert.equal(await evaluate('location.pathname'), '/'); }
   for (const path of ['/slices/create', '/deployment/slice']) { await navigate(path, 'Deploy'); assert.equal(await evaluate('location.pathname'), '/deployment/k8s'); }
-  await navigate('/deployment', 'Live targets'); await click('New Deployment');
+  await navigate('/deployment', 'Live targets'); await click('New deployment');
   await until(`document.body?.innerText.includes('Create New Network Slice')`);
   await click('Proxmox'); await until(`!!document.querySelector('input[type="password"]')`);
   assert.equal(await evaluate('location.pathname'), '/deployment/proxmox-standalone');
@@ -132,17 +133,26 @@ try {
   await click('Sign out'); await until(`!!document.querySelector('#helm-password')`);
   assert.equal(await evaluate(`document.querySelector('#helm-password').value`), '');
   results.push({ workflow: 'Helm invalid/valid login, empty catalogue, sign-out and secret handling', passed: true });
-  await navigate('/history', 'Deployment Packs');
+  await navigate('/history', 'Deployment history');
   await evaluate(`localStorage.setItem('katana-slice-manager.deployment-history', '[null,{}]')`);
   await replaceDocument('Page.reload'); await until(`document.body?.innerText.includes('No deployment packs yet')`);
   const beforeClear = requests.filter((r) => r.method === 'DELETE').length;
   await click('Clear History'); assert.equal(requests.filter((r) => r.method === 'DELETE').length, beforeClear);
   results.push({ workflow: 'Corrupt history recovery; clear does not delete infrastructure', passed: true });
   await evaluate(`localStorage.setItem('katana-slice-manager.deployment-history', JSON.stringify([{ id:'accepted-pack', optionId:'k8s', optionLabel:'Kubernetes', status:'accepted', requirements:[], completedAt:'2026-10-16T09:00:00Z', osmResponse:{id:'osm-service-id'} }]))`);
-  await replaceDocument('Page.reload'); await until(`document.body?.innerText.toLowerCase().includes('accepted — readiness not verified')`);
+  await replaceDocument('Page.reload'); await until(`document.body?.innerText.toLowerCase().includes('historical submission — outcome unverified')`);
   await evaluate(`document.querySelector('details').open=true`);
   assert(await evaluate(`document.body?.innerText.includes('osm-service-id')`));
   results.push({ workflow: 'Accepted OSM result survives refresh and remains distinct from Katana slice status', passed: true });
+  const beforeRecovery = requests.filter((r) => r.method === 'POST').length;
+  await evaluate(`localStorage.setItem('katana-slice-manager.deployment-history', JSON.stringify([{ id:'recover-pack', operationId:'browser-request', optionId:'k8s', optionLabel:'Kubernetes', status:'unknown', requirements:[], completedAt:'2026-11-13T09:00:00Z' }]))`);
+  await replaceDocument('Page.reload');
+  await until(`document.body?.innerText.includes('OSM instantiation completed')`);
+  assert(await evaluate(`document.body?.innerText.includes('workload readiness unverified')`));
+  assert.equal(requests.filter((r) => r.method === 'POST').length, beforeRecovery);
+  await replaceDocument('Page.reload');
+  await until(`document.body?.innerText.includes('OSM instantiation completed')`);
+  results.push({ workflow: 'Durable operation recovery uses only GET and completion survives reload', passed: true });
   const screenshot = await call('Page.captureScreenshot', { format: 'png' });
   await writeFile('/private/tmp/katana-browser-mobile.png', Buffer.from(screenshot.data, 'base64'));
   assert.deepEqual(errors, [], 'Unexpected browser exceptions');

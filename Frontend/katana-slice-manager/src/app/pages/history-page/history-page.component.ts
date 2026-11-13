@@ -1,5 +1,8 @@
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subscription } from 'rxjs';
+import { KubernetesApiService } from '../../shared/services/api/kubernetes-api.service';
 import { AsyncPipe, DatePipe, JsonPipe } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { DeploymentPack } from '../../models/interfaces/deployment-pack.interface';
 import { DeploymentDraftService } from '../../shared/services/deployment-draft.service';
@@ -16,9 +19,39 @@ export class HistoryPageComponent {
   private readonly deploymentDraftService = inject(DeploymentDraftService);
   private readonly router = inject(Router);
 
+  private readonly kubernetesApi = inject(KubernetesApiService);
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly polls = new Map<string, Subscription>();
+  protected statusMessages: Record<string, string> = {};
+
+  constructor() {
+    for (const pack of this.historyService.getPacks()) {
+      if (pack.operationId && !['completed', 'failed'].includes(pack.operation?.phase ?? '')) this.refreshOperation(pack);
+    }
+  }
+
+  protected refreshOperation(pack: DeploymentPack): void {
+    const id = pack.operationId;
+    if (!id) return;
+    this.polls.get(id)?.unsubscribe();
+    this.statusMessages[id] = 'Checking OSM status…';
+    this.polls.set(id, this.kubernetesApi.pollOperation(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (operation) => {
+        this.historyService.updateOperation(operation);
+        this.statusMessages[id] = operation.phase === 'pending'
+          ? 'Waiting for OSM. Workload readiness is not verified.' : operation.message;
+      },
+      error: () => { this.statusMessages[id] = 'Status unavailable. Last observation retained; retry only this status check.'; this.changeDetectorRef.markForCheck(); },
+      complete: () => { this.statusMessages[id] = 'Automatic checking stopped. Refresh status for a newer observation.'; this.changeDetectorRef.markForCheck(); },
+    }));
+  }
+
   protected readonly packs$ = this.historyService.packs$;
 
   protected clearHistory(): void {
+    for (const poll of this.polls.values()) poll.unsubscribe();
+    this.polls.clear();
     this.historyService.clearPacks();
   }
 
@@ -32,6 +65,10 @@ export class HistoryPageComponent {
   }
 
   protected getPackStatusLabel(pack: DeploymentPack): string {
+    if (pack.operation?.phase === 'completed') return 'OSM instantiation completed — workload readiness unverified';
+    if (pack.operation?.phase === 'failed') return `OSM ${pack.operation.osm_operation_state ?? 'rejected'}`;
+    if (pack.status === 'unknown') return 'Outcome unknown — reconcile before retrying';
+    if (pack.optionId === 'k8s' && !pack.operationId) return 'Historical submission — outcome unverified';
     if (pack.status === 'accepted') return 'Accepted — readiness not verified';
     return pack.status === 'failed' ? pack.errorType ?? 'Failed' : 'Operation completed';
   }

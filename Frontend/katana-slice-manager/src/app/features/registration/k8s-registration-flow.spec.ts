@@ -1,3 +1,4 @@
+import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
@@ -26,7 +27,7 @@ describe('K8s registration flow defaults', () => {
     );
     await TestBed.configureTestingModule({
       imports: [K8sClusterRegistrationFormComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     }).compileComponents();
 
     const fixture: ComponentFixture<K8sClusterRegistrationFormComponent> = TestBed.createComponent(
@@ -45,7 +46,7 @@ describe('K8s registration flow defaults', () => {
   it('lists enabled OSM VIMs, including accounts created after Time-0, for cluster registration', async () => {
     await TestBed.configureTestingModule({
       imports: [K8sClusterRegistrationFormComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     }).compileComponents();
 
     const fixture: ComponentFixture<K8sClusterRegistrationFormComponent> = TestBed.createComponent(
@@ -99,7 +100,7 @@ describe('K8s registration flow defaults', () => {
   it('loads OSM inventory and passes parsed NEST values through the existing deployment endpoint', async () => {
     await TestBed.configureTestingModule({
       imports: [K8sDeployServiceFormComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     }).compileComponents();
 
     const fixture: ComponentFixture<K8sDeployServiceFormComponent> = TestBed.createComponent(
@@ -216,6 +217,42 @@ service_descriptor:
     expect(deploy.request.body.nsdId).toBe('nsd-k8s');
     expect(deploy.request.body.vimAccountId).toBe('post-time-0-osm-vim-id');
     deploy.flush({ message: 'Accepted', osm_response: { id: 'instance' } });
-    expect(emitted).toEqual([{ status: 'accepted', osmResponse: { id: 'instance' } }]);
+    expect(emitted).toEqual([{ status: 'accepted', osmResponse: { id: 'instance' }, operationId: deploy.request.body.request_id }]);
+    expect(deploy.request.body.request_id).toMatch(/^[0-9a-f-]{36}$/);
+    // Acceptance locks the same attempt. Clicking again cannot create another service.
+    component.submit();
+    httpTestingController.expectNone((req) => req.method === 'POST');
+    expect(localStorage.getItem('katana-slice-manager.deployment-drafts')).toContain(deploy.request.body.request_id);
   });
+  it('recovers the saved attempt after reload using only a status read', async () => {
+    const id = 'cd35cb3f-35b6-46f8-84f9-d311b00e45f0';
+    localStorage.setItem('katana-slice-manager.deployment-drafts', JSON.stringify({
+      k8s: { 'k8s-deploy': { state: 'draft', value: { requestId: id } } },
+    }));
+    await TestBed.configureTestingModule({
+      imports: [K8sDeployServiceFormComponent],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(K8sDeployServiceFormComponent);
+    httpTestingController = TestBed.inject(HttpTestingController);
+    const component = fixture.componentInstance as any;
+    const emitted: unknown[] = [];
+    component.deployed.subscribe((event: unknown) => emitted.push(event));
+    fixture.detectChanges();
+    expect(component.form.disabled).toBe(true);
+    const operation = { operation_id: id, nfvo_id: 'b', submission_state: 'accepted',
+      phase: 'completed', message: 'OSM accepted the request. Workload readiness is not verified.' };
+    httpTestingController.expectOne('/api/k8s/operations/' + id).flush(operation);
+    httpTestingController.expectOne((req) => req.url.includes('/nslist')).flush([]);
+    httpTestingController.expectOne((req) => req.url.endsWith('/k8s')).flush([]);
+    httpTestingController.expectOne((req) => req.url.endsWith('/location')).flush([]);
+    component.submit();
+    httpTestingController.expectNone((req) => req.method === 'POST');
+    expect(emitted).toEqual([{ status: 'done', operationId: id, operation }]);
+    component.startNewOperation();
+    expect(component.requestId).toBe('');
+    expect(component.form.enabled).toBe(true);
+    expect(localStorage.getItem('katana-slice-manager.deployment-drafts')).not.toContain(id);
+  });
+
 });

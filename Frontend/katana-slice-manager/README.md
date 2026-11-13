@@ -1,59 +1,26 @@
-# KatanaSliceManager
+# Katana Slice Manager UI
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.4.
+Use Node 24.14.1 (`.nvmrc`) and npm 10.9.3 (`packageManager`). Dependencies are recorded in `package-lock.json`.
 
-## Development server
-
-To start a local development server, run:
-
-```bash
-ng serve
+```sh
+nvm install
+nvm use
+npm install --global npm@10.9.3
+npm ci
+npm start
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+The development server is at http://localhost:4200. Both development and `npm run start:local-network` forward `/api` to `http://localhost:8000` using `proxy.conf.json`. Set that proxy target to a disposable local backend when needed; do not commit lab credentials. A proxy target is server-side development configuration, not a browser secret.
 
-## Code scaffolding
+All tracked environment files use the public same-origin `apiBase: '/api'`. Production hosting must forward `/api` to the NBI. Environment files are compiled into the public browser bundle: never put passwords, tokens, or kubeconfigs there. No personal environment files are required.
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
+```sh
+npm test -- --watch=false
+npm run build
+npm run build -- --configuration development
+npm run build -- --configuration local-network
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+The production build preserves the existing bundle/style budgets. Output is under `dist/katana-slice-manager`. There is no configured `ng e2e` target. Existing optional browser workflow checks are described in `../../Backend/docs/workflow-verification.md`.
 
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Kubernetes submission IDs are saved before sending requests. History refreshes OSM status using that identity; an accepted request or completed OSM operation does not establish workload readiness. Unknown submissions must be reconciled before starting a new deployment.
